@@ -70,9 +70,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					name="description"
 					content="Developing applications and infrastructure on Fractal Bitcoin."
 				/>
-				<meta property="og:image" content="https://flur.gg/unfurl.png" />
+				<meta property="og:image" content="https://flur.gg/unfurl.jpeg" />
 				<meta name="twitter:card" content="summary_large_image" />
-				<meta property="twitter:image" content="https://flur.gg/unfurl.png" />
+				<meta property="twitter:image" content="https://flur.gg/unfurl.jpeg" />
 			</head>
 			<body className={inter.className}>
 				<WalletContext.Provider
