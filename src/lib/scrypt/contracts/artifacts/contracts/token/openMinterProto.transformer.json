@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/openMinterProto.scrypt",
+  "sourceMapFile": "contracts/token/openMinterProto.scrypt.map",
+  "ctxMethods": []
+}

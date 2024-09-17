@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/burnGuard.scrypt",
+  "sourceMapFile": "contracts/token/burnGuard.scrypt.map",
+  "ctxMethods": []
+}

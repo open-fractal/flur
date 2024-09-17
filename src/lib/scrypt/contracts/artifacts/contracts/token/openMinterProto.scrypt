@@ -1,0 +1,13 @@
+
+struct OpenMinterState {
+  bytes tokenScript;
+  bool isPremined;
+  int remainingSupply;
+}
+
+library OpenMinterProto {
+  static function stateHash(OpenMinterState _state) : bytes {
+    bytes isPreminedByte = _state.isPremined ? b'01' : b'00';
+    return hash160(_state.tokenScript + isPreminedByte + pack(_state.remainingSupply));
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/utils/txUtil.scrypt",
+  "sourceMapFile": "contracts/utils/txUtil.scrypt.map",
+  "ctxMethods": []
+}

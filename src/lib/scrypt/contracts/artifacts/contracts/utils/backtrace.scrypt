@@ -1,0 +1,32 @@
+import "txProof.scrypt";import "txUtil.scrypt";
+
+struct BacktraceInfo {
+  XrayedTxIdPreimg1 preTx;
+  TxInput preTxInput;
+  int preTxInputIndex;
+  XrayedTxIdPreimg2 prePreTx;
+}
+
+library Backtrace {
+  static function verifyUnique(bytes preTxid, BacktraceInfo backtraceInfo, bytes genesisOutpoint, bytes expectedScript) : bool {
+    require(preTxid == TxProof.getTxIdFromPreimg1(backtraceInfo.preTx));
+    require(TxProof.mergeInput(backtraceInfo.preTxInput) == backtraceInfo.preTx.inputs[(backtraceInfo.preTxInputIndex)]);
+    require(TxUtil.checkIndex(backtraceInfo.preTxInput.outputIndexVal, backtraceInfo.preTxInput.outputIndex));
+    bytes prevOutpoint = backtraceInfo.preTxInput.txhash + backtraceInfo.preTxInput.outputIndex;
+    if(prevOutpoint != genesisOutpoint) {
+        TxProof.verifyOutput(backtraceInfo.prePreTx, backtraceInfo.preTxInput.txhash, backtraceInfo.preTxInput.outputIndexVal, expectedScript);
+      }
+    return true;
+  }
+  static function verifyToken(bytes preTxid, BacktraceInfo backtraceInfo, bytes minterScript, bytes expectedScript) : bool {
+    require(preTxid == TxProof.getTxIdFromPreimg1(backtraceInfo.preTx));
+    require(TxProof.mergeInput(backtraceInfo.preTxInput) == backtraceInfo.preTx.inputs[(backtraceInfo.preTxInputIndex)]);
+    require(TxUtil.checkIndex(backtraceInfo.preTxInput.outputIndexVal, backtraceInfo.preTxInput.outputIndex));
+    require(TxProof.getTxIdFromPreimg2(backtraceInfo.prePreTx) == backtraceInfo.preTxInput.txhash);
+    bytes prePreScript = backtraceInfo.prePreTx.outputScriptList[(backtraceInfo.preTxInput.outputIndexVal)];
+    bool backtraceGenesis = prePreScript == minterScript;
+    bool backtraceToken = prePreScript == expectedScript;
+    require(backtraceGenesis || backtraceToken);
+    return true;
+  }
+}

@@ -1,0 +1,45 @@
+import "txUtil.scrypt";import "txProof.scrypt";
+
+struct PreTxStatesInfo {
+  bytes statesHashRoot;
+  bytes[5] txoStateHashes;
+}
+
+library StateUtils {
+  static function verifyStateRoot(bytes[5] txoStateHashes, bytes statesHashRoot) : bool {
+    bytes rawString = b'';
+    loop (5) : i {
+        rawString += hash160(txoStateHashes[i]);
+      }
+    return hash160(rawString) == statesHashRoot;
+  }
+  static function getPadding(int stateNumber) : bytes {
+    int number = (5) - stateNumber;
+    bytes padding = b'';
+    loop (5) : index {
+        if(index < number) {
+          padding += hash160(b'');
+        }
+      }
+    return padding;
+  }
+  static function getStateScript(bytes hashString, int stateNumber) : bytes {
+    return TxUtil.getStateScript(hash160(hash160(hashString) + StateUtils.getPadding(stateNumber)));
+  }
+  static function getCurrentStateOutput(bytes hashString, int stateNumber, bytes[5] stateHashList) : bytes {
+    Ripemd160 hashRoot = hash160(hashString + StateUtils.getPadding(stateNumber));
+    require(StateUtils.verifyStateRoot(stateHashList, hashRoot));
+    return TxUtil.buildOpReturnRoot(TxUtil.getStateScript(hashRoot));
+  }
+  static function verifyPreStateHash(PreTxStatesInfo statesInfo, bytes preStateHash, bytes preTxStateScript, int outputIndex) : bool {
+    require(TxUtil.getStateScript(statesInfo.statesHashRoot) == preTxStateScript);
+    require(StateUtils.verifyStateRoot(statesInfo.txoStateHashes, statesInfo.statesHashRoot));
+    require(preStateHash == statesInfo.txoStateHashes[(outputIndex - 1)]);
+    return true;
+  }
+  static function verifyGuardStateHash(XrayedTxIdPreimg3 preTx, bytes preTxhash, bytes preStateHash) : bool {
+    require(TxProof.getTxIdFromPreimg3(preTx) == preTxhash);
+    require(StateUtils.getStateScript(preStateHash, 1) == preTx.outputScriptList[0]);
+    return true;
+  }
+}

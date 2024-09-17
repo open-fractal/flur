@@ -1,0 +1,15 @@
+
+struct GuardConstState {
+  bytes tokenScript;
+  int[6] inputTokenAmountArray;
+}
+
+library GuardProto {
+  static function stateHash(GuardConstState _state) : bytes {
+    bytes inputOutpointAll = _state.tokenScript;
+    loop (6) : i {
+        inputOutpointAll += pack(_state.inputTokenAmountArray[i]);
+      }
+    return hash160(inputOutpointAll);
+  }
+}

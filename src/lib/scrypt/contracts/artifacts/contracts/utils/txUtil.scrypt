@@ -1,0 +1,46 @@
+
+struct ChangeInfo {
+  bytes script;
+  bytes satoshis;
+}
+
+library TxUtil {
+  static const bytes ZEROSAT = b'0000000000000000';
+  static function mergePrevouts(bytes[6] prevouts) : bytes {
+    bytes result = b'';
+    loop (6) : index {
+        bytes prevout = prevouts[index];
+        result += prevout;
+      }
+    return result;
+  }
+  static function mergeSpentScripts(bytes[6] spentScripts) : bytes {
+    bytes result = b'';
+    loop (6) : index {
+        bytes spentScript = spentScripts[index];
+        result += pack(len(spentScript)) + spentScript;
+      }
+    return result;
+  }
+  static function buildOutput(bytes script, bytes satoshis) : bytes {
+    int nlen = len(script);
+    require(nlen <= 34);
+    return satoshis + pack(nlen) + script;
+  }
+  static function checkIndex(int indexVal, bytes index) : bool {
+    bytes indexByte = pack(indexVal);
+    if(indexByte == b'') {
+        indexByte = b'00';
+      }
+    return indexByte + b'000000' == index;
+  }
+  static function buildOpReturnRoot(bytes script) : bytes {
+    return (b'0000000000000000' + pack(len(script)) + script);
+  }
+  static function getStateScript(bytes hashRoot) : bytes {
+    return b'6a1863617401' + hashRoot;
+  }
+  static function getChangeOutput(ChangeInfo changeInfo) : bytes {
+    return changeInfo.satoshis != TxUtil.ZEROSAT ? TxUtil.buildOutput(changeInfo.script, changeInfo.satoshis) : b'';
+  }
+}

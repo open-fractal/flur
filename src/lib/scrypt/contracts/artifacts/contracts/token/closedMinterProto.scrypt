@@ -1,0 +1,10 @@
+
+struct ClosedMinterState {
+  bytes tokenScript;
+}
+
+library ClosedMinterProto {
+  static function stateHash(ClosedMinterState _state) : bytes {
+    return hash160(_state.tokenScript);
+  }
+}

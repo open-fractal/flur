@@ -1,0 +1,9 @@
+.parcel-cache
+docs/
+ecies/
+lib/
+node_modules/
+.mocharc.yaml
+benchmark.
+.gitignore
+test/

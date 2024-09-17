@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/transferGuard.scrypt",
+  "sourceMapFile": "contracts/token/transferGuard.scrypt.map",
+  "ctxMethods": []
+}

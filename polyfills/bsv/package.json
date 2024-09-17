@@ -1,0 +1,78 @@
+{
+  "name": "@scrypt-inc/bsv",
+  "version": "1.0.1",
+  "description": "A pure and powerful JavaScript Bitcoin SV (BSV) library.",
+  "author": "sCrypt.Inc",
+  "source": "./index.js",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.js",
+  "types": "./index.d.ts",
+  "scripts": {
+    "lint": "standard --fix",
+    "build": "parcel build --no-cache",
+    "dev": "mocha -g 'BIP32' ",
+    "test": "standard && mocha",
+    "coverage": "nyc --reporter=text npm run test",
+    "prepublishOnly": "yarn build",
+    "release": "npm publish --access public"
+  },
+  "targets": {
+    "types": false
+  },
+  "keywords": [
+    "bitcoin",
+    "bsv",
+    "scrypt",
+    "transaction",
+    "address",
+    "p2p",
+    "ecies",
+    "cryptocurrency",
+    "blockchain",
+    "payment",
+    "bip21",
+    "bip32",
+    "bip37",
+    "bip69",
+    "bip70",
+    "multisig"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sCrypt-Inc/bsv"
+  },
+  "dependencies": {
+    "aes-js": "^3.1.2",
+    "assert": "^2.1.0",
+    "bn.js": "=4.11.9",
+    "bs58": "=4.0.1",
+    "buffer": "^6.0.3",
+    "clone-deep": "^4.0.1",
+    "elliptic": "6.5.4",
+    "hash.js": "^1.1.7",
+    "inherits": "2.0.3",
+    "unorm": "1.4.1"
+  },
+  "devDependencies": {
+    "brfs": "2.0.1",
+    "chai": "4.2.0",
+    "mocha": "^8.4.0",
+    "nyc": "^14.1.1",
+    "parcel": "latest",
+    "sinon": "7.2.3",
+    "standard": "12.0.1"
+  },
+  "license": "MIT",
+  "standard": {
+    "globals": [
+      "afterEach",
+      "beforeEach",
+      "describe",
+      "it"
+    ],
+    "ignore": [
+      "dist/**"
+    ]
+  }
+}

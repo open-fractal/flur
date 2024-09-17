@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/cat20Proto.scrypt",
+  "sourceMapFile": "contracts/token/cat20Proto.scrypt.map",
+  "ctxMethods": []
+}

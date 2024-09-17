@@ -1,0 +1,46 @@
+import "guardProto.scrypt";import "../utils/txProof.scrypt";import "../utils/sigHashUtils.scrypt";import "../utils/stateUtils.scrypt";import "../utils/txUtil.scrypt";
+
+contract TransferGuard {
+  public function transfer(bytes[5] curTxoStateHashes, bytes[5] ownerAddrOrScriptList, int[5] tokenAmountList, bool[5] tokenOutputMaskList, bytes[5] outputSatoshisList, bytes tokenSatoshis, GuardConstState preState, XrayedTxIdPreimg3 preTx, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScripts) {
+    require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+    SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+    SigHashUtils.checkSpentScriptsCtx(spentScripts, shPreimage.hashSpentScripts);
+    StateUtils.verifyGuardStateHash(preTx, prevoutsCtx.spentTxhash, GuardProto.stateHash(preState));
+    int sumInputToken = 0;
+    loop (6) : i {
+        bytes script = spentScripts[i];
+        if(script == preState.tokenScript) {
+          int preSumInputToken = sumInputToken;
+          sumInputToken += preState.inputTokenAmountArray[i];
+          require(sumInputToken > preSumInputToken);
+        }
+      }
+    bytes stateHashString = b'';
+    bytes outputs = b'';
+    int sumOutputToken = 0;
+    bytes tokenOutput = TxUtil.buildOutput(preState.tokenScript, tokenSatoshis);
+    loop (5) : i {
+        bytes addrOrScript = ownerAddrOrScriptList[i];
+        if(tokenOutputMaskList[i]) {
+          int tokenAmount = tokenAmountList[i];
+          require(tokenAmount > 0);
+          sumOutputToken = sumOutputToken + tokenAmount;
+          outputs = outputs + tokenOutput;
+          Ripemd160 tokenStateHash = hash160(hash160(addrOrScript + pack(tokenAmount)));
+          require(hash160(curTxoStateHashes[i]) == tokenStateHash);
+          stateHashString += tokenStateHash;
+        } else {
+          require(addrOrScript != preState.tokenScript);
+          stateHashString += hash160(curTxoStateHashes[i]);
+          if(len(addrOrScript) > 0) {
+            outputs += TxUtil.buildOutput(addrOrScript, outputSatoshisList[i]);
+          }
+        }
+      }
+    require(sumInputToken > 0);
+    require(sumInputToken == sumOutputToken);
+    bytes stateOutput = TxUtil.buildOpReturnRoot(TxUtil.getStateScript(hash160(stateHashString)));
+    Sha256 hashOutputs = sha256(stateOutput + outputs);
+    require(hashOutputs == shPreimage.hashOutputs);
+  }
+}

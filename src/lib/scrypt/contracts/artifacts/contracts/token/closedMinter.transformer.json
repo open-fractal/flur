@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/closedMinter.scrypt",
+  "sourceMapFile": "contracts/token/closedMinter.scrypt.map",
+  "ctxMethods": []
+}

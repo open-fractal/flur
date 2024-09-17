@@ -1,0 +1,44 @@
+# Flur
+
+Flur is an interface for [CAT Protocol](https://github.com/CATProtocol/cat-token-box) assets on fractal bitcoin.
+
+## Getting Started
+
+You can clone the repo and run it locally to get started.
+
+```bash
+git clone https://github.com/open-fractal/flur.git
+cd flur
+```
+
+Install the dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Environment Variables and Tracker API
+
+1. Create a `.env.local` file in the root directory with:
+   ```
+   NEXT_PUBLIC_API_URL=<tracker-api-url>
+   ```
+2. Adjust the URL to the tracker API.
+
+The tracker API is hosted on the [CATProtocol/cat-token-box](https://github.com/CATProtocol/cat-token-box) repository.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.

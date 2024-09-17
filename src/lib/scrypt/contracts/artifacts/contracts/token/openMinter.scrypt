@@ -1,0 +1,51 @@
+import "cat20Proto.scrypt";import "openMinterProto.scrypt";import "../utils/stateUtils.scrypt";import "../utils/backtrace.scrypt";import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";
+
+contract OpenMinter {
+  bytes genesisOutpoint;
+  int max;
+  int premine;
+  int limit;
+  bytes premineAddr;
+  public function mint(bytes[5] curTxoStateHashes, CAT20State tokenMint, int[2] nextMinterAmounts, bytes preminerPubKeyPrefix, PubKey preminerPubKey, Sig preminerSig, bytes minterSatoshis, bytes tokenSatoshis, OpenMinterState preState, PreTxStatesInfo preTxStatesInfo, BacktraceInfo backtraceInfo, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, ChangeInfo changeInfo) {
+    require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+    SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+    SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
+    StateUtils.verifyPreStateHash(preTxStatesInfo, OpenMinterProto.stateHash(preState), backtraceInfo.preTx.outputScriptList[0], prevoutsCtx.outputIndexVal);
+    bytes preScript = spentScriptsCtx[(prevoutsCtx.inputIndexVal)];
+    Backtrace.verifyUnique(prevoutsCtx.spentTxhash, backtraceInfo, this.genesisOutpoint, preScript);
+    bytes openMinterOutputs = b'';
+    bytes curStateHashes = b'';
+    int curStateCnt = 0;
+    int totalAmount = 0;
+    loop (2) : i {
+        int amount = nextMinterAmounts[i];
+        if(amount > 0) {
+          totalAmount += amount;
+          curStateCnt += 1;
+          openMinterOutputs += TxUtil.buildOutput(preScript, minterSatoshis);
+          curStateHashes += hash160(OpenMinterProto.stateHash({preState.tokenScript, true, amount}));
+        }
+      }
+    bytes tokenOutput = b'';
+    if(tokenMint.amount > 0) {
+        totalAmount += tokenMint.amount;
+        curStateCnt += 1;
+        curStateHashes += hash160(CAT20Proto.stateHash({tokenMint.ownerAddr, tokenMint.amount}));
+        tokenOutput = TxUtil.buildOutput(preState.tokenScript, tokenSatoshis);
+      }
+    if(!preState.isPremined && this.premine > 0) {
+        require(hash160(preminerPubKeyPrefix + preminerPubKey) == this.premineAddr);
+        require(checkSig(preminerSig, preminerPubKey));
+        require(totalAmount == preState.remainingSupply + this.premine);
+        require(this.max == preState.remainingSupply + this.premine);
+        require(tokenMint.amount == this.premine);
+      } else {
+        require(totalAmount == preState.remainingSupply);
+        require(tokenMint.amount <= this.limit);
+      }
+    bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
+    bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+    Sha256 hashOutputs = sha256(stateOutput + openMinterOutputs + tokenOutput + changeOutput);
+    require(hashOutputs == shPreimage.hashOutputs);
+  }
+}

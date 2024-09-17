@@ -1,0 +1,35 @@
+import "cat20Proto.scrypt";import "closedMinterProto.scrypt";import "../utils/stateUtils.scrypt";import "../utils/backtrace.scrypt";import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";
+
+contract ClosedMinter {
+  bytes issuerAddress;
+  bytes genesisOutpoint;
+  constructor(bytes ownerAddress, bytes genesisOutpoint) {
+    this.issuerAddress = ownerAddress;
+    this.genesisOutpoint = genesisOutpoint;
+  }
+  public function mint(bytes[5] curTxoStateHashes, CAT20State tokenMint, bytes issuerPubKeyPrefix, PubKey issuerPubKey, Sig issuerSig, bytes genesisSatoshis, bytes tokenSatoshis, ClosedMinterState preState, PreTxStatesInfo preTxStatesInfo, BacktraceInfo backtraceInfo, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScripts, ChangeInfo changeInfo) {
+    require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+    SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+    SigHashUtils.checkSpentScriptsCtx(spentScripts, shPreimage.hashSpentScripts);
+    StateUtils.verifyPreStateHash(preTxStatesInfo, ClosedMinterProto.stateHash(preState), backtraceInfo.preTx.outputScriptList[0], prevoutsCtx.outputIndexVal);
+    bytes preScript = spentScripts[(prevoutsCtx.inputIndexVal)];
+    Backtrace.verifyUnique(prevoutsCtx.spentTxhash, backtraceInfo, this.genesisOutpoint, preScript);
+    bytes hashString = b'';
+    bytes genesisOutput = b'';
+    int stateNumber = 0;
+    if(genesisSatoshis != TxUtil.ZEROSAT) {
+        genesisOutput = TxUtil.buildOutput(preScript, genesisSatoshis);
+        hashString += hash160(preTxStatesInfo.txoStateHashes[(prevoutsCtx.outputIndexVal) - 1]);
+        stateNumber += 1;
+      }
+    hashString += hash160(CAT20Proto.stateHash({tokenMint.ownerAddr, tokenMint.amount}));
+    bytes tokenOutput = TxUtil.buildOutput(preState.tokenScript, tokenSatoshis);
+    stateNumber += 1;
+    bytes stateOutput = StateUtils.getCurrentStateOutput(hashString, stateNumber, curTxoStateHashes);
+    bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+    Sha256 hashOutputs = sha256(stateOutput + genesisOutput + tokenOutput + changeOutput);
+    require(hashOutputs == shPreimage.hashOutputs);
+    require(this.issuerAddress == hash160(issuerPubKeyPrefix + issuerPubKey));
+    require(checkSig(issuerSig, issuerPubKey));
+  }
+}

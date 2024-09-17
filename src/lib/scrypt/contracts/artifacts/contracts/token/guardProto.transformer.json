@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/guardProto.scrypt",
+  "sourceMapFile": "contracts/token/guardProto.scrypt.map",
+  "ctxMethods": []
+}

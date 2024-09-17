@@ -1,0 +1,16 @@
+language: node_js
+node_js: 
+  - 14
+
+
+jobs:
+  include:
+    script:
+        - npm run build
+        - npm t
+
+notifications:
+  slack:
+    rooms:
+      - secure: X+OgXAvq8rGtDZTNW4LMfj1lGNfcqTtgG+Yj2xX5dHkCYJk3eLW5WWB/Bf4w+47jy1XCOnEzh7QqEXiqEk2X53b8+9ZZHg5t+kBln8ygqcfREu3RqPK5b04ysy3Jv4Z3nkVKB8qoc6ldz5finMlpwxRScPU/Rp3aUEN1Q1s9WCCX/a0pxye8JN9zHAwEs/sCNUsK6HSezVk8dLF93be5tAfx7hcp6fwbpxp4lVvQyDbBfdqWLP6IN339xbXCGMTKa9Jk0WpjuQxpUZaL+aeD7rdv5lQAJzDd7CzTq3UekRywmcZI18YbnY4Ppq8cKB+OjL/2uqdS+R1jmwruZFYRx+Z55zMGk/HuT3Hiph7IG/sFOi0Zq+YZ2QGcHlyfPgwRONpswlc0lVrXLg7U38cmf2PL2SKAWK3tFKog6rjXmAAXApjKErZblFnPzAA8CWcICkc7z2yf/G4fkgsEAsPW3FzodvrxnaMpArWxwp/pg4oxrPh7QGTNYUX2yYmPhQi0i7eLIRjDGx/0L37VZDgBOn1vWg7RTpKwZRqlj1Uqo9pmjNfcLHtAMmP0dc8jV1Ij8KyWS27pipjq8embvXGqgjamNY1PJT0ixzodo90nar2m8+WEXxA2DvGSxs2cIMgsh93sW9QvQ6YWmDeCp/lsWMXA+3MwiCg3GRpLtl8whEE=
+    on_success: change

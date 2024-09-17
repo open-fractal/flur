@@ -1,0 +1,93 @@
+
+struct XrayedTxIdPreimg1 {
+  bytes version;
+  bytes inputCount;
+  bytes[6] inputs;
+  int outputCountVal;
+  bytes outputCount;
+  bytes[6] outputSatoshisList;
+  bytes[6] outputScriptList;
+  bytes nLocktime;
+}
+
+struct XrayedTxIdPreimg2 {
+  bytes[4] prevList;
+  int outputCountVal;
+  bytes outputCount;
+  bytes[6] outputSatoshisList;
+  bytes[6] outputScriptList;
+  bytes nLocktime;
+}
+
+struct XrayedTxIdPreimg3 {
+  bytes prev;
+  int outputCountVal;
+  bytes outputCount;
+  bytes[4] outputSatoshisList;
+  bytes[4] outputScriptList;
+  bytes nLocktime;
+}
+
+struct TxInput {
+  bytes txhash;
+  bytes outputIndex;
+  int outputIndexVal;
+  bytes sequence;
+}
+
+library TxProof {
+  static function getTxIdFromPreimg1(XrayedTxIdPreimg1 preimage) : bytes {
+    bytes txHex = preimage.version + preimage.inputCount;
+    loop (6) : i {
+        txHex += preimage.inputs[i];
+      }
+    txHex += preimage.outputCount;
+    require(pack(preimage.outputCountVal) == preimage.outputCount);
+    loop (6) : i {
+        bytes outputSatoshi = preimage.outputSatoshisList[i];
+        bytes outputScript = preimage.outputScriptList[i];
+        bytes outputScriptLen = pack(len(outputScript));
+        if(i < preimage.outputCountVal) {
+          txHex += outputSatoshi + outputScriptLen + outputScript;
+        }
+      }
+    return hash256(txHex + preimage.nLocktime);
+  }
+  static function getTxIdFromPreimg2(XrayedTxIdPreimg2 preimage) : bytes {
+    bytes txHex = b'';
+    loop (4) : i {
+        txHex += preimage.prevList[i];
+      }
+    require(pack(preimage.outputCountVal) == preimage.outputCount);
+    loop (6) : i {
+        bytes outputSatoshi = preimage.outputSatoshisList[i];
+        bytes outputScript = preimage.outputScriptList[i];
+        bytes outputScriptLen = pack(len(outputScript));
+        if(i < preimage.outputCountVal) {
+          txHex += outputSatoshi + outputScriptLen + outputScript;
+        }
+      }
+    return hash256(txHex + preimage.nLocktime);
+  }
+  static function getTxIdFromPreimg3(XrayedTxIdPreimg3 preimage) : bytes {
+    require(pack(preimage.outputCountVal) == preimage.outputCount);
+    bytes outputs = b'';
+    loop (4) : i {
+        bytes outputSatoshis = preimage.outputSatoshisList[i];
+        bytes outputScript = preimage.outputScriptList[i];
+        bytes outputScriptLen = pack(len(outputScript));
+        if(i < preimage.outputCountVal) {
+          outputs += outputSatoshis + outputScriptLen + outputScript;
+        }
+      }
+    return hash256(preimage.prev + outputs + preimage.nLocktime);
+  }
+  static function mergeInput(TxInput txInput) : bytes {
+    return (txInput.txhash + txInput.outputIndex + b'00' + txInput.sequence);
+  }
+  static function verifyOutput(XrayedTxIdPreimg2 preimage, bytes txhash, int outputIndexVal, bytes outputScript) : bool {
+    require(TxProof.getTxIdFromPreimg2(preimage) == txhash);
+    require(preimage.outputScriptList[(outputIndexVal)] == outputScript);
+    return true;
+  }
+}

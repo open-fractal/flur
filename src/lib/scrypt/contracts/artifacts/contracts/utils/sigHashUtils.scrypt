@@ -1,0 +1,52 @@
+import "txUtil.scrypt";
+
+struct SHPreimage {
+  bytes txVer;
+  bytes nLockTime;
+  bytes hashPrevouts;
+  bytes hashSpentAmounts;
+  bytes hashSpentScripts;
+  bytes hashSequences;
+  bytes hashOutputs;
+  bytes spendType;
+  bytes inputIndex;
+  bytes hashTapLeaf;
+  bytes keyVer;
+  bytes codeSeparator;
+  bytes _e;
+  int eLastByte;
+}
+
+struct PrevoutsCtx {
+  bytes[6] prevouts;
+  int inputIndexVal;
+  int outputIndexVal;
+  bytes spentTxhash;
+  bytes outputIndex;
+}
+
+library SigHashUtils {
+  static const PubKey Gx = PubKey(b'79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
+  static const bytes ePreimagePrefix = b'7bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c7bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179879be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+  static const bytes preimagePrefix = b'f40a48df4b2a70c8b4924bf2654661ed3d95fd66a313eb87237597c628e4a031f40a48df4b2a70c8b4924bf2654661ed3d95fd66a313eb87237597c628e4a0310000';
+  static function checkSHPreimage(SHPreimage shPreimage) : Sig {
+    Sha256 sigHash = sha256(SigHashUtils.preimagePrefix + shPreimage.txVer + shPreimage.nLockTime + shPreimage.hashPrevouts + shPreimage.hashSpentAmounts + shPreimage.hashSpentScripts + shPreimage.hashSequences + shPreimage.hashOutputs + shPreimage.spendType + shPreimage.inputIndex + shPreimage.hashTapLeaf + shPreimage.keyVer + shPreimage.codeSeparator);
+    Sha256 e = sha256(SigHashUtils.ePreimagePrefix + sigHash);
+    require(shPreimage.eLastByte < 127);
+    bytes eLastByte = shPreimage.eLastByte == 0 ? b'00' : pack(shPreimage.eLastByte);
+    require(e == shPreimage._e + eLastByte);
+    bytes s = SigHashUtils.Gx + shPreimage._e + pack(shPreimage.eLastByte + 1);
+    return Sig(s);
+  }
+  static function checkPrevoutsCtx(PrevoutsCtx prevoutsCtx, bytes hashPrevouts, bytes inputIndex) : bool {
+    require(sha256(TxUtil.mergePrevouts(prevoutsCtx.prevouts)) == hashPrevouts);
+    require(TxUtil.checkIndex(prevoutsCtx.inputIndexVal, inputIndex));
+    require(TxUtil.checkIndex(prevoutsCtx.outputIndexVal, prevoutsCtx.outputIndex));
+    require(prevoutsCtx.prevouts[(prevoutsCtx.inputIndexVal)] == prevoutsCtx.spentTxhash + prevoutsCtx.outputIndex);
+    return true;
+  }
+  static function checkSpentScriptsCtx(bytes[6] spentScripts, bytes hashSpentScripts) : bool {
+    require(sha256(TxUtil.mergeSpentScripts(spentScripts)) == hashSpentScripts);
+    return true;
+  }
+}

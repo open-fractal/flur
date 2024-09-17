@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/utils/stateUtils.scrypt",
+  "sourceMapFile": "contracts/utils/stateUtils.scrypt.map",
+  "ctxMethods": []
+}

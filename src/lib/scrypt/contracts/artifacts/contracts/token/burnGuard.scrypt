@@ -1,0 +1,22 @@
+import "guardProto.scrypt";import "../utils/txProof.scrypt";import "../utils/sigHashUtils.scrypt";import "../utils/stateUtils.scrypt";import "../utils/txUtil.scrypt";
+
+contract BurnGuard {
+  public function burn(bytes[5] curTxoStateHashes, bytes[5] outputScriptList, bytes[5] outputSatoshisList, GuardConstState preState, XrayedTxIdPreimg3 preTx, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx) {
+    require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+    SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+    StateUtils.verifyGuardStateHash(preTx, prevoutsCtx.spentTxhash, GuardProto.stateHash(preState));
+    bytes stateHashString = b'';
+    bytes outputs = b'';
+    loop (5) : i {
+        bytes outputScript = outputScriptList[i];
+        require(outputScript != preState.tokenScript);
+        stateHashString += hash160(curTxoStateHashes[i]);
+        if(len(outputScript) > 0) {
+          outputs += TxUtil.buildOutput(outputScript, outputSatoshisList[i]);
+        }
+      }
+    bytes stateOutput = TxUtil.buildOpReturnRoot(TxUtil.getStateScript(hash160(stateHashString)));
+    Sha256 hashOutputs = sha256(stateOutput + outputs);
+    require(hashOutputs == shPreimage.hashOutputs);
+  }
+}

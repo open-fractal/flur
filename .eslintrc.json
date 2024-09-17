@@ -1,0 +1,11 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "react/no-is-mounted": "off",
+    "prefer-rest-params": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "no-var": "off",
+    "@typescript-eslint/ban-ts-comment": "off"
+  }
+}

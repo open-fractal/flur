@@ -1,0 +1,45 @@
+# Minting
+
+## useMint Hook
+
+The `useMint` hook, defined in `src/hooks/use-mint.tsx`, provides functionality for minting tokens using the Unisat wallet. This hook simplifies the process of minting tokens on the Bitcoin network.
+
+### Features
+
+- Handles wallet connection checks
+- Manages minting state
+- Calculates fee rates dynamically
+- Broadcasts transactions
+- Provides user feedback through toast notifications
+
+### Usage
+
+To use the `useMint` hook in your component:
+
+```tsx
+import { useMint } from '@/hooks/use-mint'
+
+const tokenId = '45ee725c2c5993b3e4d308842d87e973bf1951f5f7a804b21e4dd964ecd12d6b_0'
+const { handleMint, isMinting } = useMint(tokenId)
+
+return (
+  <button onClick={handleMint}>Mint CAT with Unisat</button>
+)
+```
+
+### How it works
+
+1. When `handleMint` is called, it first checks if the Unisat wallet is connected.
+2. If the wallet is not connected, it prompts the user to connect.
+3. Once connected, it fetches the current fee rate and UTXOs from the wallet.
+4. It then sends a request to the `/api/mint` endpoint with necessary data.
+5. The signed PSBT is created and broadcasted to the Bitcoin network.
+6. The user is notified of the transaction status via a toast notification.
+
+### Error Handling
+
+The hook includes comprehensive error handling, providing user-friendly feedback for various scenarios such as wallet connection issues, broadcasting failures, and unexpected errors.
+
+## Note
+
+Ensure that the Unisat wallet extension is installed and the user has sufficient balance before attempting to mint tokens.

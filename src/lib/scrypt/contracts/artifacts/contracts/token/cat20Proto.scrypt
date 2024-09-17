@@ -1,0 +1,12 @@
+
+struct CAT20State {
+  bytes ownerAddr;
+  int amount;
+}
+
+library CAT20Proto {
+  static function stateHash(CAT20State _state) : bytes {
+    require(len(_state.ownerAddr) == 20);
+    return hash160(_state.ownerAddr + pack(_state.amount));
+  }
+}
