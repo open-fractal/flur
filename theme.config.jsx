@@ -5,6 +5,8 @@ export default {
 	project: {
 		link: 'https://github.com/open-fractal/flur'
 	},
+	docsRepositoryBase: 'https://github.com/open-fractal/flur/tree/main',
+
 	navbar: {
 		component: () => <Header />
 	}
