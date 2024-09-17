@@ -64,6 +64,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 	return (
 		<html lang="en">
+			<head>
+				<title>Flur – A Fractal Bitcoin company</title>
+				<meta
+					name="description"
+					content="Developing applications and infrastructure on Fractal Bitcoin."
+				/>
+				<meta property="og:image" content="https://flur.gg/unfurl.png" />
+				<meta name="twitter:card" content="summary_large_image" />
+				<meta property="twitter:image" content="https://flur.gg/unfurl.png" />
+			</head>
 			<body className={inter.className}>
 				<WalletContext.Provider
 					value={{ address, setAddress, isWalletConnected, setIsWalletConnected }}
