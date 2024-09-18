@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import '@/app/globals.css'
-
+import { useTheme } from 'next-themes'
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 const truncateAddress = (address: string) => {
@@ -32,6 +32,12 @@ const Header: React.FC = () => {
 		isWalletConnected ? `https://utxo-detective-fractal.twetch.app/balance/${address}?v=1` : null,
 		fetcher
 	)
+
+	const { setTheme } = useTheme()
+
+	useEffect(() => {
+		setTheme('dark')
+	}, [])
 
 	const connectWallet = useCallback(async () => {
 		if (typeof window.unisat !== 'undefined') {
@@ -65,8 +71,6 @@ const Header: React.FC = () => {
 		return (satoshis / 1e8).toFixed(2)
 	}
 
-	const isDocsPage = pathname?.startsWith('/docs')
-
 	return (
 		<>
 			<div className="h-16"></div>
@@ -93,28 +97,27 @@ const Header: React.FC = () => {
 					>
 						<Github size={24} />
 					</a>
-					{!isDocsPage &&
-						(isWalletConnected ? (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline">
-										{truncateAddress(address)}
-										{balanceData && !balanceError && (
-											<span className="ml-2">({formatBalance(balanceData.satoshis)} FB)</span>
-										)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent>
-									<DropdownMenuItem onClick={copyAddress}>
-										<Copy className="mr-2 h-4 w-4" />
-										Copy Address
-									</DropdownMenuItem>
-									<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						) : (
-							<Button onClick={connectWallet}>Connect Wallet</Button>
-						))}
+					{isWalletConnected ? (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline">
+									{truncateAddress(address)}
+									{balanceData && !balanceError && (
+										<span className="ml-2">({formatBalance(balanceData.satoshis)} FB)</span>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								<DropdownMenuItem onClick={copyAddress}>
+									<Copy className="mr-2 h-4 w-4" />
+									Copy Address
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					) : (
+						<Button onClick={connectWallet}>Connect Wallet</Button>
+					)}
 				</div>
 			</header>
 		</>
