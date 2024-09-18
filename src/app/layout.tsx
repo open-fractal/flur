@@ -1,68 +1,13 @@
-'use client'
-
 import './globals.css'
 import { Inter } from 'next/font/google'
-import React, { useState, useEffect, createContext } from 'react'
+import React from 'react'
 import { Toaster } from '@/components/ui/toaster'
 import Header from '@/components/Header'
 import { Analytics } from '@vercel/analytics/react'
-
 const inter = Inter({ subsets: ['latin'] })
-
-export const WalletContext = createContext<{
-	address: string
-	setAddress: (address: string) => void
-	isWalletConnected: boolean
-	setIsWalletConnected: (isConnected: boolean) => void
-}>({
-	address: '',
-	setAddress: () => {},
-	isWalletConnected: false,
-	setIsWalletConnected: () => {}
-})
+import { ThemeProvider } from '@/components/theme-provider'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-	const [address, setAddress] = useState('')
-	const [isWalletConnected, setIsWalletConnected] = useState(false)
-
-	useEffect(() => {
-		const checkWalletConnection = async () => {
-			if (typeof window.unisat !== 'undefined') {
-				try {
-					const accounts = await window.unisat.getAccounts()
-					if (accounts.length > 0) {
-						setIsWalletConnected(true)
-						setAddress(accounts[0])
-					}
-				} catch (error) {
-					console.error('Error checking wallet connection:', error)
-				}
-			}
-		}
-
-		const handleAccountsChanged = (accounts: string[]) => {
-			if (accounts.length > 0) {
-				setIsWalletConnected(true)
-				setAddress(accounts[0])
-			} else {
-				setIsWalletConnected(false)
-				setAddress('')
-			}
-		}
-
-		checkWalletConnection()
-
-		if (typeof window.unisat !== 'undefined') {
-			window.unisat.on('accountsChanged', handleAccountsChanged)
-		}
-
-		return () => {
-			if (typeof window.unisat !== 'undefined') {
-				window.unisat.removeListener('accountsChanged', handleAccountsChanged)
-			}
-		}
-	}, [])
-
 	return (
 		<html lang="en">
 			<head>
@@ -75,10 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 				<meta name="twitter:card" content="summary_large_image" />
 				<meta property="twitter:image" content="https://flur.gg/unfurl.jpeg" />
 			</head>
-			<body className={inter.className}>
-				<WalletContext.Provider
-					value={{ address, setAddress, isWalletConnected, setIsWalletConnected }}
-				>
+			<ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
+				<body className={inter.className}>
 					<div className="flex flex-col min-h-screen">
 						<Header />
 						<main className="flex-grow">{children}</main>
@@ -86,8 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						<Toaster />
 						<Analytics />
 					</div>
-				</WalletContext.Provider>
-			</body>
+				</body>
+			</ThemeProvider>
 		</html>
 	)
 }

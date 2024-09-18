@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ import {
 	TableHeader,
 	TableRow
 } from '@/components/ui/table'
-import { WalletContext } from '@/app/layout'
+import { useWallet } from '@/lib/unisat'
 import { API_URL } from '@/lib/constants'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -42,7 +42,7 @@ const truncateTokenId = (tokenId: string | undefined) => {
 
 export function TokenBalances() {
 	const router = useRouter()
-	const { address } = useContext(WalletContext)
+	const { address } = useWallet()
 	const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
 
 	const { data: balanceResponse, error: balanceError } = useSWR<BalanceResponse>(

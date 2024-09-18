@@ -1,4 +1,6 @@
-import React, { useContext, useCallback } from 'react'
+'use client'
+
+import React, { useCallback } from 'react'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Copy, Github } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { WalletContext } from '@/app/layout'
+import { useWallet } from '@/lib/unisat'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -22,7 +24,7 @@ const truncateAddress = (address: string) => {
 }
 
 const Header: React.FC = () => {
-	const { address, setAddress, isWalletConnected, setIsWalletConnected } = useContext(WalletContext)
+	const { address, setAddress, isWalletConnected, setIsWalletConnected } = useWallet()
 	const { toast } = useToast()
 	const pathname = usePathname()
 
