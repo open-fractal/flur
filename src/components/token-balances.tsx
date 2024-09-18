@@ -51,7 +51,7 @@ export function TokenBalances() {
 	)
 
 	useEffect(() => {
-		if (balanceResponse) {
+		if (balanceResponse?.data?.balances) {
 			fetchTokenInfo(balanceResponse.data.balances.map(b => b.tokenId))
 		}
 	}, [balanceResponse])
@@ -78,8 +78,10 @@ export function TokenBalances() {
 	}
 
 	if (!address) return null
-	if (balanceError) return <p>Error loading token balances.</p>
+	if (balanceError) return <p>Error loading token balances: {balanceError.message}</p>
 	if (!balanceResponse) return <TokenBalancesSkeleton />
+	if (!balanceResponse.data) return <p>Invalid response format from the server.</p>
+	if (!Array.isArray(balanceResponse.data.balances)) return <p>Invalid balances data received.</p>
 
 	const balances = balanceResponse.data.balances
 
@@ -101,7 +103,7 @@ export function TokenBalances() {
 			<CardHeader>
 				<CardTitle>Your Token Balances</CardTitle>
 				<p className="text-sm text-muted-foreground">
-					Tracker Block Height: {balanceResponse?.data.trackerBlockHeight}
+					Tracker Block Height: {balanceResponse?.data.trackerBlockHeight || 'Unknown'}
 				</p>
 			</CardHeader>
 			<CardContent>
