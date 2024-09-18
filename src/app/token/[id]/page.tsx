@@ -41,11 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 	// Generate metadata based on token details
 	return {
-		title: `${tokenDetails.symbol} | Flur.gg`,
-		description: `${tokenDetails.name} contract: ${token_id}}.`,
+		title: `${tokenDetails.symbol} ${token_id} | Flur.gg`,
+		description: `View ${tokenDetails.symbol} token details on Flur.gg.`,
 		openGraph: {
-			title: `${tokenDetails.symbol} | Flur.gg`,
-			description: `${tokenDetails.name} contract: ${token_id}}.`,
+			title: `${tokenDetails.symbol} ${token_id} | Flur.gg`,
+			description: `View ${tokenDetails.symbol} token details on Flur.gg.`,
 			images: ['https://flur.gg/unfurl.jpeg']
 		}
 	}
