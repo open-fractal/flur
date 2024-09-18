@@ -20,6 +20,7 @@ import '@/app/globals.css'
 import { useTheme } from 'next-themes'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { validateTokenId } from '@/lib/utils'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -82,10 +83,7 @@ const Header: React.FC = () => {
 
 		const trimmedInput = searchInput.trim()
 
-		// Validate token ID format: 64 hex characters followed by an underscore and a number
-		const isValidTokenId = /^[a-fA-F0-9]{64}_\d+$/.test(trimmedInput)
-
-		if (isValidTokenId) {
+		if (validateTokenId(trimmedInput)) {
 			router.push(`/token/${trimmedInput}`)
 			setSearchInput('')
 		} else {
@@ -115,7 +113,9 @@ const Header: React.FC = () => {
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<div className="flex items-center gap-2"> {/* Changed back from gap-4 to gap-2 */}
+					<div className="flex items-center gap-2">
+						{' '}
+						{/* Changed back from gap-4 to gap-2 */}
 						<a
 							href="https://github.com/open-fractal/flur"
 							target="_blank"
@@ -166,7 +166,9 @@ const Header: React.FC = () => {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : (
-						<Button onClick={connectWallet} className="transition-ease-in-out">Connect Wallet</Button>
+						<Button onClick={connectWallet} className="transition-ease-in-out">
+							Connect Wallet
+						</Button>
 					)}
 				</div>
 				<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
