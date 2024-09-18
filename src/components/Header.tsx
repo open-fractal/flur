@@ -9,7 +9,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { Copy, Github, Menu, Search, X } from 'lucide-react'
+import { Copy, Github, Menu, Search, X, Twitter } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/lib/unisat'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -115,14 +115,24 @@ const Header: React.FC = () => {
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<a
-						href="https://github.com/open-fractal/flur"
-						target="_blank"
-						rel="noopener noreferrer"
-						className="text-gray-600 hover:text-gray-900 transition-colors"
-					>
-						<Github size={24} />
-					</a>
+					<div className="flex items-center gap-2">
+						<a
+							href="https://github.com/open-fractal/flur"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-gray-600 hover:text-gray-900 transition-colors"
+						>
+							<Github size={24} />
+						</a>
+						<a
+							href="https://x.com/Flur69"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-gray-600 hover:text-gray-900 transition-colors"
+						>
+							<Twitter size={24} />
+						</a>
+					</div>
 				</div>
 				<div className="hidden sm:flex items-center gap-4">
 					<form onSubmit={handleSearch} className="relative">
