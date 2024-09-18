@@ -56,12 +56,34 @@ export function useMint(tokenId: string) {
 			return
 		}
 
+		// Check if the wallet is using a P2TR address
+		const address = (await window.unisat.getAccounts())[0]
+		if (!address.startsWith('bc1p')) {
+			toast({
+				title: 'Incompatible Wallet Type',
+				description: 'Please use a P2TR (Taproot) address to mint tokens.',
+				variant: 'destructive'
+			})
+			return
+		}
+
 		setIsMinting(true)
 
 		try {
 			const feeRate = await getFeeRate()
 
 			const utxos = await window.unisat.getBitcoinUtxos()
+
+			// Check if there are any UTXOs available
+			if (!utxos || utxos.length === 0) {
+				toast({
+					title: 'Insufficient Balance',
+					description: 'You do not have enough balance to mint tokens.',
+					variant: 'destructive'
+				})
+				setIsMinting(false)
+				return
+			}
 
 			const { data: pbstData } = await axios.post('/api/mint', {
 				tokenId: tokenId, // Use the tokenId passed to useMint

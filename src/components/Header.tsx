@@ -131,14 +131,11 @@ const Header: React.FC = () => {
 							placeholder="Search contracts..."
 							value={searchInput}
 							onChange={e => setSearchInput(e.target.value)}
-							className="w-[200px] pr-8"
+							className="w-[200px] pl-8"
 						/>
-						<button
-							type="submit"
-							className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent border-none"
-						>
+						<div className="absolute left-2 top-1/2 transform -translate-y-1/2">
 							<Search className="h-4 w-4 text-muted-foreground" />
-						</button>
+						</div>
 					</form>
 					{isWalletConnected ? (
 						<DropdownMenu>
@@ -198,14 +195,11 @@ const Header: React.FC = () => {
 									placeholder="Search contracts..."
 									value={searchInput}
 									onChange={e => setSearchInput(e.target.value)}
-									className="w-full pr-8"
+									className="w-full pl-8"
 								/>
-								<button
-									type="submit"
-									className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-transparent border-none"
-								>
+								<div className="absolute left-2 top-1/2 transform -translate-y-1/2">
 									<Search className="h-4 w-4 text-muted-foreground" />
-								</button>
+								</div>
 							</form>
 							<a
 								href="https://github.com/open-fractal/flur"
