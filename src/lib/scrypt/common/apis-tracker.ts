@@ -152,7 +152,7 @@ export const getTokenMinter = async function(
 
 			// If no contracts are available, return null
 			if (!selectedContract) {
-				return null
+				throw new Error('No minters available')
 			}
 
 			// Prepare the contracts array with only the selected contract
