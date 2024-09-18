@@ -1,7 +1,7 @@
 import { toByteString, UTXO, MethodCallOptions, int2ByteString } from 'scrypt-ts'
 import {
-	getRawTransaction,
 	getDummySigner,
+	getRawTransaction,
 	getDummyUTXO,
 	callToBufferList,
 	TokenMetadata,
@@ -293,6 +293,22 @@ async function openMint(
 	const backtraceInfo = getBackTraceInfo(commitTx, prevPrevTx, minterInputIndex)
 
 	const dummySigner = getDummySigner()
+	// const dummySigner = {
+	// 	signMessageWithTaproot: async () => {
+	// 		return DUMMY_MINER_SIG
+	// 	},
+	// 	isAuthenticated: async () => {
+	// 		return true
+	// 	},
+	// 	getDefaultAddress: async () => {
+	// 		return '1rPVSHNstSg8hPggvgyEhfQBGE4tsS8hY'
+	// 	},
+	// 	listUnspent: async () => {
+	// 		return [getDummyUTXO(100000000000000000, true), getDummyUTXO(100000000000000000, true)]
+	// 	},
+	// 	provider: new DummyProvider()
+	// }
+	// // @ts-ignore
 	await minter.connect(dummySigner)
 
 	const preTxState: PreTxStatesInfo = {

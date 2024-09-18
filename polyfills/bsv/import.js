@@ -1,2 +1,2 @@
-const bsv = require('./dist/main.js')
+const bsv = require('./dist/browser.js')
 module.exports = bsv.default
