@@ -122,7 +122,7 @@ const Header: React.FC = () => {
 							rel="noopener noreferrer"
 							className="text-gray-600 hover:text-gray-900 transition-colors"
 						>
-							<Github size={24} />
+							<Github size={16} />
 						</a>
 						<a
 							href="https://x.com/Flur69"
@@ -130,7 +130,7 @@ const Header: React.FC = () => {
 							rel="noopener noreferrer"
 							className="text-gray-600 hover:text-gray-900 transition-colors"
 						>
-							<Twitter size={24} />
+							<Twitter size={16} />
 						</a>
 					</div>
 				</div>
@@ -217,7 +217,7 @@ const Header: React.FC = () => {
 								rel="noopener noreferrer"
 								className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
 							>
-								<Github size={24} />
+								<Github size={16} />
 								GitHub
 							</a>
 							{isWalletConnected ? (
