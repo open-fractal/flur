@@ -108,10 +108,14 @@ const Header: React.FC = () => {
 					<Tabs value={pathname === '/docs' ? '/docs' : '/'} className="hidden sm:block">
 						<TabsList>
 							<TabsTrigger value="/" asChild>
-								<Link href="/">Explore</Link>
+								<Link href="/" className="hover:text-white transition-colors duration-200">
+									Explore
+								</Link>
 							</TabsTrigger>
 							<TabsTrigger value="/docs" asChild>
-								<Link href="/docs">Docs</Link>
+								<Link href="/docs" className="hover:text-white transition-colors duration-200">
+									Docs
+								</Link>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
