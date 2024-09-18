@@ -213,10 +213,7 @@ declare global {
 export function getDummySigner(privateKey?: bsv.PrivateKey | bsv.PrivateKey[]): TestWallet {
 	if (global.dummySigner === undefined) {
 		global.dummySigner = new TestWallet(
-			bsv.PrivateKey.fromHex(
-				'7d35031b5d377a066f7e9702fe677b98ccd75d9b22a881d8d438926076f351a0',
-				bsv.Networks.testnet
-			),
+			bsv.PrivateKey.fromRandom(bsv.Networks.testnet),
 			new DummyProvider()
 		)
 	}
