@@ -38,6 +38,9 @@ import {  WalletService } from '@/lib/scrypt/providers';
 import { scaleConfig } from '@/lib/scrypt/token'
 import { Transaction } from '@scure/btc-signer';
 import * as bitcoinjs from 'bitcoinjs-lib'
+import axios from 'axios'
+import { API_URL } from '@/lib/constants'
+
 
 const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json');
 OpenMinter.loadArtifact(OpenMinterArtifact);
@@ -406,54 +409,74 @@ type ResponseData = {
   message?: string
 }
  
+async function getIndexerStatus() {
+    try {
+    const response = await axios.get(`${API_URL}/api?v=1`)
+    return response.data.data
+  } catch (error) {
+    console.error('Error fetching indexer status:', error)
+    throw error
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
+  try {
+      // Check indexer status
+      
+    const indexerStatus = await getIndexerStatus()
+    const currentBlockHeight = indexerStatus.trackerBlockHeight
+    const chainTip = indexerStatus.nodeBlockHeight
+      
+    if (chainTip - currentBlockHeight > 3) {
+      return res.status(503).json({ message: 'Minting is temporarily disabled while the indexer is syncing' })
+    }
+
     if (process.env.SYNCING === 'true') {
       return res.status(400).json({ message: 'Minting is disabled while syncing' })
     }
 
-  const payload = req.body
+    const payload = req.body
 
-try {
-  const token = await getTokenMetadata(payload.tokenId);
+    const token = await getTokenMetadata(payload.tokenId);
 
-  if (!token) {
-    return res.status(404).json({ message: 'Token not found' });
-  }
-
-  const mintUtxoCount = await getTokenMinterCount(
-    token.tokenId,
-  );
-
-  const offset = getRandomInt(mintUtxoCount - 1)
-  const minter = await getTokenMinter(token, offset);
-  let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
-
-  if (!minter) {
-    return res.status(404).json({ message: 'Minter not found' });
-  }
-
-  const wallet = new WalletService(payload.address, payload.publicKey);
-  // Scale the limit by 10^decimals to account for token precision
-  // @ts-ignore
-    let scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
-
-    if (minter.state.data.remainingSupply < scaledLimit) {
-        scaledLimit = minter.state.data.remainingSupply
-        mintUtxoCreateCount = 0
+    if (!token) {
+      return res.status(404).json({ message: 'Token not found' });
     }
-    
-  const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledLimit);
 
-  if (!psbt) {
-    return res.status(500).json({ message: 'Failed to create PSBT' });
-  }
+    const mintUtxoCount = await getTokenMinterCount(
+      token.tokenId,
+    );
+
+    const offset = getRandomInt(mintUtxoCount - 1)
+    const minter = await getTokenMinter(token, offset);
+    let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
+
+    if (!minter) {
+      return res.status(404).json({ message: 'Minter not found' });
+    }
+
+    const wallet = new WalletService(payload.address, payload.publicKey);
+    // Scale the limit by 10^decimals to account for token precision
+    // @ts-ignore
+      let scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
+
+      if (minter.state.data.remainingSupply < scaledLimit) {
+          scaledLimit = minter.state.data.remainingSupply
+          mintUtxoCreateCount = 0
+      }
+      
+    const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledLimit);
+
+    if (!psbt) {
+      return res.status(500).json({ message: 'Failed to create PSBT' });
+    }
 
     res.status(200).json({ psbt: psbt as string })
-} catch (error) {
-    console.error(error, payload)
+  } catch (error) {
+    console.error(error, req.body)
     res.status(500).json({ message: 'Internal server error' })
   }
 }
