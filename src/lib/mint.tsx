@@ -404,7 +404,9 @@ async function openMint(
 		// @ts-ignore
 		const utxo = feeUtxos.find(
 			utxo =>
+				// @ts-ignore
 				utxo.txId === Buffer.from(psbt.inputs[i].txid).toString('hex') &&
+				// @ts-ignore
 				utxo.outputIndex === psbt.inputs[i].index
 		)
 
