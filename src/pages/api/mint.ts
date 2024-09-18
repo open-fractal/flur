@@ -429,7 +429,9 @@ try {
 
   const offset = getRandomInt(mintUtxoCount - 1)
   const minter = await getTokenMinter(token, offset);
-  const mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
+  let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
+
+    console.log('minter', minter)
 
   if (!minter) {
     return res.status(404).json({ message: 'Minter not found' });
@@ -438,7 +440,14 @@ try {
   const wallet = new WalletService(payload.address, payload.publicKey);
   // Scale the limit by 10^decimals to account for token precision
   // @ts-ignore
-  const scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
+    let scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
+
+    if (minter.state.data.remainingSupply < scaledLimit) {
+        scaledLimit = minter.state.data.remainingSupply
+        mintUtxoCreateCount = 0
+    }
+    
+    console.log('scaledLimit', scaledLimit)
   const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledLimit);
 
   if (!psbt) {
