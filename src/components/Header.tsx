@@ -115,12 +115,12 @@ const Header: React.FC = () => {
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2"> {/* Changed back from gap-4 to gap-2 */}
 						<a
 							href="https://github.com/open-fractal/flur"
 							target="_blank"
 							rel="noopener noreferrer"
-							className="text-gray-600 hover:text-gray-900 transition-colors"
+							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
 						>
 							<Github size={16} />
 						</a>
@@ -128,7 +128,7 @@ const Header: React.FC = () => {
 							href="https://x.com/Flur69"
 							target="_blank"
 							rel="noopener noreferrer"
-							className="text-gray-600 hover:text-gray-900 transition-colors"
+							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
 						>
 							<Twitter size={16} />
 						</a>
@@ -166,7 +166,7 @@ const Header: React.FC = () => {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : (
-						<Button onClick={connectWallet}>Connect Wallet</Button>
+						<Button onClick={connectWallet} className="transition-ease-in-out">Connect Wallet</Button>
 					)}
 				</div>
 				<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
