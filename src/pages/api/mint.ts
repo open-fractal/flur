@@ -226,7 +226,6 @@ async function openMint(
 
   const changeScript = btc.Script.fromAddress(address);
 
-
   const revealTx = new btc.Transaction()
       .from([minterUtxo, ...feeUtxos])
       .addOutput(
@@ -235,7 +234,6 @@ async function openMint(
               script: toStateScript(newState),
           })
       );
-
 
   for (let i = 0; i < splitAmountList.length; i++) {
       if (splitAmountList[i] > 0n) {
@@ -260,8 +258,8 @@ async function openMint(
               script: changeScript,
           })
       )
-      .feePerByte(feeRate);
-
+      .feePerByte(feeRate)
+      .enableRBF();
 
   const minterInputIndex = 0;
 

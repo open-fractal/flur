@@ -115,6 +115,25 @@ export function useMint(tokenId: string) {
 			console.log('txid', txid)
 
 			if (txid instanceof Error) {
+				// @ts-ignore
+				let message = txid.response.data
+
+				if (
+					message.includes(
+						'sendrawtransaction RPC error: {"code":-26,"message":"txn-mempool-conflict"}'
+					)
+				) {
+					// @ts-ignore
+					let prev_txid = Buffer.from(signedPsbt.inputs[0].txid, 'hex').toString('hex')
+					// @ts-ignore
+					let prev_vout = signedPsbt.inputs[0].index
+
+					console.log(`${EXPLORER_URL}/tx/${prev_txid}`)
+					console.log(`${prev_txid}:${prev_vout}`)
+
+					console.log('signedPsbt', signedPsbt)
+				}
+
 				// Show error toast
 				toast({
 					title: 'Failed to Broadcast',
