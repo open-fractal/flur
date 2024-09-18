@@ -99,12 +99,11 @@ export function useMint(tokenId: string) {
 					}))
 					.slice(0, 5)
 			}
-			const { mintNow } = await import('@/lib/mint')
 
-			const psbtData = await mintNow(payload)
+			// const { mintNow } = await import('@/lib/mint')
+			// const psbtData = await mintNow(payload)
 
-			// const { data: pbstData } = await axios.post('/api/mint', payload)
-
+			const { data: psbtData } = await axios.post('/api/mint', payload)
 			console.log('psbtData', psbtData)
 
 			const signedPsbtHex = await window.unisat.signPsbt(psbtData.psbt)
