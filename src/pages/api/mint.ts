@@ -421,7 +421,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-      const payload = req.body
+    if (process.env.SYNCING === 'true') {
+      return res.status(400).json({ message: 'Minting is disabled while syncing' })
+    }
+
+  const payload = req.body
 
 try {
   const token = await getTokenMetadata(payload.tokenId);
