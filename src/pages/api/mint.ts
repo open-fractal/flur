@@ -223,6 +223,7 @@ async function openMint(
 
   const changeScript = btc.Script.fromAddress(address);
 
+
   const revealTx = new btc.Transaction()
       .from([minterUtxo, ...feeUtxos])
       .addOutput(
@@ -421,7 +422,7 @@ export default async function handler(
   res: NextApiResponse<ResponseData>
 ) {
   const payload = req.body
-
+  console.log(payload)
   const token = await getTokenMetadata(payload.tokenId);
 
   if (!token) {
