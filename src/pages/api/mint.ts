@@ -451,8 +451,12 @@ export default async function handler(
     );
     
 
+    if (mintUtxoCount <= 0) {
+      return res.status(404).json({ message: 'Minter not found' });
+    }
 
-    const offset = getRandomInt(mintUtxoCount - 1)
+    // Ensure offset is non-negative
+    const offset = Math.max(0, getRandomInt(mintUtxoCount - 1));
 
     // Ensure offset is a multiple of 32
     const adjustedOffset = Math.floor(offset / 32) * 32;
@@ -460,6 +464,7 @@ export default async function handler(
     // Add a comment explaining the adjustment
     // This adjustment ensures that we always select a minter UTXO from a consistent set,
     // which can help with load balancing and prevent potential edge cases.
+    // It also guarantees that the offset is non-negative.
 
     const minter = await getTokenMinter(token, adjustedOffset);
     let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
