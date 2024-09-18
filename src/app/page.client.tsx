@@ -6,6 +6,7 @@ import { useWallet } from '@/lib/unisat'
 import { TokenBalances } from '@/components/token-balances'
 import { TokenList } from '@/components/TokenList'
 import { CompactIndexerDashboard } from '@/components/indexer-status' // Import the new component
+import { MintFee } from '@/components/mint-fee' // Import the new component
 import { API_URL } from '@/lib/constants'
 import { UnisatAPI } from '@/lib/unisat'
 import { TokenData } from '@/components/TokenList'
@@ -72,16 +73,18 @@ export default function Home() {
 			: null
 
 	return (
-		<div className="container mx-auto p-4 space-y-6">
-			<CompactIndexerDashboard
-				trackerHeight={indexerResponse?.data?.trackerBlockHeight}
-				latestHeight={indexerResponse?.data?.latestBlockHeight}
-				percentIndexed={percentIndexed}
-				isLoading={indexerLoading}
-				error={indexerError}
-			/>
-			<div className="flex flex-col gap-4">
+		<div className="container mx-auto p-4">
+			<div className="space-y-4"> {/* Changed from space-y-6 to space-y-4 for 16px spacing */}
+				<CompactIndexerDashboard
+					trackerHeight={indexerResponse?.data?.trackerBlockHeight}
+					latestHeight={indexerResponse?.data?.latestBlockHeight}
+					percentIndexed={percentIndexed}
+					isLoading={indexerLoading}
+					error={indexerError}
+				/>
 				{address && <TokenBalances />}
+				
+				<MintFee /> {/* Add the new MintFee component */}
 
 				{tokenLoading ? (
 					<p>Loading token information...</p>
