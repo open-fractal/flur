@@ -1,6 +1,6 @@
 # Flur
 
-This project is a frontend for the CAT20 token. It is built with Next.js and uses the [CATProtocol/cat-token-box](https://github.com/CATProtocol/cat-token-box) API to fetch data.
+This project is a frontend for the CAT20 token minter. It is built with Next.js and uses the [CATProtocol/cat-token-box](https://github.com/CATProtocol/cat-token-box) API to fetch data.
 
 ## Getting Started
 
