@@ -250,17 +250,6 @@ async function openMint(
       })
   )
 
-        // if (process.env.FEE_ADDRESS && process.env.FEE_SATS) {
-        //     console.log(btc.Script.fromAddress(process.env.FEE_ADDRESS).toHex());
-        //     revealTx.addOutput(
-        //         new btc.Transaction.Output({
-        //             script: btc.Script.fromAddress(process.env.FEE_ADDRESS),
-        //             satoshis: parseInt(process.env.FEE_SATS),
-        //         })
-        //     );
-        // }
-
-
   revealTx
       .addOutput(
           new btc.Transaction.Output({

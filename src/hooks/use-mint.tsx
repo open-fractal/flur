@@ -85,7 +85,7 @@ export function useMint(tokenId: string) {
 				return
 			}
 
-			const { data: pbstData } = await axios.post('/api/mint', {
+			const payload = {
 				tokenId: tokenId, // Use the tokenId passed to useMint
 				feeRate: feeRate,
 				publicKey: await window.unisat.getPublicKey(),
@@ -98,11 +98,16 @@ export function useMint(tokenId: string) {
 						satoshis: utxo.satoshis
 					}))
 					.slice(0, 5)
-			})
+			}
+			const { mintNow } = await import('@/lib/mint')
 
-			console.log('pbstData', pbstData)
+			const psbtData = await mintNow(payload)
 
-			const signedPsbtHex = await window.unisat.signPsbt(pbstData.psbt)
+			// const { data: pbstData } = await axios.post('/api/mint', payload)
+
+			console.log('psbtData', psbtData)
+
+			const signedPsbtHex = await window.unisat.signPsbt(psbtData.psbt)
 
 			const signedPsbt = Transaction.fromPSBT(Buffer.from(signedPsbtHex, 'hex'))
 			const rawtx = Buffer.from(signedPsbt.extract()).toString('hex')
