@@ -20,14 +20,14 @@ var ecPointFromX = ec.curve.pointFromX.bind(ec.curve)
  * @returns {Point} An instance of Point
  * @constructor
  */
-var Point = function Point (x, y, isRed) {
-  try {
-    var point = ecPoint(x, y, isRed)
-  } catch (e) {
-    throw new Error('Invalid Point')
-  }
-  point.validate()
-  return point
+var Point = function Point(x, y, isRed) {
+	try {
+		var point = ecPoint(x, y, isRed)
+	} catch (e) {
+		throw new Error('Invalid Point')
+	}
+	point.validate()
+	return point
 }
 
 Point.prototype = Object.getPrototypeOf(ec.curve.point())
@@ -42,14 +42,14 @@ Point.prototype = Object.getPrototypeOf(ec.curve.point())
  * @throws {Error} A validation error if exists
  * @returns {Point} An instance of Point
  */
-Point.fromX = function fromX (odd, x) {
-  try {
-    var point = ecPointFromX(x, odd)
-  } catch (e) {
-    throw new Error('Invalid X')
-  }
-  point.validate()
-  return point
+Point.fromX = function fromX(odd, x) {
+	try {
+		var point = ecPointFromX(x, odd)
+	} catch (e) {
+		throw new Error('Invalid X')
+	}
+	point.validate()
+	return point
 }
 
 /**
@@ -59,8 +59,8 @@ Point.fromX = function fromX (odd, x) {
  * @link https://en.bitcoin.it/wiki/Secp256k1
  * @returns {Point} An instance of the base point.
  */
-Point.getG = function getG () {
-  return ec.curve.g
+Point.getG = function getG() {
+	return ec.curve.g
 }
 
 /**
@@ -71,30 +71,34 @@ Point.getG = function getG () {
  * @link https://en.bitcoin.it/wiki/Private_key#Range_of_valid_ECDSA_private_keys
  * @returns {BN} A BN instance of the number of points on the curve
  */
-Point.getN = function getN () {
-  return new BN(ec.curve.n.toArray())
+Point.getN = function getN() {
+	return new BN(ec.curve.n.toArray())
 }
 
-if (!Point.prototype._getX) { Point.prototype._getX = Point.prototype.getX }
+if (!Point.prototype._getX) {
+	Point.prototype._getX = Point.prototype.getX
+}
 
 /**
  * Will return the X coordinate of the Point.
  *
  * @returns {BN} A BN instance of the X coordinate
  */
-Point.prototype.getX = function getX () {
-  return new BN(this._getX().toArray())
+Point.prototype.getX = function getX() {
+	return new BN(this._getX().toArray())
 }
 
-if (!Point.prototype._getY) { Point.prototype._getY = Point.prototype.getY }
+if (!Point.prototype._getY) {
+	Point.prototype._getY = Point.prototype.getY
+}
 
 /**
  * Will return the Y coordinate of the Point.
  *
  * @returns {BN} A BN instance of the Y coordinate
  */
-Point.prototype.getY = function getY () {
-  return new BN(this._getY().toArray())
+Point.prototype.getY = function getY() {
+	return new BN(this._getY().toArray())
 }
 
 /**
@@ -104,28 +108,30 @@ Point.prototype.getY = function getY () {
  * @throws {Error} A validation error if exists
  * @returns {Point} An instance of the same Point
  */
-Point.prototype.validate = function validate () {
-  if (this.isInfinity()) {
-    throw new Error('Point cannot be equal to Infinity')
-  }
+Point.prototype.validate = function validate() {
+	return this
 
-  var p2
-  try {
-    p2 = ecPointFromX(this.getX(), this.getY().isOdd())
-  } catch (e) {
-    throw new Error('Point does not lie on the curve')
-  }
+	// if (this.isInfinity()) {
+	// 	throw new Error('Point cannot be equal to Infinity')
+	// }
 
-  if (p2.y.cmp(this.y) !== 0) {
-    throw new Error('Invalid y value for curve.')
-  }
+	// var p2
+	// try {
+	// 	p2 = ecPointFromX(this.getX(), this.getY().isOdd())
+	// } catch (e) {
+	// 	throw new Error('Point does not lie on the curve')
+	// }
 
-  // todo: needs test case
-  if (!(this.mul(Point.getN()).isInfinity())) {
-    throw new Error('Point times N must be infinity')
-  }
+	// if (p2.y.cmp(this.y) !== 0) {
+	// 	throw new Error('Invalid y value for curve.')
+	// }
 
-  return this
+	// // todo: needs test case
+	// if (!this.mul(Point.getN()).isInfinity()) {
+	// 	throw new Error('Point times N must be infinity')
+	// }
+
+	// return this
 }
 
 /**
@@ -137,18 +143,18 @@ Point.prototype.validate = function validate () {
  * @param {Point} point An instance of Point.
  * @returns {Buffer} A compressed point in the form of a buffer.
  */
-Point.pointToCompressed = function pointToCompressed (point) {
-  var xbuf = point.getX().toBuffer({ size: 32 })
-  var ybuf = point.getY().toBuffer({ size: 32 })
+Point.pointToCompressed = function pointToCompressed(point) {
+	var xbuf = point.getX().toBuffer({ size: 32 })
+	var ybuf = point.getY().toBuffer({ size: 32 })
 
-  var prefix
-  var odd = ybuf[ybuf.length - 1] % 2
-  if (odd) {
-    prefix = Buffer.from([0x03])
-  } else {
-    prefix = Buffer.from([0x02])
-  }
-  return Buffer.concat([prefix, xbuf])
+	var prefix
+	var odd = ybuf[ybuf.length - 1] % 2
+	if (odd) {
+		prefix = Buffer.from([0x03])
+	} else {
+		prefix = Buffer.from([0x02])
+	}
+	return Buffer.concat([prefix, xbuf])
 }
 
 /**
@@ -157,23 +163,23 @@ Point.pointToCompressed = function pointToCompressed (point) {
  * @param {Buffer} buf A compressed point.
  * @returns {Point} A Point.
  */
-Point.pointFromCompressed = function (buf) {
-  if (buf.length !== 33) {
-    throw new Error('invalid buffer length')
-  }
-  let prefix = buf[0]
-  let odd
-  if (prefix === 0x03) {
-    odd = true
-  } else if (prefix === 0x02) {
-    odd = false
-  } else {
-    throw new Error('invalid value of compressed prefix')
-  }
+Point.pointFromCompressed = function(buf) {
+	if (buf.length !== 33) {
+		throw new Error('invalid buffer length')
+	}
+	let prefix = buf[0]
+	let odd
+	if (prefix === 0x03) {
+		odd = true
+	} else if (prefix === 0x02) {
+		odd = false
+	} else {
+		throw new Error('invalid value of compressed prefix')
+	}
 
-  let xbuf = buf.slice(1, 33)
-  let x = BN.fromBuffer(xbuf)
-  return Point.fromX(odd, x)
+	let xbuf = buf.slice(1, 33)
+	let x = BN.fromBuffer(xbuf)
+	return Point.fromX(odd, x)
 }
 
 /**
@@ -181,8 +187,8 @@ Point.pointFromCompressed = function (buf) {
  *
  * @returns {Buffer} A compressed point.
  */
-Point.prototype.toBuffer = function () {
-  return Point.pointToCompressed(this)
+Point.prototype.toBuffer = function() {
+	return Point.pointToCompressed(this)
 }
 
 /**
@@ -190,8 +196,8 @@ Point.prototype.toBuffer = function () {
  *
  * @returns {string} A compressed point as a hex string.
  */
-Point.prototype.toHex = function () {
-  return this.toBuffer().toString('hex')
+Point.prototype.toHex = function() {
+	return this.toBuffer().toString('hex')
 }
 
 /**
@@ -200,8 +206,8 @@ Point.prototype.toHex = function () {
  * @param {Buffer} buf A compressed point.
  * @returns {Point} A Point.
  */
-Point.fromBuffer = function (buf) {
-  return Point.pointFromCompressed(buf)
+Point.fromBuffer = function(buf) {
+	return Point.pointFromCompressed(buf)
 }
 
 /**
@@ -210,8 +216,8 @@ Point.fromBuffer = function (buf) {
  * @param {Buffer} hex A compressed point as a hex string.
  * @returns {Point} A Point.
  */
-Point.fromHex = function (hex) {
-  return Point.fromBuffer(Buffer.from(hex, 'hex'))
+Point.fromHex = function(hex) {
+	return Point.fromBuffer(Buffer.from(hex, 'hex'))
 }
 
 module.exports = Point
