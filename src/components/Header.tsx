@@ -104,7 +104,9 @@ const Header: React.FC = () => {
 			<div className="h-16"></div>
 			<header className="h-16 bg-black border-b border-[hsl(var(--border))] flex items-center justify-between px-4 sm:px-8 fixed top-0 w-[100vw] z-50">
 				<div className="flex items-center gap-4 sm:gap-8">
-					<img src="/logo.svg" alt="Logo" width={84} height={30} />
+					<Link href="/">
+						<img src="/logo.svg" alt="Logo" width={84} height={30} />
+					</Link>
 					<Tabs value={pathname === '/docs' ? '/docs' : '/'} className="hidden sm:block">
 						<TabsList>
 							<TabsTrigger value="/" asChild>
@@ -119,7 +121,7 @@ const Header: React.FC = () => {
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
-					<div className="flex items-center gap-2"> {/* Changed back from gap-4 to gap-2 */}
+					<div className="flex items-center gap-4"> {/* Changed back from gap-4 to gap-2 */}
 						<a
 							href="https://github.com/open-fractal/flur"
 							target="_blank"
