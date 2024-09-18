@@ -12,7 +12,6 @@ type Props = {
 async function fetchTokenDetails(token_id: string) {
 	try {
 		const url = `${API_URL}/api/tokens/${token_id}`
-		console.log('Fetching token details from:', url)
 		const response = await fetch(url)
 		if (!response.ok) {
 			throw new Error('Failed to fetch token details')
