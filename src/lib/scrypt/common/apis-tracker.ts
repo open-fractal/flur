@@ -135,7 +135,7 @@ export const getTokenMinter = async function(
 	metadata: TokenMetadata,
 	offset: number = 0
 ): Promise<OpenMinterContract | null> {
-	const url = `${API_URL}/api/minters/${metadata.tokenId}/utxos?limit=1&offset=${offset}`
+	const url = `${API_URL}/api/minters/${metadata.tokenId}/utxos?limit=32&offset=${offset}`
 	return fetch(url)
 		.then(res => res.json())
 		.then((res: any) => {
@@ -146,6 +146,22 @@ export const getTokenMinter = async function(
 			}
 		})
 		.then(({ utxos: contracts }) => {
+			// Randomly select a contract from the available contracts
+			const randomIndex = Math.floor(Math.random() * contracts.length)
+			const selectedContract = contracts[randomIndex]
+
+			// If no contracts are available, return null
+			if (!selectedContract) {
+				return null
+			}
+
+			// Prepare the contracts array with only the selected contract
+			contracts = [selectedContract]
+
+			// Add a comment explaining the random selection
+			// This random selection helps distribute the load across different minter UTXOs
+			// and can prevent potential bottlenecks or overuse of a single UTXO
+
 			if (isOpenMinter(metadata.info.minterMd5)) {
 				return Promise.all(
 					contracts.map(async (c: any) => {

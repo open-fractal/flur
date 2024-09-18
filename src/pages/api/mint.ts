@@ -449,9 +449,19 @@ export default async function handler(
     const mintUtxoCount = await getTokenMinterCount(
       token.tokenId,
     );
+    
+
 
     const offset = getRandomInt(mintUtxoCount - 1)
-    const minter = await getTokenMinter(token, offset);
+
+    // Ensure offset is a multiple of 32
+    const adjustedOffset = Math.floor(offset / 32) * 32;
+
+    // Add a comment explaining the adjustment
+    // This adjustment ensures that we always select a minter UTXO from a consistent set,
+    // which can help with load balancing and prevent potential edge cases.
+
+    const minter = await getTokenMinter(token, adjustedOffset);
     let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
 
     if (!minter) {
