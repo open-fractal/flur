@@ -116,7 +116,9 @@ const Header: React.FC = () => {
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : (
-						<Button onClick={connectWallet}>Connect Wallet</Button>
+						<Button onClick={connectWallet} className="hidden sm:block">
+							Connect Wallet
+						</Button>
 					)}
 				</div>
 			</header>
