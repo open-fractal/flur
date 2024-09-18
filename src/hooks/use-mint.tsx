@@ -97,7 +97,7 @@ export function useMint(tokenId: string) {
 						script: utxo.scriptPk,
 						satoshis: utxo.satoshis
 					}))
-					.slice(0, 6)
+					.slice(0, 5)
 			})
 
 			console.log('pbstData', pbstData)
