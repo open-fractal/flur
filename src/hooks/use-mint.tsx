@@ -141,7 +141,8 @@ export function useMint(tokenId: string) {
 				title: 'Minting Failed',
 				description:
 					error instanceof Error
-						? error.message
+						? // @ts-ignore
+						  error?.response?.data?.message || error.message
 						: 'An unexpected error occurred while minting your token.',
 				variant: 'destructive'
 			})
