@@ -3,16 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CopyableTokenId } from '@/components/CopyableTokenId'
-import { formatNumber } from '@/lib/utils'
 import { Progress } from '@/components/ui/progress'
-import { ArrowLeftIcon } from 'lucide-react'
 import Link from 'next/link'
 import { API_URL } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { useMint } from '@/hooks/use-mint'
+import { TokenHeader } from '@/components/token-header'
 
 interface TokenResponse {
 	code: number
@@ -20,7 +18,7 @@ interface TokenResponse {
 	data: TokenData
 }
 
-interface TokenData {
+export interface TokenData {
 	minterAddr: string
 	tokenAddr: string
 	info: {
@@ -54,6 +52,14 @@ interface MinterResponse {
 	data: MinterData
 }
 
+interface UtxoCountResponse {
+	code: number
+	msg: string
+	data: {
+		count: number
+	}
+}
+
 const fetcher = (url: string) =>
 	fetch(url).then(res => {
 		if (!res.ok) throw new Error('Network response was not ok')
@@ -77,84 +83,83 @@ const TokenDetail: React.FC = () => {
 		fetcher
 	)
 
+	const { data: utxoCountData, error: utxoCountError } = useSWR<UtxoCountResponse>(
+		`${API_URL}/api/minters/${tokenId}/utxoCount`,
+		fetcher,
+		{
+			refreshInterval: 10000, // Refetch every 10 seconds
+			dedupingInterval: 5000 // Dedupe requests within 5 seconds
+		}
+	)
+
 	useEffect(() => {
-		if (tokenError || minterError) {
+		if (tokenError || minterError || utxoCountError) {
 			setError('Failed to load token details. Please try again later.')
-			console.error('Error fetching data:', tokenError || minterError)
+			console.error('Error fetching data:', tokenError || minterError || utxoCountError)
 		} else {
 			setError(null)
 		}
-	}, [tokenError, minterError])
+	}, [tokenError, minterError, utxoCountError])
 
 	if (error) {
 		return <ErrorDisplay message={error} />
 	}
 
-	if (!tokenResponse || !minterData) return <TokenDetailSkeleton />
+	if (!tokenResponse || !minterData || !utxoCountData) return <TokenDetailSkeleton />
 
 	const tokenData = tokenResponse.data
+	const utxoCount = utxoCountData.data.count
 
 	// Safely parse numeric values
 	const maxSupply = safeParseInt(tokenData.info?.max)
 	const premine = safeParseInt(tokenData.info?.premine)
-	const limitPerMint = safeParseInt(tokenData.info?.limit)
+	// const limitPerMint = safeParseInt(tokenData.info?.limit)
 	const mintCount = safeParseInt(minterData.data.supply) / Math.pow(10, tokenData.decimals)
 	const currentSupply = premine + mintCount
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 
+	const isMintable = currentSupply < maxSupply
+
 	return (
-		<div className="container mx-auto p-4 space-y-6">
-			<Link href="/" className="flex items-center hover:underline">
-				<ArrowLeftIcon className="mr-2 h-4 w-4" /> Back to Token List
-			</Link>
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-2xl flex items-center justify-between">
-						<span>
-							{tokenData.name} ({tokenData.symbol})
-						</span>
-						<CopyableTokenId tokenId={tokenData.tokenId} />
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="p-6 space-y-4">
-					<div>
-						<p className="text-sm font-medium mb-1">Mint Progress: {mintProgress}%</p>
-						<Progress value={parseFloat(mintProgress)} className="w-full" />
-					</div>
-					<InfoItem
-						label="Current Supply"
-						value={`${formatNumber(currentSupply.toFixed(tokenData.decimals))} / ${formatNumber(
-							maxSupply
-						)}`}
-					/>
-					<InfoItem label="Limit Per Mint" value={formatNumber(limitPerMint)} />
-					{premine > 0 && (
-						<InfoItem
-							label="Premine"
-							value={`${formatNumber(premine)} (${((premine / maxSupply) * 100).toFixed(2)}%)`}
-						/>
-					)}
-					<InfoItem label="Minter Address" value={tokenData.minterAddr} />
-					<InfoItem label="Token Address" value={tokenData.tokenAddr} />
-					<InfoItem label="Decimals" value={tokenData.decimals.toString()} />
-					<InfoItem label="Genesis Transaction" value={tokenData.genesisTxid} />
-					<InfoItem label="Reveal Transaction" value={tokenData.revealTxid} />
-					<InfoItem label="Reveal Height" value={tokenData.revealHeight.toString()} />
-					<Button onClick={handleMint} disabled={isMinting} className="w-full">
-						{isMinting ? 'Minting...' : 'Mint'}
-					</Button>
-				</CardContent>
-			</Card>
-		</div>
+		<>
+			<TokenHeader tokenData={tokenData} currentSupply={currentSupply} />
+			<div className="container mx-auto p-4 space-y-6 h-full flex-grow flex flex-col items-center justify-center">
+				<div className="flex flex-col justify-center items-center">
+					<h2 className="text-2xl font-bold mb-4">{isMintable ? 'Mint Live!' : 'Mint Ended'}</h2>
+					<Card className="w-[400px] max-w-[100vw]">
+						<CardContent className="p-6 space-y-4">
+							<div>
+								<p className="text-sm font-medium mb-1">Mint Progress: {mintProgress}%</p>
+								<Progress value={parseFloat(mintProgress)} className="w-full" />
+							</div>
+							<div className="flex items-center gap-2">
+								<p className="text-sm font-medium text-muted-foreground">Mint Utxos: {utxoCount}</p>
+								<div
+									className={`w-2 h-2 rounded-full ${
+										isMintable ? 'bg-green-500' : 'bg-red-500'
+									} animate-pulse`}
+								></div>
+							</div>
+							<Button
+								onClick={handleMint}
+								disabled={isMinting || !isMintable || utxoCount === 0}
+								className="w-full"
+							>
+								{isMinting
+									? 'Minting...'
+									: !isMintable
+									? 'Mint Ended'
+									: utxoCount === 0
+									? 'No UTXOs Available'
+									: 'Mint Now'}
+							</Button>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</>
 	)
 }
-
-const InfoItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-	<div>
-		<p className="text-sm font-medium">{label}</p>
-		<p className="mt-1 text-sm">{value}</p>
-	</div>
-)
 
 const TokenDetailSkeleton: React.FC = () => (
 	<div className="container mx-auto p-4 space-y-6">
