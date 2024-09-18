@@ -431,8 +431,6 @@ try {
   const minter = await getTokenMinter(token, offset);
   let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
 
-    console.log('minter', minter)
-
   if (!minter) {
     return res.status(404).json({ message: 'Minter not found' });
   }
