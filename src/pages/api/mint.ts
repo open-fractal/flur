@@ -421,8 +421,9 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
-  const payload = req.body
-  console.log(payload)
+      const payload = req.body
+
+try {
   const token = await getTokenMetadata(payload.tokenId);
 
   if (!token) {
@@ -451,5 +452,9 @@ export default async function handler(
     return res.status(500).json({ message: 'Failed to create PSBT' });
   }
 
-  res.status(200).json({ psbt: psbt as string })
+    res.status(200).json({ psbt: psbt as string })
+} catch (error) {
+    console.error(error, payload)
+    res.status(500).json({ message: 'Internal server error' })
+  }
 }
