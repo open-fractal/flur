@@ -45,7 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		description: `${tokenDetails.name} contract: ${token_id}}.`,
 		openGraph: {
 			title: `${tokenDetails.symbol} | Flur.gg`,
-			description: `${tokenDetails.name} contract: ${token_id}}.`
+			description: `${tokenDetails.name} contract: ${token_id}}.`,
+			images: ['https://flur.gg/unfurl.jpeg']
 		}
 	}
 }

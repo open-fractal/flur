@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,6 @@ import { ArrowLeftIcon } from 'lucide-react'
 import Link from 'next/link'
 import { API_URL } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
-const fetcher = (url: string) => fetch(url).then(res => res.json())
 import { useMint } from '@/hooks/use-mint'
 
 interface TokenResponse {
@@ -55,9 +54,16 @@ interface MinterResponse {
 	data: MinterData
 }
 
+const fetcher = (url: string) =>
+	fetch(url).then(res => {
+		if (!res.ok) throw new Error('Network response was not ok')
+		return res.json()
+	})
+
 const TokenDetail: React.FC = () => {
 	const params = useParams()
 	const tokenId = params?.id as string
+	const [error, setError] = useState<string | null>(null)
 
 	const { isMinting, handleMint } = useMint(tokenId)
 
@@ -71,16 +77,28 @@ const TokenDetail: React.FC = () => {
 		fetcher
 	)
 
-	if (tokenError || minterError)
-		return <div className="container mx-auto p-4">Failed to load token details</div>
+	useEffect(() => {
+		if (tokenError || minterError) {
+			setError('Failed to load token details. Please try again later.')
+			console.error('Error fetching data:', tokenError || minterError)
+		} else {
+			setError(null)
+		}
+	}, [tokenError, minterError])
+
+	if (error) {
+		return <ErrorDisplay message={error} />
+	}
+
 	if (!tokenResponse || !minterData) return <TokenDetailSkeleton />
 
 	const tokenData = tokenResponse.data
 
-	const maxSupply = tokenData.info ? parseInt(tokenData.info.max) : 0
-	const premine = tokenData.info ? parseInt(tokenData.info.premine) : 0
-	const limitPerMint = tokenData.info ? parseInt(tokenData.info.limit) : 0
-	const mintCount = parseInt(minterData.data.supply) / Math.pow(10, tokenData.decimals)
+	// Safely parse numeric values
+	const maxSupply = safeParseInt(tokenData.info?.max)
+	const premine = safeParseInt(tokenData.info?.premine)
+	const limitPerMint = safeParseInt(tokenData.info?.limit)
+	const mintCount = safeParseInt(minterData.data.supply) / Math.pow(10, tokenData.decimals)
 	const currentSupply = premine + mintCount
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 
@@ -122,7 +140,6 @@ const TokenDetail: React.FC = () => {
 					<InfoItem label="Genesis Transaction" value={tokenData.genesisTxid} />
 					<InfoItem label="Reveal Transaction" value={tokenData.revealTxid} />
 					<InfoItem label="Reveal Height" value={tokenData.revealHeight.toString()} />
-					{/* Add Mint Button */}
 					<Button onClick={handleMint} disabled={isMinting} className="w-full">
 						{isMinting ? 'Minting...' : 'Mint'}
 					</Button>
@@ -157,5 +174,25 @@ const TokenDetailSkeleton: React.FC = () => (
 		</Card>
 	</div>
 )
+
+const ErrorDisplay: React.FC<{ message: string }> = ({ message }) => (
+	<div className="container mx-auto p-4">
+		<Card>
+			<CardContent className="p-6">
+				<p className="text-red-500">{message}</p>
+				<Link href="/" className="mt-4 inline-block text-blue-500 hover:underline">
+					Return to Token List
+				</Link>
+			</CardContent>
+		</Card>
+	</div>
+)
+
+// Helper function to safely parse integers
+const safeParseInt = (value: string | undefined): number => {
+	if (!value) return 0
+	const parsed = parseInt(value, 10)
+	return isNaN(parsed) ? 0 : parsed
+}
 
 export default TokenDetail
