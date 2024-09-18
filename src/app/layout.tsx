@@ -5,6 +5,7 @@ import { Inter } from 'next/font/google'
 import React, { useState, useEffect, createContext } from 'react'
 import { Toaster } from '@/components/ui/toaster'
 import Header from '@/components/Header'
+import { Analytics } from '@vercel/analytics/react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 						<main className="flex-grow">{children}</main>
 						<footer className="flex justify-center items-center py-4"></footer>
 						<Toaster />
+						<Analytics />
 					</div>
 				</WalletContext.Provider>
 			</body>
