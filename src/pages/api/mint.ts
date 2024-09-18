@@ -445,7 +445,6 @@ try {
         mintUtxoCreateCount = 0
     }
     
-    console.log('scaledLimit', scaledLimit)
   const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledLimit);
 
   if (!psbt) {
