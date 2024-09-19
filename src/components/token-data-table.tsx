@@ -1,7 +1,7 @@
 'use client'
 
-import * as React from 'react'
-import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
+import React, { useMemo } from 'react'
+import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from 'lucide-react'
 import {
 	ColumnDef,
 	ColumnFiltersState,
@@ -49,6 +49,7 @@ import {
 import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { MintFee } from '@/components/mint-fee'
 
 // Define TokenData interface
 export interface TokenData {
@@ -288,8 +289,8 @@ export function TokenDataTable({}) {
 	)
 
 	// Ensure tokenResponse and tokenResponse.data are defined
-	const tokens = tokenResponse?.data?.tokens || []
-	const total = tokenResponse?.data?.total || 0
+	const tokens = useMemo(() => tokenResponse?.data?.tokens || [], [tokenResponse])
+	const total = useMemo(() => tokenResponse?.data?.total || 0, [tokenResponse])
 
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: 'holders', desc: true }])
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -416,22 +417,28 @@ export function TokenDataTable({}) {
 
 	return (
 		<div className="w-full">
-			<div className="flex items-center justify-between py-4">
-				<Input
-					placeholder="Search"
-					value={globalFilter}
-					onChange={event => setGlobalFilter(event.target.value)}
-					className="max-w-[200px]"
-				/>
-				<Select value={filterValue} onValueChange={setFilterValue}>
-					<SelectTrigger className="w-[180px]">
-						<SelectValue placeholder="Filter tokens" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="minting">Minting Now</SelectItem>
-						<SelectItem value="all">Show All</SelectItem>
-					</SelectContent>
-				</Select>
+			<div className="flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
+				<MintFee className="h-9 px-12 py-4 text-xs select-none bg-background border border-input rounded-md whitespace-nowrap flex items-center justify-center" />
+				<div className="flex items-center space-x-4 w-full">
+					<div className="relative flex-1">
+						<Input
+							placeholder="Search"
+							value={globalFilter}
+							onChange={event => setGlobalFilter(event.target.value)}
+							className="pl-10 w-full"
+						/>
+						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					</div>
+					<Select value={filterValue} onValueChange={setFilterValue}>
+						<SelectTrigger className="w-[180px]">
+							<SelectValue placeholder="Filter tokens" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="minting">Minting Now</SelectItem>
+							<SelectItem value="all">Show All</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 			<div className="rounded-md border">
 				<Table>

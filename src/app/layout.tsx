@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster'
 import Header from '@/components/Header'
 import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })
-import { ThemeProvider } from '@/components/theme-provider'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
