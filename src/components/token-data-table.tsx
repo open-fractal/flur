@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/select'
 import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Define TokenData interface
 export interface TokenData {
@@ -106,6 +107,7 @@ const ActionCell = React.memo(({ token }: { token: TokenData }) => {
 				onClick={handleMint}
 				disabled={isMintingComplete || isMinting}
 				size="sm"
+				variant="outline"
 				className="w-16"
 			>
 				{isMinting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mint'}
@@ -236,6 +238,42 @@ interface PaginatedTokenListResponse {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
+const TableSkeleton = () => (
+  <div className="w-full">
+    <div className="flex items-center justify-between py-4">
+      <Skeleton className="h-9 w-[200px]" />
+      <Skeleton className="h-9 w-[180px]" />
+    </div>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {Array(9).fill(0).map((_, i) => (
+              <TableHead key={i}>
+                <Skeleton className="h-4 w-full" />
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array(PAGE_SIZE).fill(0).map((_, i) => (
+            <TableRow key={i}>
+              {Array(9).fill(0).map((_, j) => (
+                <TableCell key={j}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+    <div className="flex items-center justify-between space-x-2 py-4">
+      <Skeleton className="h-9 w-[300px]" />
+    </div>
+  </div>
+)
+
 export function TokenDataTable({}) {
 	const { data: tokenResponse } = useSWR<PaginatedTokenListResponse>(
 		`${API_URL}/api/tokens?limit=10000&offset=0&v=1`,
@@ -253,7 +291,7 @@ export function TokenDataTable({}) {
 	const router = useRouter()
 	const [globalFilter, setGlobalFilter] = React.useState('')
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
-	const [filterValue, setFilterValue] = React.useState('all')
+	const [filterValue, setFilterValue] = React.useState('minting')
 
 	const filteredTokens = React.useMemo(() => {
 		if (!tokens) return []
@@ -304,7 +342,11 @@ export function TokenDataTable({}) {
 		pageCount: Math.ceil(total / PAGE_SIZE)
 	})
 
-	if (!tokenResponse || !tokens || tokens.length === 0) {
+	if (!tokenResponse || !tokens) {
+		return <TableSkeleton />
+	}
+
+	if (tokens.length === 0) {
 		return null
 	}
 
@@ -378,8 +420,8 @@ export function TokenDataTable({}) {
 						<SelectValue placeholder="Filter tokens" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="all">Show All</SelectItem>
 						<SelectItem value="minting">Minting Now</SelectItem>
+						<SelectItem value="all">Show All</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>
