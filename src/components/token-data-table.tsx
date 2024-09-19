@@ -39,6 +39,13 @@ import {
 import { useDebounce } from '@/hooks/use-debounce'
 import useSWR from 'swr'
 import { API_URL } from '@/lib/constants'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue
+} from '@/components/ui/select'
 
 // Define TokenData interface
 export interface TokenData {
@@ -67,7 +74,9 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 		<Button
 			variant="ghost"
 			onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-			className="font-semibold text-xs tracking-wide"
+			className={`font-semibold text-xs tracking-wide ${
+				column.getIsSorted() ? 'text-white font-bold' : ''
+			}`}
 		>
 			{children}
 			{column.getIsSorted() === 'asc' && <ChevronUp className="ml-2 h-4 w-4" />}
@@ -210,9 +219,20 @@ export function TokenDataTable({}) {
 	const router = useRouter()
 	const [globalFilter, setGlobalFilter] = React.useState('')
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
+	const [filterValue, setFilterValue] = React.useState('all')
+
+	const filteredTokens = React.useMemo(() => {
+		if (!tokens) return []
+		if (filterValue === 'all') return tokens
+		return tokens.filter(token => {
+			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
+			const maxSupply = parseInt(token.info.max)
+			return currentSupply < maxSupply
+		})
+	}, [tokens, filterValue])
 
 	const table = useReactTable({
-		data: tokens || [],
+		data: filteredTokens || [],
 		columns,
 		onSortingChange: setSorting,
 		onColumnFiltersChange: setColumnFilters,
@@ -312,13 +332,22 @@ export function TokenDataTable({}) {
 
 	return (
 		<div className="w-full">
-			<div className="flex items-center py-4">
+			<div className="flex items-center justify-between py-4">
 				<Input
 					placeholder="Search"
 					value={globalFilter}
 					onChange={event => setGlobalFilter(event.target.value)}
 					className="max-w-[200px]"
 				/>
+				<Select value={filterValue} onValueChange={setFilterValue}>
+					<SelectTrigger className="w-[180px]">
+						<SelectValue placeholder="Filter tokens" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Show All</SelectItem>
+						<SelectItem value="minting">Minting Now</SelectItem>
+					</SelectContent>
+				</Select>
 			</div>
 			<div className="rounded-md border">
 				<Table>
