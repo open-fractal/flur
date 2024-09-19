@@ -275,7 +275,7 @@ const TableSkeleton = () => (
 )
 
 export function TokenDataTable({}) {
-	const { data: tokenResponse, error } = useSWR<PaginatedTokenListResponse>(
+	const { data: tokenResponse, error: _error } = useSWR<PaginatedTokenListResponse>(
 		`${API_URL}/api/tokens?limit=10000&offset=0&v=1`,
 		fetcher
 	)
