@@ -1,27 +1,22 @@
-'use client'
+import React from 'react'
+import useSWR from 'swr'
+import { API_URL } from '@/lib/constants'
 
-import { Card, CardContent } from '@/components/ui/card'
-
-export function MintFee() {
-  return (
-    <Card className="w-full">
-      <CardContent className="p-4">
-        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:space-x-2 text-sm">
-          <div className="font-medium">Mint CAT-20</div>
-          <div className="flex flex-wrap gap-2">
-            <StatusItem label="Current Service Fee" value="0 sats" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+interface MintFeeProps {
+  className?: string
 }
 
-function StatusItem({ label, value }: { label: string; value: string }) {
+const fetcher = (url: string) => fetch(url).then(res => res.json())
+
+export const MintFee: React.FC<MintFeeProps> = ({ className }) => {
+  const { data: mintFeeData, error } = useSWR(`${API_URL}/api/mint-fee`, fetcher)
+
+  if (!mintFeeData) return <div className={`${className} text-gray-500`}>Loading...</div>
+  if (error) return <div className={`${className} text-gray-500`}>Error fetching mint fee</div>
+
   return (
-    <div className="flex items-center space-x-1">
-      <span className="text-muted-foreground">{label}:</span>
-      <span>{value}</span>
+    <div className={`${className} text-gray-400`}>
+      Mint Fee: {mintFeeData.fee} 0 s/vb
     </div>
   )
 }

@@ -5,7 +5,6 @@ import useSWR from 'swr'
 import { useWallet } from '@/lib/unisat'
 import { TokenBalances } from '@/components/token-balances'
 import { CompactIndexerDashboard } from '@/components/indexer-status' // Import the new component
-import { MintFee } from '@/components/mint-fee' // Import the new component
 import { API_URL } from '@/lib/constants'
 import { UnisatAPI } from '@/lib/unisat'
 import { TokenDataTable } from '@/components/token-data-table'
@@ -57,8 +56,6 @@ export default function Home() {
 					error={indexerError}
 				/>
 				{address && <TokenBalances />}
-
-				<MintFee />
 				<TokenDataTable />
 			</div>
 		</div>
