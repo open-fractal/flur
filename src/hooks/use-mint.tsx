@@ -116,7 +116,7 @@ export function useMint(tokenId: string) {
 
 			if (txid instanceof Error) {
 				// @ts-ignore
-				let message = txid.response.data
+				const message = txid.response.data
 
 				if (
 					message.includes(
@@ -124,12 +124,14 @@ export function useMint(tokenId: string) {
 					)
 				) {
 					// @ts-ignore
-					let prev_txid = Buffer.from(signedPsbt.inputs[0].txid, 'hex').toString('hex')
+					const prev_txid = Buffer.from(signedPsbt.inputs[0].txid, 'hex').toString('hex')
 					// @ts-ignore
-					let prev_vout = signedPsbt.inputs[0].index
+					const prev_vout = signedPsbt.inputs[0].index
 
 					console.log(`${EXPLORER_URL}/tx/${prev_txid}`)
 					console.log(`${prev_txid}:${prev_vout}`)
+
+					// TODO: Check if the UTXO is already spent, get its fee, and create a new tx with a higher fee to replace it
 
 					console.log('signedPsbt', signedPsbt)
 				}

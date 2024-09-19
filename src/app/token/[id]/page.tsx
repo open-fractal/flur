@@ -50,6 +50,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	}
 }
 
-export default function Page({}: Props) {
-	return <Component />
+export default async function Page({ params }: Props) {
+	const token_id = params.id
+	if (!token_id || !validateTokenId(token_id)) {
+		return <div>Invalid token ID</div>
+	}
+
+	// Fetch token details
+	const tokenDetails = await fetchTokenDetails(token_id)
+
+	// If token details couldn't be fetched, return default metadata
+	if (!tokenDetails) {
+		return <div>Not found</div>
+	}
+
+	return <Component token={tokenDetails} />
 }
