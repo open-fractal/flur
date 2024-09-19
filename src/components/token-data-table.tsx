@@ -46,6 +46,8 @@ import {
 	SelectTrigger,
 	SelectValue
 } from '@/components/ui/select'
+import { useMint } from '@/hooks/use-mint'
+import { Loader2 } from 'lucide-react'
 
 // Define TokenData interface
 export interface TokenData {
@@ -86,7 +88,39 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 	)
 }
 
+// New component for the action cell
+const ActionCell = React.memo(({ token }: { token: TokenData }) => {
+	const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
+	const maxSupply = parseInt(token.info.max)
+	const isMintingComplete = currentSupply >= maxSupply
+
+	const { handleMint, isMinting } = useMint(token.tokenId)
+
+	if (isMintingComplete) {
+		return null
+	}
+
+	return (
+		<div className="text-right">
+			<Button
+				onClick={handleMint}
+				disabled={isMintingComplete || isMinting}
+				size="sm"
+				className="w-16"
+			>
+				{isMinting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mint'}
+			</Button>
+		</div>
+	)
+})
+
+ActionCell.displayName = 'ActionCell'
+
 export const columns: ColumnDef<TokenData>[] = [
+	{
+		id: 'actions',
+		cell: ({ row }) => <ActionCell token={row.original} />
+	},
 	{
 		accessorKey: 'name',
 		header: ({ column }) => <SortButton column={column}>NAME</SortButton>,
