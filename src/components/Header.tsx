@@ -44,7 +44,7 @@ const Header: React.FC = () => {
 
 	useEffect(() => {
 		setTheme('dark')
-	}, [])
+	}, [setTheme])
 
 	const connectWallet = useCallback(async () => {
 		if (typeof window.unisat !== 'undefined') {
