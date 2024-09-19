@@ -22,17 +22,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
-			<ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
-				<body className={inter.className}>
-					<div className="flex flex-col min-h-screen">
-						<Header />
-						<main className="flex-grow h-full flex flex-col">{children}</main>
-						<footer className="flex justify-center items-center py-4"></footer>
-						<Toaster />
-						<Analytics />
-					</div>
-				</body>
-			</ThemeProvider>
+			<body className={inter.className}>
+				<div className="flex flex-col min-h-screen">
+					<Header />
+					<main className="flex-grow h-full flex flex-col">{children}</main>
+					<footer className="flex justify-center items-center py-4"></footer>
+				</div>
+				{/* Move Toaster and Analytics inside the body */}
+				<Toaster />
+				<Analytics />
+			</body>
 		</html>
 	)
 }

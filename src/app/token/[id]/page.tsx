@@ -8,10 +8,12 @@ type Props = {
 	searchParams: { [key: string]: string | string[] | undefined }
 }
 
+export const revalidate = 60 * 5 // 5 minutes
+
 // Function to fetch token details
 async function fetchTokenDetails(token_id: string) {
 	try {
-		const url = `${API_URL}/api/tokens/${token_id}`
+		const url = `${API_URL}/api/tokens/${token_id}?v=1`
 		const response = await fetch(url)
 		if (!response.ok) {
 			throw new Error('Failed to fetch token details')

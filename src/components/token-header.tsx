@@ -6,7 +6,6 @@ import { CopyableTokenId } from '@/components/CopyableTokenId'
 
 interface TokenHeaderProps {
 	tokenData: TokenData
-	currentSupply: number
 }
 
 // Helper function to render individual stat
@@ -25,7 +24,7 @@ const renderStat = (label: string, value: string | number, copyable?: boolean) =
 	</div>
 )
 
-export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData, currentSupply }) => {
+export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 	if (!tokenData) return null
 
 	const premine = parseInt(tokenData.info?.premine || '0', 10)
@@ -33,8 +32,8 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData, currentSupp
 	const stats = [
 		{ label: 'Token ID', value: tokenData.tokenId, copyable: true },
 		{ label: 'Symbol', value: tokenData.symbol },
-		{ label: 'Supply', value: currentSupply },
-		{ label: 'Holders', value: '--' },
+		{ label: 'Supply', value: tokenData.supply },
+		{ label: 'Holders', value: tokenData.holders },
 		{ label: 'Premine', value: premine }
 	]
 

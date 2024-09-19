@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/select'
 import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Define TokenData interface
 export interface TokenData {
@@ -239,49 +239,57 @@ interface PaginatedTokenListResponse {
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 const TableSkeleton = () => (
-  <div className="w-full">
-    <div className="flex items-center justify-between py-4">
-      <Skeleton className="h-9 w-[200px]" />
-      <Skeleton className="h-9 w-[180px]" />
-    </div>
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {Array(9).fill(0).map((_, i) => (
-              <TableHead key={i}>
-                <Skeleton className="h-4 w-full" />
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array(PAGE_SIZE).fill(0).map((_, i) => (
-            <TableRow key={i}>
-              {Array(9).fill(0).map((_, j) => (
-                <TableCell key={j}>
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-    <div className="flex items-center justify-between space-x-2 py-4">
-      <Skeleton className="h-9 w-[300px]" />
-    </div>
-  </div>
+	<div className="w-full">
+		<div className="flex items-center justify-between py-4">
+			<Skeleton className="h-9 w-[200px]" />
+			<Skeleton className="h-9 w-[180px]" />
+		</div>
+		<div className="rounded-md border">
+			<Table>
+				<TableHeader>
+					<TableRow>
+						{Array(9)
+							.fill(0)
+							.map((_, i) => (
+								<TableHead key={i}>
+									<Skeleton className="h-4 w-full" />
+								</TableHead>
+							))}
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{Array(PAGE_SIZE)
+						.fill(0)
+						.map((_, i) => (
+							<TableRow key={i}>
+								{Array(9)
+									.fill(0)
+									.map((_, j) => (
+										<TableCell key={j}>
+											<Skeleton className="h-4 w-full" />
+										</TableCell>
+									))}
+							</TableRow>
+						))}
+				</TableBody>
+			</Table>
+		</div>
+		<div className="flex items-center justify-between space-x-2 py-4">
+			<Skeleton className="h-9 w-[300px]" />
+		</div>
+	</div>
 )
 
 export function TokenDataTable({}) {
+	// Fetch token data using SWR
 	const { data: tokenResponse } = useSWR<PaginatedTokenListResponse>(
 		`${API_URL}/api/tokens?limit=10000&offset=0&v=1`,
 		fetcher
 	)
 
-	const tokens = tokenResponse?.data.tokens
-	const total = tokenResponse?.data.total as number
+	// Ensure tokenResponse and tokenResponse.data are defined
+	const tokens = tokenResponse?.data?.tokens || []
+	const total = tokenResponse?.data?.total || 0
 
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: 'holders', desc: true }])
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])

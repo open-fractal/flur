@@ -41,16 +41,8 @@ export interface TokenData {
 	minterPubKey: string
 	tokenPubKey: string
 	currentSupply: string
-}
-
-interface MinterData {
-	supply: string
-}
-
-interface MinterResponse {
-	code: number
-	msg: string
-	data: MinterData
+	supply: number
+	holders: number
 }
 
 interface UtxoCountResponse {
@@ -74,15 +66,14 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 
 	const { data: tokenResponse, error: tokenError } = useSWR<TokenResponse>(
 		`${API_URL}/api/tokens/${token.tokenId}?v=1`,
-		fetcher
+		fetcher,
+		{
+			refreshInterval: 10000, // Refetch every 10 seconds
+			dedupingInterval: 5000 // Dedupe requests within 5 seconds
+		}
 	)
 
 	const tokenData = tokenResponse?.data || token
-
-	const { data: minterData, error: minterError } = useSWR<MinterResponse>(
-		`${API_URL}/api/tokens/${token.tokenId}/supply?v=1`,
-		fetcher
-	)
 
 	const { data: utxoCountData, error: utxoCountError } = useSWR<UtxoCountResponse>(
 		`${API_URL}/api/minters/${token.tokenId}/utxoCount`,
@@ -94,13 +85,13 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	)
 
 	useEffect(() => {
-		if (tokenError || minterError || utxoCountError) {
+		if (tokenError || utxoCountError) {
 			setError('Failed to load token details. Please try again later.')
-			console.error('Error fetching data:', tokenError || minterError || utxoCountError)
+			console.error('Error fetching data:', tokenError || utxoCountError)
 		} else {
 			setError(null)
 		}
-	}, [tokenError, minterError, utxoCountError])
+	}, [tokenError, utxoCountError])
 
 	if (error) {
 		return <ErrorDisplay message={error} />
@@ -115,17 +106,17 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	const maxSupply = safeParseInt(tokenData.info?.max)
 	const premine = safeParseInt(tokenData.info?.premine)
 	// const limitPerMint = safeParseInt(tokenData.info?.limit)
-	const mintCount = safeParseInt(minterData?.data?.supply) / Math.pow(10, tokenData.decimals)
+	const mintCount = tokenData?.supply / Math.pow(10, tokenData.decimals)
 	const currentSupply = premine + mintCount
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 
 	const isMintable = currentSupply < maxSupply
 
-	const isLoading = !minterData || !utxoCountData
+	const isLoading = !utxoCountData
 
 	return (
 		<>
-			<TokenHeader tokenData={tokenData} currentSupply={currentSupply} />
+			<TokenHeader tokenData={tokenData} />
 			<div className="container mx-auto p-4 space-y-6 h-full flex-grow flex flex-col items-center justify-center">
 				<div className="flex flex-col justify-center items-center">
 					<h2 className="text-2xl font-bold mb-4">{isMintable ? 'Mint Live!' : 'Mint Ended'}</h2>

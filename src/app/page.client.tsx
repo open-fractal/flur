@@ -8,6 +8,7 @@ import { CompactIndexerDashboard } from '@/components/indexer-status' // Import 
 import { MintFee } from '@/components/mint-fee' // Import the new component
 import { API_URL } from '@/lib/constants'
 import { UnisatAPI } from '@/lib/unisat'
+import { TokenData } from '@/components/TokenList'
 import { TokenDataTable } from '@/components/token-data-table'
 const INDEXER_API_ENDPOINT = `${API_URL}/api?v=1`
 
