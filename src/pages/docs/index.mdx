@@ -1,6 +1,6 @@
 # Flur
 
-Flur is an interface for [CAT Protocol](https://github.com/CATProtocol/cat-token-box) assets on fractal bitcoin.
+Flur is an interface for [CAT Protocol](https://catprotocol.org/) assets on fractal bitcoin.
 
 ## Getting Started
 
@@ -31,14 +31,20 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Environment Variables and Tracker API
 
-1. Create a `.env.local` file in the root directory with:
+The tracker API is a modified version of cat-token-box with additional endpoints for Flur. It provides enhanced capabilities for managing CAT Protocol assets on fractal bitcoin. For details, see [open-fractal/cat-token-box](https://github.com/open-fractal/cat-token-box).
+
+
+1. Clone the cat-token-box repository:
+   ```bash
+   git clone https://github.com/open-fractal/cat-token-box.git
+   cd cat-token-box
    ```
-   NEXT_PUBLIC_API_URL=<tracker-api-url>
+
+2. Follow the setup instructions in the cat-token-box `README.md` to get the tracker API running.
+
+3. Once the tracker API is operational, create a `.env.local` file in the root of your Flur project. Add the following environment variable:
    ```
-2. Adjust the URL to the tracker API.
+   NEXT_PUBLIC_API_URL=http://localhost:3000  # Or the URL where your tracker API is running
+   ```
 
-The tracker API is hosted on the [CATProtocol/cat-token-box](https://github.com/CATProtocol/cat-token-box) repository.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+4. Adjust the URL to match where your tracker API is hosted if it's not running on localhost.

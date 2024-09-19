@@ -9,5 +9,8 @@ export default {
 
 	navbar: {
 		component: () => <Header />
+	},
+	footer: {
+		component: () => <></>
 	}
 }
