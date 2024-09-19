@@ -97,8 +97,6 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 		return <ErrorDisplay message={error} />
 	}
 
-	// if (!tokenResponse || !minterData || !utxoCountData) return <TokenDetailSkeleton />
-
 	// const tokenData = tokenResponse.data
 	const utxoCount = utxoCountData?.data?.count
 
@@ -110,7 +108,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	const currentSupply = premine + mintCount
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 
-	const isMintable = currentSupply < maxSupply
+	const isMintable = currentSupply < maxSupply && !!utxoCount && utxoCount > 0
 
 	const isLoading = !utxoCountData
 
