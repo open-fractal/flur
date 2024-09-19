@@ -107,6 +107,7 @@ const ActionCell = React.memo(({ token }: { token: TokenData }) => {
 				onClick={handleMint}
 				disabled={isMintingComplete || isMinting}
 				size="sm"
+				variant="outline"
 				className="w-16"
 			>
 				{isMinting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mint'}
