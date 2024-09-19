@@ -253,7 +253,7 @@ export function TokenDataTable({}) {
 	const router = useRouter()
 	const [globalFilter, setGlobalFilter] = React.useState('')
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
-	const [filterValue, setFilterValue] = React.useState('all')
+	const [filterValue, setFilterValue] = React.useState('minting')
 
 	const filteredTokens = React.useMemo(() => {
 		if (!tokens) return []
@@ -378,8 +378,8 @@ export function TokenDataTable({}) {
 						<SelectValue placeholder="Filter tokens" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="all">Show All</SelectItem>
 						<SelectItem value="minting">Minting Now</SelectItem>
+						<SelectItem value="all">Show All</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>
