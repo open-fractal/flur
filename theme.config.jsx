@@ -12,5 +12,11 @@ export default {
 	},
 	footer: {
 		component: () => <></>
+	},
+	themeSwitch: {
+		component: () => <></>
+	},
+	sidebar: {
+		toggleButton: false
 	}
 }
