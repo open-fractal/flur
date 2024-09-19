@@ -16,7 +16,7 @@ export const MintFee: React.FC<MintFeeProps> = ({ className }) => {
 
   return (
     <div className={`${className} text-gray-400`}>
-      Mint Fee: {mintFeeData.fee} 0 s/vb
+      Service Fee: {mintFeeData.fee} 0 Sats
     </div>
   )
 }
