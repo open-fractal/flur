@@ -9,7 +9,7 @@ type Props = {
 	searchParams: { [key: string]: string | string[] | undefined }
 }
 
-export const revalidate = 60 * 5 // 5 minutes
+export const revalidate = 30 // 5 minutes
 
 // Function to fetch token details
 async function fetchTokenDetails(token_id: string) {
