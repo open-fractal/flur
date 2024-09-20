@@ -58,6 +58,7 @@ export interface TokenData {
 	holders: number
 	supply: string
 	decimals: number
+	revealHeight: string
 	info: {
 		max: string
 		limit: string
@@ -122,31 +123,31 @@ export const columns: ColumnDef<TokenData>[] = [
 	{
 		id: 'actions',
 		cell: ({ row }) => <ActionCell token={row.original} />,
-		header: () => <div className="text-left"></div>,
+		header: () => <div className="text-left"></div>
 	},
 	{
 		accessorKey: 'name',
 		header: ({ column }) => <SortButton column={column}>NAME</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>,
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>
 	},
 	{
 		accessorKey: 'symbol',
 		header: ({ column }) => <SortButton column={column}>SYMBOL</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>,
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>
 	},
 	{
 		accessorKey: 'holders',
 		header: ({ column }) => <SortButton column={column}>HOLDERS</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
-		),
+		)
 	},
 	{
 		accessorKey: 'tokenId',
 		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
-		),
+		)
 	},
 	{
 		accessorKey: 'currentSupply',
@@ -234,6 +235,17 @@ export const columns: ColumnDef<TokenData>[] = [
 		},
 		sortingFn: (rowA, rowB) => {
 			return parseInt(rowA.original.info.premine) - parseInt(rowB.original.info.premine)
+		}
+	},
+	{
+		accessorKey: 'revealHeight',
+		header: ({ column }) => <SortButton column={column}>REVEAL HEIGHT</SortButton>,
+		cell: ({ row }) => {
+			const revealHeight = parseInt(row.original.revealHeight)
+			return <div className="whitespace-nowrap">{formatNumber(revealHeight)}</div>
+		},
+		sortingFn: (rowA, rowB) => {
+			return parseInt(rowA.original.revealHeight) - parseInt(rowB.original.revealHeight)
 		}
 	}
 ]
