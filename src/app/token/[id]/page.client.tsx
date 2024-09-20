@@ -102,7 +102,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 
 	// Safely parse numeric values
 	const maxSupply = safeParseInt(tokenData.info?.max)
-	const premine = safeParseInt(tokenData.info?.premine)
+	// const premine = safeParseInt(tokenData.info?.premine)
 	// const limitPerMint = safeParseInt(tokenData.info?.limit)
 	const mintCount = tokenData?.supply / Math.pow(10, tokenData.decimals)
 	const currentSupply = mintCount // Remove premine from currentSupply
