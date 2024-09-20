@@ -158,6 +158,8 @@ export function useDeploy() {
 					</Button>
 				)
 			})
+
+			window.open(`/token/${revealTxid}_0`, '_blank')
 		} catch (error) {
 			console.error('Minting failed:', error)
 

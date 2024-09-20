@@ -1,7 +1,8 @@
 import Component from './page.client'
 import { Metadata } from 'next'
-import { API_URL } from '@/lib/constants'
+import { API_URL, EXPLORER_URL } from '@/lib/constants'
 import { validateTokenId } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 type Props = {
 	params: { id: string }
@@ -63,7 +64,16 @@ export default async function Page({ params }: Props) {
 
 	// If token details couldn't be fetched, return default metadata
 	if (!tokenDetails) {
-		return <div>Not found</div>
+		return (
+			<div className="flex justify-center container p-8">
+				<div className="flex flex-col gap-4 items-center justify-center">
+					<h1>Deploy pending...</h1>
+					<a href={`${EXPLORER_URL}/tx/${token_id.split('_')[0]}`} target="_blank">
+						<Button>View Tx</Button>
+					</a>
+				</div>
+			</div>
+		)
 	}
 
 	return <Component token={tokenDetails} />
