@@ -99,7 +99,7 @@ export function TokenBalances() {
 	}
 
 	return (
-		<Card className="w-full">
+		<Card className="w-full mt-8">
 			<CardHeader>
 				<CardTitle>Your Token Balances</CardTitle>
 				<p className="text-sm text-muted-foreground">
