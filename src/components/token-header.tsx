@@ -32,7 +32,7 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 	const stats = [
 		{ label: 'Token ID', value: tokenData.tokenId, copyable: true },
 		{ label: 'Symbol', value: tokenData.symbol },
-		{ label: 'Supply', value: tokenData.supply },
+		{ label: 'Supply', value: tokenData.supply / Math.pow(10, tokenData.info?.decimals || 0) },
 		{ label: 'Holders', value: tokenData.holders },
 		{ label: 'Premine', value: premine }
 	]
