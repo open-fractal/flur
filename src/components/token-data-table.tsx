@@ -49,7 +49,6 @@ import {
 import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MintFee } from '@/components/mint-fee'
 
 // Define TokenData interface
 export interface TokenData {
@@ -78,7 +77,7 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 		<Button
 			variant="ghost"
 			onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-			className={`font-semibold text-xs tracking-wide ${
+			className={`font-semibold text-xs tracking-wide w-full justify-start px-0 ${
 				column.getIsSorted() ? 'text-white font-bold' : ''
 			}`}
 		>
@@ -122,31 +121,32 @@ ActionCell.displayName = 'ActionCell'
 export const columns: ColumnDef<TokenData>[] = [
 	{
 		id: 'actions',
-		cell: ({ row }) => <ActionCell token={row.original} />
+		cell: ({ row }) => <ActionCell token={row.original} />,
+		header: () => <div className="text-left"></div>,
 	},
 	{
 		accessorKey: 'name',
 		header: ({ column }) => <SortButton column={column}>NAME</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>,
 	},
 	{
 		accessorKey: 'symbol',
 		header: ({ column }) => <SortButton column={column}>SYMBOL</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>,
 	},
 	{
 		accessorKey: 'holders',
 		header: ({ column }) => <SortButton column={column}>HOLDERS</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
-		)
+		),
 	},
 	{
 		accessorKey: 'tokenId',
 		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
-		)
+		),
 	},
 	{
 		accessorKey: 'currentSupply',
@@ -428,17 +428,7 @@ export function TokenDataTable({}) {
 	return (
 		<div className="w-full">
 			<div className="flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
-				<MintFee className="h-9 px-12 py-4 text-xs select-none bg-background border border-input rounded-md whitespace-nowrap flex items-center justify-center" />
 				<div className="flex items-center space-x-4 w-full">
-					<div className="relative flex-1">
-						<Input
-							placeholder="Search"
-							value={globalFilter}
-							onChange={event => setGlobalFilter(event.target.value)}
-							className="pl-10 w-full"
-						/>
-						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					</div>
 					<Select value={filterValue} onValueChange={setFilterValue}>
 						<SelectTrigger className="w-[180px]">
 							<SelectValue placeholder="Filter tokens" />
@@ -448,6 +438,15 @@ export function TokenDataTable({}) {
 							<SelectItem value="all">Show All</SelectItem>
 						</SelectContent>
 					</Select>
+					<div className="relative flex-1">
+						<Input
+							placeholder="Search"
+							value={globalFilter}
+							onChange={event => setGlobalFilter(event.target.value)}
+							className="pl-10 w-full"
+						/>
+						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					</div>
 				</div>
 			</div>
 			<div className="rounded-md border">
@@ -456,7 +455,7 @@ export function TokenDataTable({}) {
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map(header => (
-									<TableHead key={header.id}>
+									<TableHead key={header.id} className="text-left">
 										{header.isPlaceholder
 											? null
 											: flexRender(header.column.columnDef.header, header.getContext())}
