@@ -539,8 +539,6 @@ export default async function handler(
     // @ts-ignore
       const scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
 
-      console.log(minter.state)
-
       const scaledInfo = scaleConfig(token.info as OpenMinterTokenInfo);
       
       let amount: bigint | undefined = scaledLimit;
@@ -586,7 +584,6 @@ export default async function handler(
               }
             }
       
-      console.log({ amount, limit: scaledInfo.limit,  });
     const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledInfo.limit);
 
     if (!psbt) {
