@@ -105,7 +105,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	const premine = safeParseInt(tokenData.info?.premine)
 	// const limitPerMint = safeParseInt(tokenData.info?.limit)
 	const mintCount = tokenData?.supply / Math.pow(10, tokenData.decimals)
-	const currentSupply = premine + mintCount
+	const currentSupply = mintCount // Remove premine from currentSupply
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 
 	const isMintable = currentSupply < maxSupply && !!utxoCount && utxoCount > 0

@@ -203,9 +203,7 @@ export const columns: ColumnDef<TokenData>[] = [
 			const token = row.original
 			const maxSupply = parseInt(token.info.max)
 			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
-			const premine = parseInt(token.info.premine)
-			const mintProgress =
-				maxSupply > 0 ? (((currentSupply + premine) / maxSupply) * 100).toFixed(2) : '0.00'
+			const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 			return (
 				<div className="flex items-center space-x-2">
 					<Progress value={parseFloat(mintProgress)} className="w-20" />
@@ -215,13 +213,13 @@ export const columns: ColumnDef<TokenData>[] = [
 		},
 		sortingFn: (rowA, rowB) => {
 			const progressA =
-				((parseInt(rowA.original.supply) / Math.pow(10, rowA.original.decimals) +
-					parseInt(rowA.original.info.premine)) /
+				(parseInt(rowA.original.supply) /
+					Math.pow(10, rowA.original.decimals) /
 					parseInt(rowA.original.info.max)) *
 				100
 			const progressB =
-				((parseInt(rowB.original.supply) / Math.pow(10, rowB.original.decimals) +
-					parseInt(rowB.original.info.premine)) /
+				(parseInt(rowB.original.supply) /
+					Math.pow(10, rowB.original.decimals) /
 					parseInt(rowB.original.info.max)) *
 				100
 			return progressA - progressB
