@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
 	Card,
 	CardContent,
@@ -25,6 +25,15 @@ export function Cat20TokenForm() {
 		max: ''
 	})
 	const [error, setError] = useState('')
+	const [serviceFee, setServiceFee] = useState<string | null>(null)
+
+	useEffect(() => {
+		const fee = process.env.NEXT_PUBLIC_FEE_SATS
+		if (fee) {
+			// @ts-ignore
+			setServiceFee(parseInt(fee) / 1e8)
+		}
+	}, [])
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFormData({
@@ -120,7 +129,8 @@ export function Cat20TokenForm() {
 				</form>
 			</CardContent>
 			<CardFooter className="flex flex-col items-start">
-				<Button type="submit" onClick={handleSubmit} disabled={isDeploying}>
+				{serviceFee && <p className="text-sm text-gray-500 mb-2">Service fee: {serviceFee} FB</p>}
+				<Button className="w-full" type="submit" onClick={handleSubmit} disabled={isDeploying}>
 					{isDeploying ? 'Deploying...' : 'Deploy Token'}
 				</Button>
 				{error && (

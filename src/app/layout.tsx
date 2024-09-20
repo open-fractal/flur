@@ -2,7 +2,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import React from 'react'
 import { Toaster } from '@/components/ui/toaster'
-import { Header } from '@/components/header'
+import { Header } from '@/components/Header'
 import { Footer } from '@/components/footer'
 import { Analytics } from '@vercel/analytics/react'
 const inter = Inter({ subsets: ['latin'] })

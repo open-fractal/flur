@@ -258,7 +258,20 @@ export async function deploy(
         satoshis: 0,
         script: changeScript,
       }),
-    )
+    );
+
+    
+    if (process.env.FEE_ADDRESS && process.env.NEXT_PUBLIC_FEE_SATS) {
+        console.log(btc.Script.fromAddress(process.env.FEE_ADDRESS).toHex());
+        commitTx.addOutput(
+            new btc.Transaction.Output({
+                script: btc.Script.fromAddress(process.env.FEE_ADDRESS),
+                satoshis: parseInt(process.env.NEXT_PUBLIC_FEE_SATS),
+            })
+        );
+    }
+
+  commitTx
     .feePerByte(feeRate)
     .change(changeAddress);
 

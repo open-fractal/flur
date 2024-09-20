@@ -1,4 +1,4 @@
-import { Header } from '@/components/header'
+import { Header } from '@/components/Header'
 
 export default {
 	logo: <span>Flur Docs</span>,
