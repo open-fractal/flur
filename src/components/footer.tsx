@@ -30,7 +30,7 @@ export function Footer() {
 	return (
 		<div className="w-full border-t h-8 fixed bottom-0 left-0 bg-black">
 			<div className="container flex items-center justify-between h-full">
-				<div className="text-xs text-gray-500">Service Fee: 0 Sats</div>
+				{/* <div className="text-xs text-gray-500">Service Fee: 0 Sats</div> */}
 				<div className="flex gap-2 h-full items-center">
 					<p className="text-xs whitespace-nowrap">
 						Indexed: <span className="font-bold">{trackerHeight}</span> /{' '}
