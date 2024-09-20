@@ -1,49 +1,34 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { toByteString, UTXO, MethodCallOptions, int2ByteString } from 'scrypt-ts';
+import { toByteString, UTXO  } from 'scrypt-ts';
 import {
-    getRawTransaction,
-    getDummySigner,
-    getDummyUTXO,
-    callToBufferList,
     TokenMetadata,
-    resetTx,
     toStateScript,
     OpenMinterTokenInfo,
     getOpenMinterContractP2TR,
-    OpenMinterContract,
     outpoint2ByteString,
     Postage,
     toP2tr,
-    logerror,
     btc,
-    getTokenMetadata,
-    getTokenMinter,
-    getTokenMinterCount,
     MinterType,
     script2P2TR,
     getTokenContractP2TR,
     TokenInfo,
-    p2tr2Address
+    p2tr2Address,
+    toXOnly
 } from '@/lib/scrypt/common';
 
 import {
-    getBackTraceInfo,
     OpenMinter,
     OpenMinterProto,
     OpenMinterState,
     ProtocolState,
-    CAT20State,
-    CAT20Proto,
-    PreTxStatesInfo,
-    getTxCtx,
-    ChangeInfo,
     int32,
     getCatCommitScript,
     OpenMinterV2Proto,
     OpenMinterV2State,
     getSHPreimage,
-  OpenMinterV2,
-  BurnGuard,
+    OpenMinterV2,
+    BurnGuard,
     TransferGuard,
     CAT20
 } from '@/lib/scrypt/contracts/dist';
@@ -53,8 +38,6 @@ import { Transaction } from '@scure/btc-signer';
 import * as bitcoinjs from 'bitcoinjs-lib'
 import axios from 'axios'
 import { API_URL } from '@/lib/constants'
-import { getFeeRate, broadcast } from '@/lib/utils'
-
 
 const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json');
 OpenMinter.loadArtifact(OpenMinterArtifact);
@@ -68,33 +51,8 @@ BurnGuard.loadArtifact(BurnGuardArtifact);
 const TransferGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/transferGuard.json')
 TransferGuard.loadArtifact(TransferGuardArtifact);
 
-
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact);
-
-
-const DUMMY_MINER_SIG = '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' 
-
-const getPremineAddress = async (wallet: WalletService, utxo: UTXO): Promise<string | Error> => {
-  const txhex = await getRawTransaction(utxo.txId);
-  if (txhex instanceof Error) {
-    logerror(`get raw transaction ${utxo.txId} failed!`, txhex);
-    return txhex;
-  }
-  try {
-      const tx = new btc.Transaction(txhex);
-      const witnesses: Buffer[] = tx.inputs[0].getWitnesses();
-      const lockingScript = witnesses[witnesses.length - 2];
-      const minter = OpenMinter.fromLockingScript(lockingScript.toString('hex')) as OpenMinter;
-      return minter.premineAddr;
-  } catch (error) {
-      return `${error}`
-  }
-}
-
-function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
-}
 
 export function createOpenMinterState(
   mintAmount: int32,
@@ -142,9 +100,14 @@ export async function getMinter(
 
   console.log({ tokenInfo })
   // const scaledTokenInfo = scaleConfig(tokenInfo as OpenMinterTokenInfo);
-  const scaledTokenInfo = tokenInfo as OpenMinterTokenInfo;
+  const scaledTokenInfo = scaleConfig(tokenInfo as OpenMinterTokenInfo);
   const premineAddress =
     scaledTokenInfo.premine > 0n ? await wallet.getTokenAddress() : toByteString('');
+
+  if (!tokenInfo.minterMd5) {
+    process.exit();
+    }
+
   return getOpenMinterContractP2TR(
     genesisId,
     scaledTokenInfo.max,
@@ -188,6 +151,7 @@ const buildRevealTx = async (
   info: TokenInfo,
   commitTx: btc.Transaction,
   feeRate: number,
+  taproot_private_key: btc.PrvateKey
 ): Promise<{ revealTx: btc.Transaction, tapScript: string, witnesses: Buffer[] }> => {
   const { p2tr: minterP2TR } = await getMinter(
     wallet,
@@ -231,11 +195,18 @@ const buildRevealTx = async (
 
   const witnesses: Buffer[] = [];
 
+    const { sighash } = getSHPreimage(revealTx, 0, Buffer.from(tapScript, 'hex'));
+
+  const sig = btc.crypto.Schnorr.sign(
+    taproot_private_key,
+    sighash.hash,
+  );
+
   for (let i = 0; i < txState.stateHashList.length; i++) {
     const txoStateHash = txState.stateHashList[i];
     witnesses.push(Buffer.from(txoStateHash, 'hex'));
   }
-  witnesses.push(Buffer.from(DUMMY_MINER_SIG, 'hex'));
+  witnesses.push(sig);
   witnesses.push(lockingScript);
   witnesses.push(Buffer.from(cblock, 'hex'));
 
@@ -254,9 +225,18 @@ export async function deploy(
   | ResponseData 
   | undefined
 > {
+
+  // let pk = btc.PrivateKey.fromBuffer(Buffer.from('abddaecf30b891e99755870fa8bcb28c223271a48f066ca2c77b4e7901e6c0a0', 'hex'))
+  const pk = btc.PrivateKey.fromRandom();
+  console.log('pk', pk.toBuffer().toString('hex'))
+  const { tweakedPrivKey } = pk.createTapTweak();
+  const taproot_private_key = btc.PrivateKey.fromBuffer(tweakedPrivKey)
+  const publicKey = taproot_private_key.toPublicKey();
+  const pubkeyX = toXOnly(publicKey.toBuffer()).toString('hex');
+
   const changeAddress: btc.Address = await wallet.getAddress();
 
-  const pubkeyX = await wallet.getXOnlyPublicKey();
+  // const pubkeyX = await wallet.getXOnlyPublicKey();
   const commitScript = getCatCommitScript(pubkeyX, params);
 
   const lockingScript = Buffer.from(commitScript, 'hex');
@@ -296,6 +276,7 @@ export async function deploy(
     params,
     commitTx,
     feeRate,
+    taproot_private_key
   );
 
   const revealTxFee = revealTxDummy.vsize * feeRate + Postage.MINTER_POSTAGE;
@@ -317,6 +298,7 @@ export async function deploy(
     params,
     commitTx,
     feeRate,
+    taproot_private_key
   );
 
   const { p2tr: minterP2TR } = await getMinter(
@@ -325,6 +307,9 @@ export async function deploy(
     params,
   );
   const { p2tr: tokenP2TR } = getTokenContractP2TR(minterP2TR);
+
+  // commitTx.enableRBF()
+  // revealTx.enableRBF()
 
   const commitPsbt = Transaction.fromRaw(commitTx.toBuffer());
   let revealPsbt = Transaction.fromRaw(revealTx.toBuffer(), { allowUnknownInputs: true, allowUnknownOutputs: true });
@@ -362,9 +347,9 @@ export async function deploy(
     commitPsbt.inputs[i].sighashType = 1
   }
 
-  console.log(commitPsbt.outputs[0]);
-
+  // @ts-ignore
   revealPsbt.inputs[0].witnessUtxo = commitPsbt.outputs[0];
+  // @ts-ignore
   revealPsbt.inputs[1].witnessUtxo = commitPsbt.outputs[1]
   // revealPsbt.inputs[0].witnessUtxo = {
   //   amount: BigInt(commitPsbt.outputs[0].amount),
@@ -429,7 +414,15 @@ export default async function handler(
     const payload = req.body;
     const wallet = new WalletService(payload.address, payload.publicKey);
 
-    const params = { ...payload.params, max: 21000000n, limit: 1000n, premine: 0n }
+    const params = {
+      name: payload.params.name as string,
+      symbol: payload.params.symbol as string,
+      limit: BigInt(payload.params.limit),
+      max: BigInt(payload.params.max),
+      decimals: 8,
+      premine: 0n,
+      minterMd5: 'a6c2e92d74a23c07bb6220b676c6cb9b' 
+    }
 
     const response = await deploy(params, payload.feeRate, payload.utxos, MinterType.OPEN_MINTER_V2, wallet);
 

@@ -1,5 +1,10 @@
-import { OpenMinterState, ProtocolState, ProtocolStateList } from '@/lib/scrypt/contracts/dist'
-import { OpenMinterContract } from '@/lib/scrypt/common'
+import {
+	OpenMinterState,
+	ProtocolState,
+	ProtocolStateList,
+	OpenMinterV2State
+} from '@/lib/scrypt/contracts/dist'
+import { OpenMinterContract, MinterType } from '@/lib/scrypt/common'
 import { OpenMinterTokenInfo, TokenMetadata } from './metadata'
 import { isOpenMinter } from './minterFinder'
 import { getRawTransaction } from './apis'
@@ -86,12 +91,19 @@ const fetchOpenMinterState = async function(
 	metadata: TokenMetadata,
 	txId: string,
 	vout: number
-): Promise<OpenMinterState | null> {
+): Promise<OpenMinterState | OpenMinterV2State | null> {
 	const minterP2TR = toP2tr(metadata.minterAddr)
 	const tokenP2TR = toP2tr(metadata.tokenAddr)
 	const info = metadata.info as OpenMinterTokenInfo
 	const scaledInfo = scaleConfig(info)
 	if (txId === metadata.revealTxid) {
+		if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
+			return {
+				isPremined: false,
+				remainingSupplyCount: (scaledInfo.max - scaledInfo.premine) / scaledInfo.limit,
+				tokenScript: tokenP2TR
+			}
+		}
 		return {
 			isPremined: false,
 			remainingSupply: scaledInfo.max - scaledInfo.premine,
@@ -116,10 +128,18 @@ const fetchOpenMinterState = async function(
 			const lockingScriptBuffer = witnesses[witnesses.length - 2]
 			const { p2tr } = script2P2TR(lockingScriptBuffer)
 			if (p2tr === minterP2TR) {
+				if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
+					const preState: OpenMinterV2State = {
+						tokenScript: witnesses[REMAININGSUPPLY_WITNESS_INDEX - 2].toString('hex'),
+						isPremined: true,
+						remainingSupplyCount: byteString2Int(witnesses[6 + vout].toString('hex'))
+					}
+
+					return preState
+				}
 				const preState: OpenMinterState = {
 					tokenScript: witnesses[REMAININGSUPPLY_WITNESS_INDEX - 2].toString('hex'),
-					isPremined:
-						witnesses[REMAININGSUPPLY_WITNESS_INDEX - 1].toString('hex') == '01' ? true : false,
+					isPremined: true,
 					remainingSupply: byteString2Int(witnesses[6 + vout].toString('hex'))
 				}
 

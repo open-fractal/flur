@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import axios from 'axios' // Add this import at the top of the file
 import { Transaction } from '@scure/btc-signer' // Or whatever library you're using for Bitcoin transactions
-import { MEMPOOL_URL, EXPLORER_URL } from '@/lib/constants'
+import { EXPLORER_URL } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'

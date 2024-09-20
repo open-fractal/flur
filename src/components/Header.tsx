@@ -30,13 +30,13 @@ const truncateAddress = (address: string) => {
 
 // Define an array of tab items
 const tabItems = [
-	{ value: '/', label: 'Explore' },
-	{ value: '/create', label: 'Create' },
+	{ value: '/', label: 'Mint' },
+	{ value: '/create', label: 'Deploy' },
 	{ value: '/docs', label: 'Docs' }
 	// Add more tabs here as needed
 ]
 
-const Header: React.FC = () => {
+export const Header: React.FC = () => {
 	const [searchInput, setSearchInput] = useState('')
 	const { address, setAddress, isWalletConnected, setIsWalletConnected } = useWallet()
 	const { toast } = useToast()
@@ -107,7 +107,10 @@ const Header: React.FC = () => {
 
 	// Function to determine the active tab
 	const getActiveTab = useCallback(() => {
-		return tabItems.find(tab => pathname.startsWith(tab.value))?.value || '/'
+		if (pathname === '/') {
+			return '/'
+		}
+		return tabItems.find(tab => pathname?.startsWith(tab.value) && tab.value !== '/')?.value || '/'
 	}, [pathname])
 
 	return (
@@ -264,5 +267,3 @@ const Header: React.FC = () => {
 		</>
 	)
 }
-
-export default Header

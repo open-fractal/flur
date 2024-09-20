@@ -19,11 +19,10 @@ import { useDeploy } from '@/hooks/use-deploy'
 export function Cat20TokenForm() {
 	const { handleDeploy, isDeploying } = useDeploy()
 	const [formData, setFormData] = useState({
-		name: 'DragonDollar',
-		symbol: 'DD',
-		decimals: 2,
-		limit: 5000,
-		max: 5000000
+		name: '',
+		symbol: '',
+		limit: '',
+		max: ''
 	})
 	const [error, setError] = useState('')
 
@@ -44,22 +43,16 @@ export function Cat20TokenForm() {
 			return
 		}
 
-		if (parseInt(formData.decimals) < 0 || parseInt(formData.decimals) > 18) {
-			setError('Decimals must be between 0 and 18')
-			return
-		}
-
-		if (parseInt(formData.limitPerMint) <= 0 || parseInt(formData.maxTokenSupply) <= 0) {
+		if (parseInt(formData.limit) <= 0 || parseInt(formData.max) <= 0) {
 			setError('Limit per mint and max token supply must be positive numbers')
 			return
 		}
 
-		if (parseInt(formData.limitPerMint) > parseInt(formData.maxTokenSupply)) {
+		if (parseInt(formData.limit) > parseInt(formData.max)) {
 			setError('Limit per mint cannot be greater than max token supply')
 			return
 		}
 
-		// Here you would typically call a function to deploy the token
 		console.log('Deploying token:', formData)
 
 		await handleDeploy(formData)
@@ -67,9 +60,8 @@ export function Cat20TokenForm() {
 		setFormData({
 			name: '',
 			symbol: '',
-			decimals: '',
-			limitPerMint: '',
-			maxTokenSupply: ''
+			limit: '',
+			max: ''
 		})
 	}
 
@@ -103,35 +95,24 @@ export function Cat20TokenForm() {
 							/>
 						</div>
 						<div className="flex flex-col space-y-1.5">
-							<Label htmlFor="decimals">Decimals</Label>
+							<Label htmlFor="limit">Limit per mint</Label>
 							<Input
-								id="decimals"
-								name="decimals"
-								type="number"
-								placeholder="18"
-								value={formData.decimals}
-								onChange={handleChange}
-							/>
-						</div>
-						<div className="flex flex-col space-y-1.5">
-							<Label htmlFor="limitPerMint">Limit per mint</Label>
-							<Input
-								id="limitPerMint"
-								name="limitPerMint"
+								id="limit"
+								name="limit"
 								type="number"
 								placeholder="1000"
-								value={formData.limitPerMint}
+								value={formData.limit}
 								onChange={handleChange}
 							/>
 						</div>
 						<div className="flex flex-col space-y-1.5">
-							<Label htmlFor="maxTokenSupply">Max token supply</Label>
+							<Label htmlFor="max">Max token supply</Label>
 							<Input
-								id="maxTokenSupply"
-								name="maxTokenSupply"
+								id="max"
+								name="max"
 								type="number"
 								placeholder="1000000"
-								value={formData.maxTokenSupply}
+								value={formData.max}
 								onChange={handleChange}
 							/>
 						</div>
@@ -139,8 +120,8 @@ export function Cat20TokenForm() {
 				</form>
 			</CardContent>
 			<CardFooter className="flex flex-col items-start">
-				<Button type="submit" onClick={handleSubmit}>
-					Deploy Token
+				<Button type="submit" onClick={handleSubmit} disabled={isDeploying}>
+					{isDeploying ? 'Deploying...' : 'Deploy Token'}
 				</Button>
 				{error && (
 					<Alert variant="destructive" className="mt-4">
