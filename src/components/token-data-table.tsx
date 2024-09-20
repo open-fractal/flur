@@ -49,6 +49,7 @@ import {
 import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useEffect, useMemo } from 'react'
 
 // Define TokenData interface
 export interface TokenData {
@@ -312,17 +313,39 @@ export function TokenDataTable({}) {
 
 	// Ensure tokenResponse and tokenResponse.data are defined
 	const tokens = tokenResponse?.data?.tokens || []
-	const total = tokenResponse?.data?.total || 0
+	// const total = tokenResponse?.data?.total || 0
 
-	const [sorting, setSorting] = React.useState<SortingState>([{ id: 'holders', desc: true }])
-	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-	const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-	const [rowSelection, setRowSelection] = React.useState({})
-	const [currentPage, setCurrentPage] = React.useState(1)
-	const router = useRouter()
-	const [globalFilter, setGlobalFilter] = React.useState('')
+	// Load initial state from localStorage
+	const initialState = useMemo(() => {
+		if (typeof window !== 'undefined') {
+			const savedState = localStorage.getItem('tokenTableState')
+			if (savedState) {
+				return JSON.parse(savedState)
+			}
+		}
+		return {
+			sorting: [{ id: 'holders', desc: true }],
+			columnFilters: [],
+			columnVisibility: {},
+			currentPage: 1,
+			globalFilter: '',
+			filterValue: 'minting'
+		}
+	}, [])
+
+	const [sorting, setSorting] = React.useState<SortingState>(initialState.sorting)
+	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+		initialState.columnFilters
+	)
+	const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
+		initialState.columnVisibility
+	)
+	const [currentPage, setCurrentPage] = React.useState(initialState.currentPage)
+	const [globalFilter, setGlobalFilter] = React.useState(initialState.globalFilter)
+	const [filterValue, setFilterValue] = React.useState(initialState.filterValue)
+
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
-	const [filterValue, setFilterValue] = React.useState('minting')
+	const router = useRouter()
 
 	const filteredTokens = React.useMemo(() => {
 		if (!tokens) return []
@@ -334,17 +357,25 @@ export function TokenDataTable({}) {
 		})
 	}, [tokens, filterValue])
 
+	// Calculate total pages based on filtered tokens
+	const totalFilteredPages = Math.ceil(filteredTokens.length / PAGE_SIZE)
+
 	const table = useReactTable({
-		data: filteredTokens || [],
+		data: filteredTokens,
 		columns,
-		onSortingChange: setSorting,
-		onColumnFiltersChange: setColumnFilters,
+		onSortingChange: updater => {
+			setSorting(updater)
+			setCurrentPage(1) // Reset to first page when sorting changes
+		},
+		onColumnFiltersChange: updater => {
+			setColumnFilters(updater)
+			setCurrentPage(1) // Reset to first page when filters change
+		},
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 		getSortedRowModel: getSortedRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
 		onColumnVisibilityChange: setColumnVisibility,
-		onRowSelectionChange: setRowSelection,
 		globalFilterFn: (row, columnId, filterValue) => {
 			const value = row.getValue(columnId)
 			if (typeof value === 'string') {
@@ -359,7 +390,6 @@ export function TokenDataTable({}) {
 			sorting,
 			columnFilters,
 			columnVisibility,
-			rowSelection,
 			pagination: {
 				pageIndex: currentPage - 1,
 				pageSize: PAGE_SIZE
@@ -370,8 +400,28 @@ export function TokenDataTable({}) {
 			sorting: [{ id: 'holders', desc: true }]
 		},
 		manualPagination: true,
-		pageCount: Math.ceil(total / PAGE_SIZE)
+		pageCount: totalFilteredPages // Use the calculated total pages
 	})
+
+	// Save state to localStorage whenever it changes
+	useEffect(() => {
+		const stateToSave = {
+			sorting,
+			columnFilters,
+			columnVisibility,
+			currentPage,
+			globalFilter,
+			filterValue
+		}
+		localStorage.setItem('tokenTableState', JSON.stringify(stateToSave))
+	}, [sorting, columnFilters, columnVisibility, currentPage, globalFilter, filterValue])
+
+	// Add this effect after the table initialization
+	React.useEffect(() => {
+		if (currentPage > totalFilteredPages) {
+			setCurrentPage(1)
+		}
+	}, [filterValue, totalFilteredPages])
 
 	if (!tokenResponse || !tokens) {
 		return <TableSkeleton />
@@ -381,7 +431,8 @@ export function TokenDataTable({}) {
 		return null
 	}
 
-	const totalPages = Math.ceil(total / table.getState().pagination.pageSize)
+	// Update totalPages calculation
+	const totalPages = totalFilteredPages
 
 	const renderPageNumbers = () => {
 		const pageNumbers = []
@@ -510,7 +561,7 @@ export function TokenDataTable({}) {
 					<PaginationContent>
 						<PaginationItem>
 							<PaginationPrevious
-								onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+								onClick={() => setCurrentPage((prev: number) => Math.max(prev - 1, 1))}
 								aria-disabled={currentPage === 1}
 								tabIndex={currentPage === 1 ? -1 : undefined}
 								className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
@@ -519,7 +570,7 @@ export function TokenDataTable({}) {
 						{renderPageNumbers()}
 						<PaginationItem>
 							<PaginationNext
-								onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+								onClick={() => setCurrentPage((prev: number) => Math.min(prev + 1, totalPages))}
 								aria-disabled={currentPage === totalPages}
 								tabIndex={currentPage === totalPages ? -1 : undefined}
 								className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
