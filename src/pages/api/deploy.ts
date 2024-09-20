@@ -97,8 +97,6 @@ export async function getMinter(
   genesisId: string,
   tokenInfo: TokenInfo,
 ) {
-
-  console.log({ tokenInfo })
   // const scaledTokenInfo = scaleConfig(tokenInfo as OpenMinterTokenInfo);
   const scaledTokenInfo = scaleConfig(tokenInfo as OpenMinterTokenInfo);
   const premineAddress =
@@ -228,7 +226,6 @@ export async function deploy(
 
   // let pk = btc.PrivateKey.fromBuffer(Buffer.from('abddaecf30b891e99755870fa8bcb28c223271a48f066ca2c77b4e7901e6c0a0', 'hex'))
   const pk = btc.PrivateKey.fromRandom();
-  console.log('pk', pk.toBuffer().toString('hex'))
   const { tweakedPrivKey } = pk.createTapTweak();
   const taproot_private_key = btc.PrivateKey.fromBuffer(tweakedPrivKey)
   const publicKey = taproot_private_key.toPublicKey();
@@ -262,7 +259,6 @@ export async function deploy(
 
     
     if (process.env.FEE_ADDRESS && process.env.NEXT_PUBLIC_FEE_SATS) {
-        console.log(btc.Script.fromAddress(process.env.FEE_ADDRESS).toHex());
         commitTx.addOutput(
             new btc.Transaction.Output({
                 script: btc.Script.fromAddress(process.env.FEE_ADDRESS),
@@ -432,7 +428,7 @@ export default async function handler(
       symbol: payload.params.symbol as string,
       limit: BigInt(payload.params.limit),
       max: BigInt(payload.params.max),
-      decimals: 8,
+      decimals: 2,
       premine: 0n,
       minterMd5: 'a6c2e92d74a23c07bb6220b676c6cb9b' 
     }

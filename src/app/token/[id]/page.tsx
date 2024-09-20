@@ -14,7 +14,7 @@ export const revalidate = 30 // 5 minutes
 // Function to fetch token details
 async function fetchTokenDetails(token_id: string) {
 	try {
-		const url = `${API_URL}/api/tokens/${token_id}?v=1`
+		const url = `${API_URL}/api/tokens/${token_id}?v=2`
 		const response = await fetch(url)
 		if (!response.ok) {
 			throw new Error('Failed to fetch token details')

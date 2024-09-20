@@ -52,13 +52,22 @@ export function Cat20TokenForm() {
 			return
 		}
 
-		if (parseInt(formData.limit) <= 0 || parseInt(formData.max) <= 0) {
+		const limit = parseInt(formData.limit)
+		const max = parseInt(formData.max)
+
+		if (limit <= 0 || max <= 0) {
 			setError('Limit per mint and max token supply must be positive numbers')
 			return
 		}
 
-		if (parseInt(formData.limit) > parseInt(formData.max)) {
+		if (limit > max) {
 			setError('Limit per mint cannot be greater than max token supply')
+			return
+		}
+
+		// New check: Ensure max is divisible by limit
+		if (max % limit !== 0) {
+			setError('Max token supply must be equally divisible by limit per mint')
 			return
 		}
 
@@ -133,6 +142,7 @@ export function Cat20TokenForm() {
 				<Button className="w-full" type="submit" onClick={handleSubmit} disabled={isDeploying}>
 					{isDeploying ? 'Deploying...' : 'Deploy Token'}
 				</Button>
+				<p className="text-xs text-gray-500 mt-2">You will sign two transactions to deploy</p>
 				{error && (
 					<Alert variant="destructive" className="mt-4">
 						<AlertCircle className="h-4 w-4" />

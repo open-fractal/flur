@@ -381,8 +381,6 @@ async function openMint(
   const changeOutputIndex = revealTx.outputs.length - 1;
     revealTx.outputs[changeOutputIndex].satoshis = changeAmount;
     
-
-
   const { shPreimage, prevoutsCtx, spentScripts } =
       getTxCtx(revealTx, minterInputIndex, Buffer.from(minterTapScript, 'hex'))
 
@@ -530,7 +528,7 @@ export default async function handler(
     // It also guarantees that the offset is non-negative.
 
     const minter = await getTokenMinter(token, adjustedOffset);
-    let mintUtxoCreateCount = mintUtxoCount > 16 ? 1 : 2
+    const mintUtxoCreateCount = 2
 
     if (!minter) {
       return res.status(404).json({ message: 'Minter not found' });
@@ -539,14 +537,57 @@ export default async function handler(
     const wallet = new WalletService(payload.address, payload.publicKey);
     // Scale the limit by 10^decimals to account for token precision
     // @ts-ignore
-      let scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
+      const scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
 
-      if (minter.state.data.remainingSupply < scaledLimit) {
-          scaledLimit = minter.state.data.remainingSupply
-          mintUtxoCreateCount = 0
-      }
+      console.log(minter.state)
+
+      const scaledInfo = scaleConfig(token.info as OpenMinterTokenInfo);
       
-    const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledLimit);
+      let amount: bigint | undefined = scaledLimit;
+      
+        if (!minter.state.data.isPremined && scaledInfo.premine > 0n) {
+              if (typeof amount === 'bigint') {
+                if (amount !== scaledInfo.premine) {
+                  throw new Error(
+                    `first mint amount should equal to premine ${scaledInfo.premine}`,
+                  );
+                }
+              } else {
+                amount = scaledInfo.premine;
+              }
+            } else {
+              amount = amount || scaledInfo.limit;
+              if (token.info.minterMd5 === MinterType.OPEN_MINTER_V1) {
+                  if (
+                    // @ts-ignore
+                  getRemainSupply(minter.state.data, token.info.minterMd5) <
+                  scaledInfo.limit
+                ) {
+                //   console.warn(
+                //     `small limit of ${unScaleByDecimals(limit, token.info.decimals)} in the minter UTXO!`,
+                //   );
+                //   log(`retry to mint token [${token.info.symbol}] ...`);
+                //   continue;
+                }
+                amount =
+                    amount >
+                    // @ts-ignore
+                  getRemainSupply(minter.state.data, token.info.minterMd5)
+                    ? getRemainSupply(minter.state.data, token.info.minterMd5)
+                    : amount;
+              } else if (
+                token.info.minterMd5 == MinterType.OPEN_MINTER_V2 &&
+                amount != scaledInfo.limit
+              ) {
+                console.warn(
+                  `can only mint at the exactly amount of ${scaledInfo.limit} at once`,
+                );
+                amount = scaledInfo.limit;
+              }
+            }
+      
+      console.log({ amount, limit: scaledInfo.limit,  });
+    const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledInfo.limit);
 
     if (!psbt) {
       return res.status(500).json({ message: 'Failed to create PSBT' });
