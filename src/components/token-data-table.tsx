@@ -126,7 +126,9 @@ export const columns: ColumnDef<TokenData>[] = [
 		id: 'actions',
 		cell: ({ row }) => <ActionCell token={row.original} />,
 		header: () => <div className="text-left"></div>,
-		size: 48 // This corresponds to w-12 in Tailwind (12 * 4px = 48px)
+		size: 64, // This corresponds to w-16 in Tailwind (16 * 4px = 64px)
+		minSize: 64,
+		maxSize: 64
 	},
 	{
 		accessorKey: 'name',
@@ -141,7 +143,9 @@ export const columns: ColumnDef<TokenData>[] = [
 				</Tooltip>
 			</TooltipProvider>
 		),
-		size: 150 // Set a fixed width for the name column
+		size: 150,
+		minSize: 150,
+		maxSize: 150
 	},
 	{
 		accessorKey: 'symbol',
@@ -519,13 +523,17 @@ export function TokenDataTable({}) {
 					</div>
 				</div>
 			</div>
-			<div className="rounded-md border">
-				<Table style={{ tableLayout: 'fixed' }}>
+			<div className="rounded-md border overflow-x-auto">
+				<Table className="w-[1200px] min-w-full table-fixed">
 					<TableHeader>
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map(header => (
-									<TableHead key={header.id} className="text-left">
+									<TableHead
+										key={header.id}
+										className="text-left whitespace-nowrap overflow-hidden"
+										style={{ width: `${header.getSize()}px` }}
+									>
 										{header.isPlaceholder
 											? null
 											: flexRender(header.column.columnDef.header, header.getContext())}
@@ -547,7 +555,11 @@ export function TokenDataTable({}) {
 										className="cursor-pointer duration-200"
 									>
 										{row.getVisibleCells().map(cell => (
-											<TableCell key={cell.id}>
+											<TableCell
+												key={cell.id}
+												className="whitespace-nowrap overflow-hidden text-ellipsis"
+												style={{ width: `${cell.column.getSize()}px` }}
+											>
 												{flexRender(cell.column.columnDef.cell, cell.getContext())}
 											</TableCell>
 										))}
