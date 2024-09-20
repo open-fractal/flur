@@ -6,7 +6,8 @@ import {
 	TransferGuard,
 	int32,
 	CAT20,
-	OpenMinter
+	OpenMinter,
+	OpenMinterV2
 } from '@/lib/scrypt/contracts/dist'
 
 import { btc } from './btc'
@@ -22,6 +23,7 @@ import {
 	toByteString,
 	UTXO
 } from 'scrypt-ts'
+import { MinterType } from '@/lib/scrypt/common'
 
 import { Tap } from '@cmdcode/tapscript'
 import { randomBytes } from 'crypto'
@@ -165,9 +167,15 @@ export function getOpenMinterContract(
 	max: int32,
 	premine: int32,
 	limit: int32,
-	premineAddress: ByteString
+	premineAddress: ByteString,
+	minterMd5: string = MinterType.OPEN_MINTER_V2
 ) {
-	return new OpenMinter(genesisId, max, premine, limit, premineAddress)
+	if (minterMd5 === MinterType.OPEN_MINTER_V1) {
+		return new OpenMinter(genesisId, max, premine, limit, premineAddress)
+	}
+	const maxCount = max / limit
+	const premineCount = premine / limit
+	return new OpenMinterV2(genesisId, maxCount, premine, premineCount, limit, premineAddress)
 }
 
 export function getOpenMinterContractP2TR(
@@ -175,9 +183,12 @@ export function getOpenMinterContractP2TR(
 	max: int32,
 	premine: int32,
 	limit: int32,
-	premineAddress: ByteString
+	premineAddress: ByteString,
+	minterMd5: string
 ) {
-	return contract2P2TR(getOpenMinterContract(genesisId, max, premine, limit, premineAddress))
+	return contract2P2TR(
+		getOpenMinterContract(genesisId, max, premine, limit, premineAddress, minterMd5)
+	)
 }
 
 export function getClosedMinterContractP2TR(issuerAddress: string, genesisId: ByteString) {

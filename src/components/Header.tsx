@@ -28,6 +28,14 @@ const truncateAddress = (address: string) => {
 	return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
+// Define an array of tab items
+const tabItems = [
+	{ value: '/', label: 'Explore' },
+	{ value: '/create', label: 'Create' },
+	{ value: '/docs', label: 'Docs' }
+	// Add more tabs here as needed
+]
+
 const Header: React.FC = () => {
 	const [searchInput, setSearchInput] = useState('')
 	const { address, setAddress, isWalletConnected, setIsWalletConnected } = useWallet()
@@ -97,6 +105,11 @@ const Header: React.FC = () => {
 
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
 
+	// Function to determine the active tab
+	const getActiveTab = useCallback(() => {
+		return tabItems.find(tab => pathname.startsWith(tab.value))?.value || '/'
+	}, [pathname])
+
 	return (
 		<>
 			<div className="h-16"></div>
@@ -105,18 +118,18 @@ const Header: React.FC = () => {
 					<Link href="/">
 						<img src="/logo.svg" alt="Logo" width={84} height={30} />
 					</Link>
-					<Tabs value={pathname === '/docs' ? '/docs' : '/'} className="hidden sm:block">
+					<Tabs value={getActiveTab()} className="hidden sm:block">
 						<TabsList>
-							<TabsTrigger value="/" asChild>
-								<Link href="/" className="hover:text-white transition-colors duration-200">
-									Explore
-								</Link>
-							</TabsTrigger>
-							<TabsTrigger value="/docs" asChild>
-								<Link href="/docs" className="hover:text-white transition-colors duration-200">
-									Docs
-								</Link>
-							</TabsTrigger>
+							{tabItems.map(tab => (
+								<TabsTrigger key={tab.value} value={tab.value} asChild>
+									<Link
+										href={tab.value}
+										className="hover:text-white transition-colors duration-200"
+									>
+										{tab.label}
+									</Link>
+								</TabsTrigger>
+							))}
 						</TabsList>
 					</Tabs>
 					<div className="flex items-center gap-4">

@@ -1,0 +1,1 @@
+{"version":3,"file":"closedMinterProto.js","sourceRoot":"","sources":["../../../src/contracts/token/closedMinterProto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,yCAAyE;AAOzE,MAAa,iBAAkB,SAAQ,4BAAgB;IAE5C,AAAP,MAAM,CAAC,SAAS,CAAC,MAAyB;QACtC,OAAO,IAAA,mBAAO,EAAC,MAAM,CAAC,WAAW,CAAC,CAAA;IACtC,CAAC;CACJ;AALD,8CAKC;AAHU;IADN,IAAA,kBAAM,GAAE;;;;wCAGR"}

@@ -4,39 +4,7 @@ import { Transaction } from '@scure/btc-signer' // Or whatever library you're us
 import { MEMPOOL_URL, EXPLORER_URL } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
-
-export const getFeeRate = async function(): Promise<number> {
-	try {
-		const url = `${MEMPOOL_URL}/fees/recommended`
-		const response = await axios.get(url)
-		const feeRate = response.data
-
-		if (!feeRate) {
-			return 2
-		}
-
-		return Math.max(2, feeRate['fastestFee'] || 1)
-	} catch (error) {
-		console.error(`fetch feeRate failed:`, error)
-		return 2 // Default fee rate if request fails
-	}
-}
-
-export async function broadcast(txHex: string): Promise<string | Error> {
-	const url = `${MEMPOOL_URL}/tx`
-	try {
-		const response = await axios.post(url, txHex, {
-			headers: {
-				'Content-Type': 'text/plain'
-			}
-		})
-
-		return response.data
-	} catch (error) {
-		console.error('broadcast failed!', error)
-		return error as Error
-	}
-}
+import { getFeeRate, broadcast } from '@/lib/utils'
 
 export function useMint(tokenId: string) {
 	const [isMinting, setIsMinting] = useState(false)

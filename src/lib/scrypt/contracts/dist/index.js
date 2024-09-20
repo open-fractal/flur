@@ -1,12 +1,20 @@
 "use strict";
-// import { join } from 'path'
-// import { BurnGuard } from './contracts/token/burnGuard'
-// import { ClosedMinter } from './contracts/token/closedMinter'
-// import { OpenMinter } from './contracts/token/openMinter'
-// import { CAT20 } from './contracts/token/cat20'
-// import { TransferGuard } from './contracts/token/transferGuard'
-// import { OpenMinterV2 } from './contracts/token/openMinterV2'
-// ;(() => {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// (() => {
 //     ClosedMinter.loadArtifact(
 //         join(__dirname, '..', 'artifacts/contracts/token/closedMinter.json')
 //     )
@@ -26,21 +34,6 @@
 //         join(__dirname, '..', 'artifacts/contracts/token/transferGuard.json')
 //     )
 // })()
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./contracts/token/closedMinter"), exports);
 __exportStar(require("./contracts/token/cat20"), exports);
 __exportStar(require("./contracts/token/burnGuard"), exports);

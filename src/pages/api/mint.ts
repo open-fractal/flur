@@ -31,6 +31,7 @@ import {
     CAT20Proto,
     PreTxStatesInfo,
     getTxCtx,
+    OpenMinterV2,
     ChangeInfo,
     int32,
 } from '@/lib/scrypt/contracts/dist';
@@ -44,6 +45,9 @@ import { API_URL } from '@/lib/constants'
 
 const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json');
 OpenMinter.loadArtifact(OpenMinterArtifact);
+
+const OpenMinterV2Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinterV2.json')
+OpenMinterV2.loadArtifact(OpenMinterV2Artifact);
 
 const DUMMY_MINER_SIG = '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' 
 
