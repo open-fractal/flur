@@ -50,6 +50,7 @@ import { useMint } from '@/hooks/use-mint'
 import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useMemo } from 'react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Define TokenData interface
 export interface TokenData {
@@ -104,13 +105,13 @@ const ActionCell = React.memo(({ token }: { token: TokenData }) => {
 	}
 
 	return (
-		<div className="text-right">
+		<div className="w-full text-center">
 			<Button
 				onClick={handleMint}
 				disabled={isMintingComplete || isMinting}
 				size="sm"
 				variant="outline"
-				className="w-16"
+				className="w-full px-2"
 			>
 				{isMinting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Mint'}
 			</Button>
@@ -124,35 +125,49 @@ export const columns: ColumnDef<TokenData>[] = [
 	{
 		id: 'actions',
 		cell: ({ row }) => <ActionCell token={row.original} />,
-		header: () => <div className="text-left"></div>
+		header: () => <div className="text-left"></div>,
+		size: 48 // This corresponds to w-12 in Tailwind (12 * 4px = 48px)
 	},
 	{
 		accessorKey: 'name',
 		header: ({ column }) => <SortButton column={column}>NAME</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>
+		cell: ({ row }) => (
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<div className="truncate max-w-[150px]">{row.getValue('name')}</div>
+					</TooltipTrigger>
+					<TooltipContent>{row.getValue('name')}</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+		),
+		size: 150 // Set a fixed width for the name column
 	},
 	{
 		accessorKey: 'symbol',
 		header: ({ column }) => <SortButton column={column}>SYMBOL</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>
+		cell: ({ row }) => <div className="truncate max-w-[100px]">{row.getValue('symbol')}</div>,
+		size: 100 // Set a fixed width for the symbol column
 	},
 	{
 		accessorKey: 'holders',
 		header: ({ column }) => <SortButton column={column}>HOLDERS</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
-		)
+		),
+		size: 100 // Set a fixed width for the holders column
 	},
 	{
 		accessorKey: 'tokenId',
 		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
-		)
+		),
+		size: 120 // Set a fixed width for the tokenId column
 	},
 	{
 		accessorKey: 'currentSupply',
-		header: ({ column }) => <SortButton column={column}>CURRENT SUPPLY</SortButton>,
+		header: ({ column }) => <SortButton column={column}>SUPPLY</SortButton>,
 		cell: ({ row }) => {
 			const token = row.original
 			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
@@ -166,7 +181,8 @@ export const columns: ColumnDef<TokenData>[] = [
 			const supplyA = parseInt(rowA.original.supply) / Math.pow(10, rowA.original.decimals)
 			const supplyB = parseInt(rowB.original.supply) / Math.pow(10, rowB.original.decimals)
 			return supplyA - supplyB
-		}
+		},
+		size: 120 // Set a fixed width for the currentSupply column
 	},
 	{
 		accessorKey: 'maxSupply',
@@ -177,11 +193,12 @@ export const columns: ColumnDef<TokenData>[] = [
 		},
 		sortingFn: (rowA, rowB) => {
 			return parseInt(rowA.original.info.max) - parseInt(rowB.original.info.max)
-		}
+		},
+		size: 120 // Set a fixed width for the maxSupply column
 	},
 	{
 		accessorKey: 'progress',
-		header: ({ column }) => <SortButton column={column}>MINTING PROGRESS</SortButton>,
+		header: ({ column }) => <SortButton column={column}>PROGRESS</SortButton>,
 		cell: ({ row }) => {
 			const token = row.original
 			const maxSupply = parseInt(token.info.max)
@@ -208,18 +225,8 @@ export const columns: ColumnDef<TokenData>[] = [
 					parseInt(rowB.original.info.max)) *
 				100
 			return progressA - progressB
-		}
-	},
-	{
-		accessorKey: 'limitPerMint',
-		header: ({ column }) => <SortButton column={column}>LIMIT PER MINT</SortButton>,
-		cell: ({ row }) => {
-			const limitPerMint = parseInt(row.original.info.limit)
-			return <div className="whitespace-nowrap">{formatNumber(limitPerMint)}</div>
 		},
-		sortingFn: (rowA, rowB) => {
-			return parseInt(rowA.original.info.limit) - parseInt(rowB.original.info.limit)
-		}
+		size: 180 // Set a fixed width for the progress column
 	},
 	{
 		accessorKey: 'premine',
@@ -236,18 +243,20 @@ export const columns: ColumnDef<TokenData>[] = [
 		},
 		sortingFn: (rowA, rowB) => {
 			return parseInt(rowA.original.info.premine) - parseInt(rowB.original.info.premine)
-		}
+		},
+		size: 120 // Set a fixed width for the premine column
 	},
 	{
 		accessorKey: 'revealHeight',
-		header: ({ column }) => <SortButton column={column}>REVEAL HEIGHT</SortButton>,
+		header: ({ column }) => <SortButton column={column}>CREATED</SortButton>,
 		cell: ({ row }) => {
 			const revealHeight = parseInt(row.original.revealHeight)
-			return <div className="whitespace-nowrap">{formatNumber(revealHeight)}</div>
+			return <div className="whitespace-nowrap">{revealHeight.toLocaleString()}</div>
 		},
 		sortingFn: (rowA, rowB) => {
 			return parseInt(rowA.original.revealHeight) - parseInt(rowB.original.revealHeight)
-		}
+		},
+		size: 120 // Set a fixed width for the revealHeight column
 	}
 ]
 
@@ -513,7 +522,7 @@ export function TokenDataTable({}) {
 				</div>
 			</div>
 			<div className="rounded-md border">
-				<Table>
+				<Table style={{ tableLayout: 'fixed' }}>
 					<TableHeader>
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>

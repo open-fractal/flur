@@ -7,9 +7,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const formatNumber = (num: number | string): string => {
-  return Number(num).toLocaleString();
-};
+export function formatNumber(num: number | string): string {
+  const n = typeof num === 'string' ? parseFloat(num) : num;
+  
+  if (isNaN(n)) return '0';
+
+  const absN = Math.abs(n);
+
+  const format = (value: number, suffix: string) => {
+    const formatted = value.toLocaleString(undefined, { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2 
+    });
+    // Remove trailing .00 if present
+    return formatted.replace(/\.00$/, '') + suffix;
+  };
+
+  if (absN >= 1e15) return format(n / 1e15, 'Q');
+  if (absN >= 1e12) return format(n / 1e12, 'T');
+  if (absN >= 1e9) return format(n / 1e9, 'B');
+  if (absN >= 1e6) return format(n / 1e6, 'M');
+  if (absN >= 1e3) return format(n / 1e3, 'K');
+
+  return n.toLocaleString(undefined, { 
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2 
+  });
+}
 
 export const validateTokenId = (tokenId: string): boolean => {
   // Validate token ID format: 64 hex characters followed by an underscore and a number
