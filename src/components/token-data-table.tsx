@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import * as React from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Search } from 'lucide-react'
 import {
 	ColumnDef,
@@ -135,17 +135,17 @@ export const columns: ColumnDef<TokenData>[] = [
 		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>
 	},
 	{
-		accessorKey: 'tokenId',
-		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
-		cell: ({ row }) => (
-			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
-		)
-	},
-	{
 		accessorKey: 'holders',
 		header: ({ column }) => <SortButton column={column}>HOLDERS</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
+		)
+	},
+	{
+		accessorKey: 'tokenId',
+		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
+		cell: ({ row }) => (
+			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
 		)
 	},
 	{
@@ -184,7 +184,9 @@ export const columns: ColumnDef<TokenData>[] = [
 			const token = row.original
 			const maxSupply = parseInt(token.info.max)
 			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
-			const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
+			const premine = parseInt(token.info.premine)
+			const mintProgress =
+				maxSupply > 0 ? (((currentSupply + premine) / maxSupply) * 100).toFixed(2) : '0.00'
 			return (
 				<div className="flex items-center space-x-2">
 					<Progress value={parseFloat(mintProgress)} className="w-20" />
@@ -193,8 +195,16 @@ export const columns: ColumnDef<TokenData>[] = [
 			)
 		},
 		sortingFn: (rowA, rowB) => {
-			const progressA = (parseInt(rowA.original.supply) / parseInt(rowA.original.info.max)) * 100
-			const progressB = (parseInt(rowB.original.supply) / parseInt(rowB.original.info.max)) * 100
+			const progressA =
+				((parseInt(rowA.original.supply) / Math.pow(10, rowA.original.decimals) +
+					parseInt(rowA.original.info.premine)) /
+					parseInt(rowA.original.info.max)) *
+				100
+			const progressB =
+				((parseInt(rowB.original.supply) / Math.pow(10, rowB.original.decimals) +
+					parseInt(rowB.original.info.premine)) /
+					parseInt(rowB.original.info.max)) *
+				100
 			return progressA - progressB
 		}
 	},
@@ -289,8 +299,8 @@ export function TokenDataTable({}) {
 	)
 
 	// Ensure tokenResponse and tokenResponse.data are defined
-	const tokens = useMemo(() => tokenResponse?.data?.tokens || [], [tokenResponse])
-	const total = useMemo(() => tokenResponse?.data?.total || 0, [tokenResponse])
+	const tokens = tokenResponse?.data?.tokens || []
+	const total = tokenResponse?.data?.total || 0
 
 	const [sorting, setSorting] = React.useState<SortingState>([{ id: 'holders', desc: true }])
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
