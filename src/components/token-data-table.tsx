@@ -77,7 +77,7 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 		<Button
 			variant="ghost"
 			onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-			className={`font-semibold text-xs tracking-wide ${
+			className={`font-semibold text-xs tracking-wide w-full justify-start px-0 ${
 				column.getIsSorted() ? 'text-white font-bold' : ''
 			}`}
 		>
@@ -121,31 +121,32 @@ ActionCell.displayName = 'ActionCell'
 export const columns: ColumnDef<TokenData>[] = [
 	{
 		id: 'actions',
-		cell: ({ row }) => <ActionCell token={row.original} />
+		cell: ({ row }) => <ActionCell token={row.original} />,
+		header: () => <div className="text-left"></div>,
 	},
 	{
 		accessorKey: 'name',
 		header: ({ column }) => <SortButton column={column}>NAME</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('name')}</div>,
 	},
 	{
 		accessorKey: 'symbol',
 		header: ({ column }) => <SortButton column={column}>SYMBOL</SortButton>,
-		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>
+		cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('symbol')}</div>,
 	},
 	{
 		accessorKey: 'holders',
 		header: ({ column }) => <SortButton column={column}>HOLDERS</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
-		)
+		),
 	},
 	{
 		accessorKey: 'tokenId',
 		header: ({ column }) => <SortButton column={column}>TOKEN ID</SortButton>,
 		cell: ({ row }) => (
 			<div className="whitespace-nowrap">{truncateTokenId(row.getValue('tokenId'))}</div>
-		)
+		),
 	},
 	{
 		accessorKey: 'currentSupply',
@@ -454,7 +455,7 @@ export function TokenDataTable({}) {
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map(header => (
-									<TableHead key={header.id}>
+									<TableHead key={header.id} className="text-left">
 										{header.isPlaceholder
 											? null
 											: flexRender(header.column.columnDef.header, header.getContext())}
