@@ -66,6 +66,18 @@ CAT20.loadArtifact(CAT20Artifact)
 const DUMMY_MINER_SIG =
 	'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
+function selectUtxos(utxos: UTXO[], targetAmount: number): UTXO[] {
+	const sortedUtxos = utxos.sort((a, b) => b.satoshis - a.satoshis)
+	const selectedUtxos: UTXO[] = []
+	let totalSatoshis = 0
+	for (const utxo of sortedUtxos) {
+		if (totalSatoshis >= targetAmount) break
+		selectedUtxos.push(utxo)
+		totalSatoshis += utxo.satoshis
+	}
+	return selectedUtxos
+}
+
 const getPremineAddress = async (wallet: WalletService, utxo: UTXO): Promise<string | Error> => {
 	const txhex = await getRawTransaction(utxo.txId)
 	if (txhex instanceof Error) {
@@ -293,7 +305,16 @@ async function openMint(
 
 	const changeScript = btc.Script.fromAddress(address)
 
-	const revealTx = new btc.Transaction().from([minterUtxo, ...feeUtxos]).addOutput(
+	const initialRequiredAmount =
+		Postage.MINTER_POSTAGE * newMinter +
+		Postage.TOKEN_POSTAGE +
+		(process.env.FEE_SATS ? parseInt(process.env.FEE_SATS) : 0)
+
+	// Select UTXOs based on the initial required amount
+	const selectedFeeUtxos = selectUtxos(feeUtxos, initialRequiredAmount)
+	// Add selected UTXOs to the transaction
+
+	const revealTx = new btc.Transaction().from([minterUtxo, ...selectedFeeUtxos]).addOutput(
 		new btc.Transaction.Output({
 			satoshis: 0,
 			script: toStateScript(newState)
@@ -433,7 +454,9 @@ async function openMint(
 	]
 	revealTx.inputs[minterInputIndex].witnesses = witnesses
 
-	let psbt = Transaction.fromRaw(revealTx.toBuffer(), { allowUnknownOutputs: true })
+	let psbt = Transaction.fromRaw(revealTx.toBuffer(), {
+		allowUnknownOutputs: true
+	})
 	const psbt_bitcoinjs = bitcoinjs.Psbt.fromHex(Buffer.from(psbt.toPSBT()).toString('hex'))
 	psbt_bitcoinjs.updateInput(0, {
 		tapLeafScript: [
@@ -457,29 +480,20 @@ async function openMint(
 				amount: BigInt(minterUtxo.satoshis) || 0n,
 				script: Buffer.from(minterUtxo.script, 'hex') || btc.Script.empty()
 			}
-		}
+		} else {
+			const utxo = selectedFeeUtxos[i - 1]
+			if (!utxo) continue
 
-		const utxo = feeUtxos.find(
-			utxo =>
-				// @ts-ignore
-				utxo.txId === Buffer.from(psbt.inputs[i].txid).toString('hex') &&
-				// @ts-ignore
-				utxo.outputIndex === psbt.inputs[i].index
-		)
-
-		if (!utxo) {
-			continue
+			// @ts-ignore
+			psbt.inputs[i].witnessUtxo = {
+				amount: BigInt(utxo?.satoshis) || 0n,
+				script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty()
+			}
+			// @ts-ignore
+			psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
+			// @ts-ignore
+			psbt.inputs[i].sighashType = 1
 		}
-
-		// @ts-ignore
-		psbt.inputs[i].witnessUtxo = {
-			amount: BigInt(utxo?.satoshis) || 0n,
-			script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty()
-		}
-		// @ts-ignore
-		psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
-		// @ts-ignore
-		psbt.inputs[i].sighashType = 1
 	}
 
 	return Buffer.from(psbt.toPSBT()).toString('hex')

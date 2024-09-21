@@ -65,7 +65,7 @@ export function useMint(tokenId: string) {
 						script: utxo.scriptPk,
 						satoshis: utxo.satoshis
 					}))
-					.slice(0, 3)
+					.slice(0, 100)
 			}
 
 			// const { mintNow } = await import('@/lib/mint')
