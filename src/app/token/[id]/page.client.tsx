@@ -180,201 +180,214 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 			<TokenHeader tokenData={tokenData} />
 			<div className="container mx-auto p-4 space-y-6 h-full flex-grow flex flex-col items-center justify-center">
 				<div className="flex flex-col justify-center items-center">
-					<h2 className="text-2xl font-bold mb-4">{isMintable ? 'Mint Live!' : 'Mint Ended'}</h2>
-					{!isMintable && <p className="text-muted-foreground">Check back later!</p>}
-					{isMintable && (
+					{isLoading ? (
 						<Card className="w-[400px] max-w-[100vw]">
 							<CardContent className="p-6 space-y-4">
-								{isLoading ? (
-									<CardSkeleton />
-								) : (
-									<>
-										<div>
-											<div className="flex justify-between">
-												<p className="text-sm font-medium mb-1">Mint Progress: {mintProgress}%</p>
-											</div>
-											<Progress value={parseFloat(mintProgress)} className="w-full" />
-										</div>
-										<div>
-											<p className="text-sm font-medium">Supply</p>
-											<p className="text-sm font-medium mb-1 text-muted-foreground">
-												{currentSupply.toLocaleString()}/{maxSupply.toLocaleString()}
-											</p>
-										</div>
-										<div>
-											<p className="text-sm font-medium">Limit Per Mint</p>
-											<p className="text-sm font-medium mb-1 text-muted-foreground">
-												{tokenData.info?.limit}
-											</p>
-										</div>
-										<div>
-											<p className="text-sm font-medium flex items-center gap-2">
-												Mint UTXOS
-												<HoverCard>
-													<HoverCardTrigger>
-														<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
-													</HoverCardTrigger>
-													<HoverCardContent className="w-80">
-														<div className="space-y-2">
-															<h4 className="text-sm font-semibold">Mint UTXOs</h4>
-															<p className="text-sm">
-																Mint UTXOs are special Bitcoin outputs used for minting new tokens.
-																Each UTXO can only be used once, ensuring accurate token supply
-																tracking.
-															</p>
-															<p className="text-sm">
-																More available Mint UTXOs allow for higher concurrent minting
-																capacity.
-															</p>
-														</div>
-													</HoverCardContent>
-												</HoverCard>
-											</p>
-											<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
-												{utxoCount}
-												<div
-													className={`w-2 h-2 rounded-full ${
-														isMintable ? 'bg-green-500' : 'bg-red-500'
-													} animate-pulse`}
-												></div>
-											</p>
-										</div>
-
-										{address && walletUtxoCount !== undefined && (
+								<Skeleton className="h-8 w-3/4 mx-auto" />
+								<Skeleton className="h-4 w-full" />
+								<Skeleton className="h-4 w-5/6" />
+								<Skeleton className="h-10 w-full" />
+							</CardContent>
+						</Card>
+					) : (
+						<>
+							<h2 className="text-2xl font-bold mb-4">{isMintable ? 'Mint Live!' : 'Mint Ended'}</h2>
+							{!isMintable && <p className="text-muted-foreground">Check back later!</p>}
+							{isMintable && (
+								<Card className="w-[400px] max-w-[100vw]">
+									<CardContent className="p-6 space-y-4">
+										{isLoading ? (
+											<CardSkeleton />
+										) : (
 											<>
 												<div>
+													<div className="flex justify-between">
+														<p className="text-sm font-medium mb-1">Mint Progress: {mintProgress}%</p>
+													</div>
+													<Progress value={parseFloat(mintProgress)} className="w-full" />
+												</div>
+												<div>
+													<p className="text-sm font-medium">Supply</p>
+													<p className="text-sm font-medium mb-1 text-muted-foreground">
+														{currentSupply.toLocaleString()}/{maxSupply.toLocaleString()}
+													</p>
+												</div>
+												<div>
+													<p className="text-sm font-medium">Limit Per Mint</p>
+													<p className="text-sm font-medium mb-1 text-muted-foreground">
+														{tokenData.info?.limit}
+													</p>
+												</div>
+												<div>
 													<p className="text-sm font-medium flex items-center gap-2">
-														Wallet UTXOs
+														Mint UTXOS
 														<HoverCard>
 															<HoverCardTrigger>
 																<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
 															</HoverCardTrigger>
 															<HoverCardContent className="w-80">
 																<div className="space-y-2">
+																	<h4 className="text-sm font-semibold">Mint UTXOs</h4>
 																	<p className="text-sm">
-																		Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
-																		paying minting fees.
+																		Mint UTXOs are special Bitcoin outputs used for minting new tokens.
+																		Each UTXO can only be used once, ensuring accurate token supply
+																		tracking.
 																	</p>
 																	<p className="text-sm">
-																		Splitting UTXOs creates smaller amounts for better fee
-																		management and concurrent minting.
+																		More available Mint UTXOs allow for higher concurrent minting
+																		capacity.
 																	</p>
 																</div>
 															</HoverCardContent>
 														</HoverCard>
 													</p>
-													<div className="flex items-center justify-between">
-														<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
-															{walletUtxoCount === undefined ? 'Loading...' : walletUtxoCount}
-															{walletUtxoCount !== undefined && (
-																<div
-																	className={`w-2 h-2 rounded-full ${
-																		!!walletUtxoCount && walletUtxoCount > 0
-																			? 'bg-green-500'
-																			: 'bg-red-500'
-																	} animate-pulse`}
-																></div>
-															)}
-														</p>
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => setShowSplitForm(!showSplitForm)}
-															disabled={
-																isSplitting ||
-																walletUtxoCount === undefined ||
-																walletUtxoCount === 0
-															}
-														>
-															Split UTXOs
-														</Button>
-													</div>
+													<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
+														{utxoCount}
+														<div
+															className={`w-2 h-2 rounded-full ${
+																isMintable ? 'bg-green-500' : 'bg-red-500'
+															} animate-pulse`}
+														></div>
+													</p>
 												</div>
 
-												{showSplitForm && (
-													<Form {...form}>
-														<form
-															onSubmit={form.handleSubmit(onSubmit)}
-															className="space-y-4 border rounded p-4"
-														>
-															<FormField
-																control={form.control}
-																name="minBTC"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Minimum FB per UTXO</FormLabel>
-																		<FormControl>
-																			<Input
-																				type="number"
-																				step="0.01"
-																				min="0.01"
-																				{...field}
-																				onChange={e => field.onChange(Number(e.target.value))}
-																			/>
-																		</FormControl>
-																		<FormDescription>
-																			Minimum 0.01 FB (1,000,000 sats)
-																		</FormDescription>
-																		<FormMessage />
-																	</FormItem>
-																)}
-															/>
-															<FormField
-																control={form.control}
-																name="splitCount"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Split Count: {field.value}</FormLabel>
-																		<FormControl>
-																			<Slider
-																				min={2}
-																				max={100}
-																				step={1}
-																				value={[field.value]}
-																				onValueChange={value => field.onChange(value[0])}
-																			/>
-																		</FormControl>
-																	</FormItem>
-																)}
-															/>
-															<div>
-																{serviceFee && (
-																	<p className="text-sm text-muted-foreground mb-1">
-																		Service fee: {serviceFee} FB
-																	</p>
-																)}
+												{address && walletUtxoCount !== undefined && (
+													<>
+														<div>
+															<p className="text-sm font-medium flex items-center gap-2">
+																Wallet UTXOs
+																<HoverCard>
+																	<HoverCardTrigger>
+																		<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+																	</HoverCardTrigger>
+																	<HoverCardContent className="w-80">
+																		<div className="space-y-2">
+																			<p className="text-sm">
+																				Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
+																				paying minting fees.
+																			</p>
+																			<p className="text-sm">
+																				Splitting UTXOs creates smaller amounts for better fee
+																				management and concurrent minting.
+																			</p>
+																		</div>
+																	</HoverCardContent>
+																</HoverCard>
+															</p>
+															<div className="flex items-center justify-between">
+																<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
+																	{walletUtxoCount === undefined ? 'Loading...' : walletUtxoCount}
+																	{walletUtxoCount !== undefined && (
+																		<div
+																			className={`w-2 h-2 rounded-full ${
+																				!!walletUtxoCount && walletUtxoCount > 0
+																					? 'bg-green-500'
+																					: 'bg-red-500'
+																			} animate-pulse`}
+																		></div>
+																	)}
+																</p>
 																<Button
-																	type="submit"
-																	disabled={isSplitting}
 																	variant="outline"
-																	className="w-full mt-0"
+																	size="sm"
+																	onClick={() => setShowSplitForm(!showSplitForm)}
+																	disabled={
+																		isSplitting ||
+																		walletUtxoCount === undefined ||
+																		walletUtxoCount === 0
+																	}
 																>
-																	{isSplitting ? 'Splitting...' : 'Split'}
+																	Split UTXOs
 																</Button>
 															</div>
-														</form>
-													</Form>
+														</div>
+
+														{showSplitForm && (
+															<Form {...form}>
+																<form
+																	onSubmit={form.handleSubmit(onSubmit)}
+																	className="space-y-4 border rounded p-4"
+																>
+																	<FormField
+																		control={form.control}
+																		name="minBTC"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>Minimum FB per UTXO</FormLabel>
+																				<FormControl>
+																					<Input
+																						type="number"
+																						step="0.01"
+																						min="0.01"
+																						{...field}
+																						onChange={e => field.onChange(Number(e.target.value))}
+																					/>
+																				</FormControl>
+																				<FormDescription>
+																					Minimum 0.01 FB (1,000,000 sats)
+																				</FormDescription>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+																	<FormField
+																		control={form.control}
+																		name="splitCount"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>Split Count: {field.value}</FormLabel>
+																				<FormControl>
+																					<Slider
+																						min={2}
+																						max={100}
+																						step={1}
+																						value={[field.value]}
+																						onValueChange={value => field.onChange(value[0])}
+																					/>
+																				</FormControl>
+																			</FormItem>
+																		)}
+																	/>
+																	<div>
+																		{serviceFee && (
+																			<p className="text-sm text-muted-foreground mb-1">
+																				Service fee: {serviceFee} FB
+																			</p>
+																		)}
+																		<Button
+																			type="submit"
+																			disabled={isSplitting}
+																			variant="outline"
+																			className="w-full mt-0"
+																		>
+																			{isSplitting ? 'Splitting...' : 'Split'}
+																		</Button>
+																	</div>
+																</form>
+															</Form>
+														)}
+													</>
 												)}
+
+												<Button
+													onClick={handleMint}
+													disabled={isMinting || !isMintable || utxoCount === 0}
+													className="w-full"
+												>
+													{isMinting
+														? 'Minting...'
+														: !isMintable
+														? 'Mint Ended'
+														: utxoCount === 0
+														? 'No UTXOs Available'
+														: 'Mint Now'}
+												</Button>
 											</>
 										)}
-
-										<Button
-											onClick={handleMint}
-											disabled={isMinting || !isMintable || utxoCount === 0}
-											className="w-full"
-										>
-											{isMinting
-												? 'Minting...'
-												: !isMintable
-												? 'Mint Ended'
-												: utxoCount === 0
-												? 'No UTXOs Available'
-												: 'Mint Now'}
-										</Button>
-									</>
-								)}
-							</CardContent>
-						</Card>
+									</CardContent>
+								</Card>
+							)}
+						</>
 					)}
 				</div>
 			</div>

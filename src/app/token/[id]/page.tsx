@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { API_URL, EXPLORER_URL } from '@/lib/constants'
 import { validateTokenId } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
 	params: { id: string }
@@ -62,15 +63,15 @@ export default async function Page({ params }: Props) {
 	// Fetch token details
 	const tokenDetails = await fetchTokenDetails(token_id)
 
-	// If token details couldn't be fetched, return default metadata
+	// If token details couldn't be fetched, show skeleton
 	if (!tokenDetails) {
 		return (
 			<div className="flex justify-center container p-8">
-				<div className="flex flex-col gap-4 items-center justify-center">
-					<h1>Deploy pending...</h1>
-					<a href={`${EXPLORER_URL}/tx/${token_id.split('_')[0]}`} target="_blank">
-						<Button>View Tx</Button>
-					</a>
+				<div className="flex flex-col gap-4 items-center justify-center w-full max-w-md">
+					<Skeleton className="h-8 w-3/4" />
+					<Skeleton className="h-4 w-full" />
+					<Skeleton className="h-4 w-5/6" />
+					<Skeleton className="h-10 w-1/2 mt-4" />
 				</div>
 			</div>
 		)
