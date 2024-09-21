@@ -1,8 +1,7 @@
 import Component from './page.client'
 import { Metadata } from 'next'
-import { API_URL, EXPLORER_URL } from '@/lib/constants'
+import { API_URL } from '@/lib/constants'
 import { validateTokenId } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
