@@ -240,114 +240,122 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 											</p>
 										</div>
 
-										<div>
-											<p className="text-sm font-medium flex items-center gap-2">
-												Wallet UTXOs
-												<HoverCard>
-													<HoverCardTrigger>
-														<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
-													</HoverCardTrigger>
-													<HoverCardContent className="w-80">
-														<div className="space-y-2">
-															<p className="text-sm">
-																Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
-																paying minting fees.
-															</p>
-															<p className="text-sm">
-																Splitting UTXOs creates smaller amounts for better fee management
-																and concurrent minting.
-															</p>
-														</div>
-													</HoverCardContent>
-												</HoverCard>
-											</p>
-											<div className="flex items-center justify-between">
-												<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
-													{walletUtxoCount !== null ? walletUtxoCount : 'Loading...'}
-													{walletUtxoCount !== null && (
-														<div
-															className={`w-2 h-2 rounded-full ${
-																walletUtxoCount && walletUtxoCount > 0
-																	? 'bg-green-500'
-																	: 'bg-red-500'
-															} animate-pulse`}
-														></div>
-													)}
-												</p>
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => setShowSplitForm(!showSplitForm)}
-													disabled={
-														isSplitting || walletUtxoCount === null || walletUtxoCount === 0
-													}
-												>
-													Split UTXOs
-												</Button>
-											</div>
-										</div>
-
-										{showSplitForm && (
-											<Form {...form}>
-												<form
-													onSubmit={form.handleSubmit(onSubmit)}
-													className="space-y-4 border rounded p-4"
-												>
-													<FormField
-														control={form.control}
-														name="minBTC"
-														render={({ field }) => (
-															<FormItem>
-																<FormLabel>Minimum FB per UTXO</FormLabel>
-																<FormControl>
-																	<Input
-																		type="number"
-																		step="0.01"
-																		min="0.01"
-																		{...field}
-																		onChange={e => field.onChange(Number(e.target.value))}
-																	/>
-																</FormControl>
-																<FormDescription>Minimum 0.01 FB (1,000,000 sats)</FormDescription>
-																<FormMessage />
-															</FormItem>
-														)}
-													/>
-													<FormField
-														control={form.control}
-														name="splitCount"
-														render={({ field }) => (
-															<FormItem>
-																<FormLabel>Split Count: {field.value}</FormLabel>
-																<FormControl>
-																	<Slider
-																		min={2}
-																		max={100}
-																		step={1}
-																		value={[field.value]}
-																		onValueChange={value => field.onChange(value[0])}
-																	/>
-																</FormControl>
-															</FormItem>
-														)}
-													/>
-													<div>
-														{serviceFee && (
-															<p className="text-sm text-muted-foreground mb-1">
-																Service fee: {serviceFee} FB
-															</p>
-														)}
+										{address && walletUtxoCount !== undefined && (
+											<>
+												<div>
+													<p className="text-sm font-medium flex items-center gap-2">
+														Wallet UTXOs
+														<HoverCard>
+															<HoverCardTrigger>
+																<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+															</HoverCardTrigger>
+															<HoverCardContent className="w-80">
+																<div className="space-y-2">
+																	<p className="text-sm">
+																		Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
+																		paying minting fees.
+																	</p>
+																	<p className="text-sm">
+																		Splitting UTXOs creates smaller amounts for better fee
+																		management and concurrent minting.
+																	</p>
+																</div>
+															</HoverCardContent>
+														</HoverCard>
+													</p>
+													<div className="flex items-center justify-between">
+														<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
+															{walletUtxoCount === undefined ? 'Loading...' : walletUtxoCount}
+															{walletUtxoCount !== undefined && (
+																<div
+																	className={`w-2 h-2 rounded-full ${
+																		!!walletUtxoCount && walletUtxoCount > 0
+																			? 'bg-green-500'
+																			: 'bg-red-500'
+																	} animate-pulse`}
+																></div>
+															)}
+														</p>
 														<Button
-															type="submit"
-															disabled={isSplitting}
 															variant="outline"
-															className="w-full mt-0"
+															size="sm"
+															onClick={() => setShowSplitForm(!showSplitForm)}
+															disabled={
+																isSplitting ||
+																walletUtxoCount === undefined ||
+																walletUtxoCount === 0
+															}
 														>
-															{isSplitting ? 'Splitting...' : 'Split'}
+															Split UTXOs
 														</Button>
 													</div>
-												</form>
-											</Form>
+												</div>
+
+												{showSplitForm && (
+													<Form {...form}>
+														<form
+															onSubmit={form.handleSubmit(onSubmit)}
+															className="space-y-4 border rounded p-4"
+														>
+															<FormField
+																control={form.control}
+																name="minBTC"
+																render={({ field }) => (
+																	<FormItem>
+																		<FormLabel>Minimum FB per UTXO</FormLabel>
+																		<FormControl>
+																			<Input
+																				type="number"
+																				step="0.01"
+																				min="0.01"
+																				{...field}
+																				onChange={e => field.onChange(Number(e.target.value))}
+																			/>
+																		</FormControl>
+																		<FormDescription>
+																			Minimum 0.01 FB (1,000,000 sats)
+																		</FormDescription>
+																		<FormMessage />
+																	</FormItem>
+																)}
+															/>
+															<FormField
+																control={form.control}
+																name="splitCount"
+																render={({ field }) => (
+																	<FormItem>
+																		<FormLabel>Split Count: {field.value}</FormLabel>
+																		<FormControl>
+																			<Slider
+																				min={2}
+																				max={100}
+																				step={1}
+																				value={[field.value]}
+																				onValueChange={value => field.onChange(value[0])}
+																			/>
+																		</FormControl>
+																	</FormItem>
+																)}
+															/>
+															<div>
+																{serviceFee && (
+																	<p className="text-sm text-muted-foreground mb-1">
+																		Service fee: {serviceFee} FB
+																	</p>
+																)}
+																<Button
+																	type="submit"
+																	disabled={isSplitting}
+																	variant="outline"
+																	className="w-full mt-0"
+																>
+																	{isSplitting ? 'Splitting...' : 'Split'}
+																</Button>
+															</div>
+														</form>
+													</Form>
+												)}
+											</>
 										)}
 
 										<Button
