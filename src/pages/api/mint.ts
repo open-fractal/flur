@@ -1,600 +1,615 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { toByteString, UTXO, MethodCallOptions, int2ByteString } from 'scrypt-ts';
+import { NextApiRequest, NextApiResponse } from 'next'
+import { toByteString, UTXO, MethodCallOptions, int2ByteString } from 'scrypt-ts'
 import {
-    getRawTransaction,
-    getDummySigner,
-    getDummyUTXO,
-    callToBufferList,
-    TokenMetadata,
-    resetTx,
-    toStateScript,
-    OpenMinterTokenInfo,
-    getOpenMinterContractP2TR,
-    OpenMinterContract,
-    outpoint2ByteString,
-    Postage,
-    toP2tr,
-    logerror,
-    btc,
-    getTokenMetadata,
-    getTokenMinter,
-    getTokenMinterCount,
-    MinterType
-} from '@/lib/scrypt/common';
+	getRawTransaction,
+	getDummySigner,
+	getDummyUTXO,
+	callToBufferList,
+	TokenMetadata,
+	resetTx,
+	toStateScript,
+	OpenMinterTokenInfo,
+	getOpenMinterContractP2TR,
+	OpenMinterContract,
+	outpoint2ByteString,
+	Postage,
+	toP2tr,
+	logerror,
+	btc,
+	getTokenMetadata,
+	getTokenMinter,
+	getTokenMinterCount,
+	MinterType
+} from '@/lib/scrypt/common'
 
 import {
-    getBackTraceInfo,
-    OpenMinter,
-    OpenMinterProto,
-    OpenMinterState,
-    ProtocolState,
-    CAT20State,
-    CAT20Proto,
-    PreTxStatesInfo,
-    getTxCtx,
-    OpenMinterV2,
-    ChangeInfo,
-    int32,
-    BurnGuard,
-    TransferGuard,
-    CAT20,
-  OpenMinterV2Proto,
-  OpenMinterV2State,
-} from '@/lib/scrypt/contracts/dist';
-import {  WalletService } from '@/lib/scrypt/providers';
+	getBackTraceInfo,
+	OpenMinter,
+	OpenMinterProto,
+	OpenMinterState,
+	ProtocolState,
+	CAT20State,
+	CAT20Proto,
+	PreTxStatesInfo,
+	getTxCtx,
+	OpenMinterV2,
+	ChangeInfo,
+	int32,
+	BurnGuard,
+	TransferGuard,
+	CAT20,
+	OpenMinterV2Proto,
+	OpenMinterV2State
+} from '@/lib/scrypt/contracts/dist'
+import { WalletService } from '@/lib/scrypt/providers'
 import { scaleConfig } from '@/lib/scrypt/token'
-import { Transaction } from '@scure/btc-signer';
+import { Transaction } from '@scure/btc-signer'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import axios from 'axios'
 import { API_URL } from '@/lib/constants'
 
-
-const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json');
-OpenMinter.loadArtifact(OpenMinterArtifact);
+const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json')
+OpenMinter.loadArtifact(OpenMinterArtifact)
 
 const OpenMinterV2Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinterV2.json')
-OpenMinterV2.loadArtifact(OpenMinterV2Artifact);
+OpenMinterV2.loadArtifact(OpenMinterV2Artifact)
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
-BurnGuard.loadArtifact(BurnGuardArtifact);
+BurnGuard.loadArtifact(BurnGuardArtifact)
 
 const TransferGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/transferGuard.json')
-TransferGuard.loadArtifact(TransferGuardArtifact);
+TransferGuard.loadArtifact(TransferGuardArtifact)
 
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
-CAT20.loadArtifact(CAT20Artifact);
+CAT20.loadArtifact(CAT20Artifact)
 
-const DUMMY_MINER_SIG = '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' 
+const DUMMY_MINER_SIG =
+	'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
-const getPremineAddress = async (
-  wallet: WalletService,
-  utxo: UTXO,
-): Promise<string | Error> => {
-  const txhex = await getRawTransaction(utxo.txId);
-  if (txhex instanceof Error) {
-    logerror(`get raw transaction ${utxo.txId} failed!`, txhex);
-    return txhex;
-  }
-  try {
-    const tx = new btc.Transaction(txhex);
-    const witnesses: Buffer[] = tx.inputs[0].getWitnesses();
-    const lockingScript = witnesses[witnesses.length - 2];
-    try {
-      const minter = OpenMinterV2.fromLockingScript(
-        lockingScript.toString('hex'),
-      ) as OpenMinterV2;
-      return minter.premineAddr;
-    } catch (e) {}
-    const minter = OpenMinter.fromLockingScript(
-      lockingScript.toString('hex'),
-    ) as OpenMinter;
-    return minter.premineAddr;
-  } catch (error) {
-    return new Error(`${error}`);
-  }
-};
+const getPremineAddress = async (wallet: WalletService, utxo: UTXO): Promise<string | Error> => {
+	const txhex = await getRawTransaction(utxo.txId)
+	if (txhex instanceof Error) {
+		logerror(`get raw transaction ${utxo.txId} failed!`, txhex)
+		return txhex
+	}
+	try {
+		const tx = new btc.Transaction(txhex)
+		const witnesses: Buffer[] = tx.inputs[0].getWitnesses()
+		const lockingScript = witnesses[witnesses.length - 2]
+		try {
+			const minter = OpenMinterV2.fromLockingScript(lockingScript.toString('hex')) as OpenMinterV2
+			return minter.premineAddr
+		} catch (e) {}
+		const minter = OpenMinter.fromLockingScript(lockingScript.toString('hex')) as OpenMinter
+		return minter.premineAddr
+	} catch (error) {
+		return new Error(`${error}`)
+	}
+}
 export function pickOpenMinterStateFeild<T>(
-  state: OpenMinterState | OpenMinterV2State,
-  key: string,
+	state: OpenMinterState | OpenMinterV2State,
+	key: string
 ): T | undefined {
-  if (Object.prototype.hasOwnProperty.call(state, key)) {
-    return (state as any)[key];
-  }
-  return undefined;
+	if (Object.prototype.hasOwnProperty.call(state, key)) {
+		return (state as any)[key]
+	}
+	return undefined
 }
 
-export function getRemainSupply(
-  state: OpenMinterState | OpenMinterV2State,
-  minterMd5: string,
-) {
-  if (minterMd5 === MinterType.OPEN_MINTER_V1) {
-    return pickOpenMinterStateFeild<bigint>(state, 'remainingSupply');
-  } else if (minterMd5 === MinterType.OPEN_MINTER_V2) {
-    return pickOpenMinterStateFeild<bigint>(state, 'remainingSupplyCount');
-  }
+export function getRemainSupply(state: OpenMinterState | OpenMinterV2State, minterMd5: string) {
+	if (minterMd5 === MinterType.OPEN_MINTER_V1) {
+		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupply')
+	} else if (minterMd5 === MinterType.OPEN_MINTER_V2) {
+		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupplyCount')
+	}
 }
 function getRandomInt(max: number) {
-  return Math.floor(Math.random() * max);
+	return Math.floor(Math.random() * max)
 }
 
 const calcVsize = async (
-  wallet: WalletService,
-  minter: OpenMinter | OpenMinterV2,
-  newState: ProtocolState,
-  tokenMint: CAT20State,
-  splitAmountList: Array<bigint>,
-  preTxState: PreTxStatesInfo,
-  preState: OpenMinterState | OpenMinterV2State,
-  minterTapScript: string,
-  inputIndex: number,
-  revealTx: btc.Transaction,
-  changeScript: btc.Script,
-  backtraceInfo: any,
-  cblockMinter: string,
+	wallet: WalletService,
+	minter: OpenMinter | OpenMinterV2,
+	newState: ProtocolState,
+	tokenMint: CAT20State,
+	splitAmountList: Array<bigint>,
+	preTxState: PreTxStatesInfo,
+	preState: OpenMinterState | OpenMinterV2State,
+	minterTapScript: string,
+	inputIndex: number,
+	revealTx: btc.Transaction,
+	changeScript: btc.Script,
+	backtraceInfo: any,
+	cblockMinter: string
 ) => {
-  const { shPreimage, prevoutsCtx, spentScripts } = getTxCtx(
-    revealTx,
-    inputIndex,
-    Buffer.from(minterTapScript, 'hex'),
-  );
+	const { shPreimage, prevoutsCtx, spentScripts } = getTxCtx(
+		revealTx,
+		inputIndex,
+		Buffer.from(minterTapScript, 'hex')
+	)
 
-  const changeInfo: ChangeInfo = {
-    script: toByteString(changeScript.toHex()),
-    satoshis: int2ByteString(BigInt(0n), 8n),
-  };
+	const changeInfo: ChangeInfo = {
+		script: toByteString(changeScript.toHex()),
+		satoshis: int2ByteString(BigInt(0n), 8n)
+	}
 
-  const minterCall = await minter.methods.mint(
-    newState.stateHashList,
-    tokenMint,
-    splitAmountList,
-    await wallet.getPubKeyPrefix(),
-    await wallet.getXOnlyPublicKey(),
-    () => DUMMY_MINER_SIG,
-    int2ByteString(BigInt(Postage.MINTER_POSTAGE), 8n),
-    int2ByteString(BigInt(Postage.TOKEN_POSTAGE), 8n),
-    preState,
-    preTxState,
-    backtraceInfo,
-    shPreimage,
-    prevoutsCtx,
-    spentScripts,
-    changeInfo,
-    {
-      fromUTXO: getDummyUTXO(),
-      verify: false,
-      exec: false,
-    } as MethodCallOptions<OpenMinter>,
-  );
-  const witnesses = [
-    ...callToBufferList(minterCall),
-    minter.lockingScript.toBuffer(),
-    Buffer.from(cblockMinter, 'hex'),
-  ];
-  revealTx.inputs[inputIndex].witnesses = witnesses;
-  const vsize = revealTx.vsize;
-  resetTx(revealTx);
-  return vsize;
-};
+	const minterCall = await minter.methods.mint(
+		newState.stateHashList,
+		tokenMint,
+		splitAmountList,
+		await wallet.getPubKeyPrefix(),
+		await wallet.getXOnlyPublicKey(),
+		() => DUMMY_MINER_SIG,
+		int2ByteString(BigInt(Postage.MINTER_POSTAGE), 8n),
+		int2ByteString(BigInt(Postage.TOKEN_POSTAGE), 8n),
+		preState,
+		preTxState,
+		backtraceInfo,
+		shPreimage,
+		prevoutsCtx,
+		spentScripts,
+		changeInfo,
+		{
+			fromUTXO: getDummyUTXO(),
+			verify: false,
+			exec: false
+		} as MethodCallOptions<OpenMinter>
+	)
+	const witnesses = [
+		...callToBufferList(minterCall),
+		minter.lockingScript.toBuffer(),
+		Buffer.from(cblockMinter, 'hex')
+	]
+	revealTx.inputs[inputIndex].witnesses = witnesses
+	const vsize = revealTx.vsize
+	resetTx(revealTx)
+	return vsize
+}
 
 export function createOpenMinterState(
-  mintAmount: int32,
-  isPriemined: boolean,
-  remainingSupply: int32,
-  metadata: TokenMetadata,
-  newMinter: number,
+	mintAmount: int32,
+	isPriemined: boolean,
+	remainingSupply: int32,
+	metadata: TokenMetadata,
+	newMinter: number
 ): {
-  splitAmountList: bigint[];
-  minterStates: OpenMinterState[];
+	splitAmountList: bigint[]
+	minterStates: OpenMinterState[]
 } {
-  const scaledInfo = scaleConfig(metadata.info as OpenMinterTokenInfo);
+	const scaledInfo = scaleConfig(metadata.info as OpenMinterTokenInfo)
 
-  const premine = !isPriemined ? scaledInfo.premine : 0n;
-  const limit = scaledInfo.limit;
-  let splitAmountList = OpenMinterProto.getSplitAmountList(
-    premine + remainingSupply,
-    mintAmount,
-    limit,
-    newMinter,
-  );
+	const premine = !isPriemined ? scaledInfo.premine : 0n
+	const limit = scaledInfo.limit
+	let splitAmountList = OpenMinterProto.getSplitAmountList(
+		premine + remainingSupply,
+		mintAmount,
+		limit,
+		newMinter
+	)
 
-  if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
-    splitAmountList = OpenMinterV2Proto.getSplitAmountList(
-      remainingSupply,
-      isPriemined,
-      scaledInfo.premine,
-    );
-  }
-  const tokenP2TR = toP2tr(metadata.tokenAddr);
+	if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
+		splitAmountList = OpenMinterV2Proto.getSplitAmountList(
+			remainingSupply,
+			isPriemined,
+			scaledInfo.premine
+		)
+	}
+	const tokenP2TR = toP2tr(metadata.tokenAddr)
 
-  const minterStates: Array<OpenMinterState> = [];
-  for (let i = 0; i < splitAmountList.length; i++) {
-    const amount = splitAmountList[i];
-    if (amount > 0n) {
-      const minterState = OpenMinterProto.create(tokenP2TR, true, amount);
-      minterStates.push(minterState);
-    }
-  }
+	const minterStates: Array<OpenMinterState> = []
+	for (let i = 0; i < splitAmountList.length; i++) {
+		const amount = splitAmountList[i]
+		if (amount > 0n) {
+			const minterState = OpenMinterProto.create(tokenP2TR, true, amount)
+			minterStates.push(minterState)
+		}
+	}
 
-  return { splitAmountList, minterStates };
+	return { splitAmountList, minterStates }
 }
-
 
 async function openMint(
-  wallet: WalletService,
-  feeRate: number,
-  feeUtxos: UTXO[],
-  metadata: TokenMetadata,
-  newMinter: number,  /* number of new minter utxo */
-  minterContract: OpenMinterContract,
-  mintAmount: bigint,
+	wallet: WalletService,
+	feeRate: number,
+	feeUtxos: UTXO[],
+	metadata: TokenMetadata,
+	newMinter: number /* number of new minter utxo */,
+	minterContract: OpenMinterContract,
+	mintAmount: bigint
 ): Promise<string | Error> {
+	metadata.timestamp = Date.now()
 
-  metadata.timestamp = Date.now()
-  
-  const { utxo: minterUtxo, state: { protocolState, data: preState } } = minterContract;
+	const {
+		utxo: minterUtxo,
+		state: { protocolState, data: preState }
+	} = minterContract
 
-  const address = await wallet.getAddress();
-  const tokenReceiver = await wallet.getTokenAddress();
+	const address = await wallet.getAddress()
+	const tokenReceiver = await wallet.getTokenAddress()
 
-    const tokenInfo = metadata.info as OpenMinterTokenInfo;
-    
-  const scaledInfo = scaleConfig(tokenInfo);
+	const tokenInfo = metadata.info as OpenMinterTokenInfo
 
-  const tokenP2TR = btc.Script.fromAddress(metadata.tokenAddr).toHex();
+	const scaledInfo = scaleConfig(tokenInfo)
 
-  const genesisId = outpoint2ByteString(metadata.tokenId);
+	const tokenP2TR = btc.Script.fromAddress(metadata.tokenAddr).toHex()
 
-    const newState = ProtocolState.getEmptyState();
+	const genesisId = outpoint2ByteString(metadata.tokenId)
 
-    const remainingSupply = getRemainSupply(preState, tokenInfo.minterMd5)
+	const newState = ProtocolState.getEmptyState()
 
-    if (!remainingSupply) { 
-        return new Error('No supply left in minter')
-    }
-        
-  const { splitAmountList, minterStates }
-      = createOpenMinterState(mintAmount, preState.isPremined, remainingSupply, metadata, newMinter);
+	const remainingSupply = getRemainSupply(preState, tokenInfo.minterMd5)
 
-  for (let i = 0; i < minterStates.length; i++) {
-      const minterState = minterStates[i];
-      newState.updateDataList(i, OpenMinterProto.toByteString(minterState))
-  }
+	if (!remainingSupply) {
+		return new Error('No supply left in minter')
+	}
 
-  const tokenState = CAT20Proto.create(
-      mintAmount,
-      tokenReceiver,
-  )
+	const { splitAmountList, minterStates } = createOpenMinterState(
+		mintAmount,
+		preState.isPremined,
+		remainingSupply,
+		metadata,
+		newMinter
+	)
 
-  newState.updateDataList(minterStates.length, CAT20Proto.toByteString(tokenState))
+	for (let i = 0; i < minterStates.length; i++) {
+		const minterState = minterStates[i]
+		newState.updateDataList(i, OpenMinterProto.toByteString(minterState))
+	}
 
-  let premineAddress = !preState.isPremined && scaledInfo.premine > 0n ? await wallet.getTokenAddress() : (
-      scaledInfo.premine === 0n ? '' : null
-  )
+	const tokenState = CAT20Proto.create(mintAmount, tokenReceiver)
 
-  if(premineAddress === null) {
-      const address = await getPremineAddress(wallet, minterContract.utxo)
+	newState.updateDataList(minterStates.length, CAT20Proto.toByteString(tokenState))
 
-      if(address instanceof Error) {
-          logerror(`get premine address failed!`, address);
-          return address;
-      }
+	let premineAddress =
+		!preState.isPremined && scaledInfo.premine > 0n
+			? await wallet.getTokenAddress()
+			: scaledInfo.premine === 0n
+			? ''
+			: null
 
-      premineAddress = address
-  }
+	if (premineAddress === null) {
+		const address = await getPremineAddress(wallet, minterContract.utxo)
 
-  const { tapScript: minterTapScript, cblock: cblockToken, contract: minter }
-      = getOpenMinterContractP2TR(genesisId, scaledInfo.max, scaledInfo.premine, scaledInfo.limit, premineAddress, tokenInfo.minterMd5);
-    
-  const changeScript = btc.Script.fromAddress(address);
+		if (address instanceof Error) {
+			logerror(`get premine address failed!`, address)
+			return address
+		}
 
-  const revealTx = new btc.Transaction()
-      .from([minterUtxo, ...feeUtxos])
-      .addOutput(
-          new btc.Transaction.Output({
-              satoshis: 0,
-              script: toStateScript(newState),
-          })
-      );
+		premineAddress = address
+	}
 
-  for (let i = 0; i < splitAmountList.length; i++) {
-      if (splitAmountList[i] > 0n) {
-          revealTx.addOutput(new btc.Transaction.Output({
-              script: new btc.Script(minterUtxo.script),
-              satoshis: Postage.MINTER_POSTAGE,
-          }))
-      }
-  }
+	const {
+		tapScript: minterTapScript,
+		cblock: cblockToken,
+		contract: minter
+	} = getOpenMinterContractP2TR(
+		genesisId,
+		scaledInfo.max,
+		scaledInfo.premine,
+		scaledInfo.limit,
+		premineAddress,
+		tokenInfo.minterMd5
+	)
 
-  revealTx.addOutput(
-      new btc.Transaction.Output({
-          satoshis: Postage.TOKEN_POSTAGE,
-          script: tokenP2TR,
-      })
-  )
+	const changeScript = btc.Script.fromAddress(address)
 
-  revealTx
-      .addOutput(
-          new btc.Transaction.Output({
-              satoshis: 0,
-              script: changeScript,
-          })
-      )
-      .feePerByte(feeRate)
-      .enableRBF();
+	const revealTx = new btc.Transaction().from([minterUtxo, ...feeUtxos]).addOutput(
+		new btc.Transaction.Output({
+			satoshis: 0,
+			script: toStateScript(newState)
+		})
+	)
 
-  const minterInputIndex = 0;
+	for (let i = 0; i < splitAmountList.length; i++) {
+		if (splitAmountList[i] > 0n) {
+			revealTx.addOutput(
+				new btc.Transaction.Output({
+					script: new btc.Script(minterUtxo.script),
+					satoshis: Postage.MINTER_POSTAGE
+				})
+			)
+		}
+	}
 
-  const commitTxHex = await getRawTransaction(minterUtxo.txId);
-  if (commitTxHex instanceof Error) {
-      logerror(`get raw transaction ${minterUtxo.txId} failed!`, commitTxHex);
-      return commitTxHex;
-  }
+	revealTx.addOutput(
+		new btc.Transaction.Output({
+			satoshis: Postage.TOKEN_POSTAGE,
+			script: tokenP2TR
+		})
+	)
 
-  const commitTx = new btc.Transaction(commitTxHex);
+	revealTx
+		.addOutput(
+			new btc.Transaction.Output({
+				satoshis: 0,
+				script: changeScript
+			})
+		)
+		.feePerByte(feeRate)
+		.enableRBF()
 
-  const prevPrevTxId = commitTx.inputs[minterInputIndex].prevTxId.toString('hex');
-  const prevPrevTxHex = await getRawTransaction(prevPrevTxId);
-  if (prevPrevTxHex instanceof Error) {
-      logerror(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex);
-      return prevPrevTxHex;
-  }
+	const minterInputIndex = 0
 
-    const prevPrevTx = new btc.Transaction(prevPrevTxHex);
-    
-  const backtraceInfo = getBackTraceInfo(commitTx, prevPrevTx, minterInputIndex);
+	const commitTxHex = await getRawTransaction(minterUtxo.txId)
+	if (commitTxHex instanceof Error) {
+		logerror(`get raw transaction ${minterUtxo.txId} failed!`, commitTxHex)
+		return commitTxHex
+	}
 
-  const dummySigner = getDummySigner()
-  await minter.connect(dummySigner)
+	const commitTx = new btc.Transaction(commitTxHex)
 
-  const preTxState: PreTxStatesInfo = {
-      statesHashRoot: protocolState.hashRoot,
-      txoStateHashes: protocolState.stateHashList,
-  }
-    
-  const vsize: number = await calcVsize(
-      wallet,
-      minter as OpenMinter,
-      newState,
-      tokenState,
-      splitAmountList,
-      preTxState,
-      preState,
-      minterTapScript,
-      minterInputIndex,
-      revealTx,
-      changeScript,
-      backtraceInfo,
-      cblockToken);
-    
-  let changeAmount = revealTx.inputAmount - vsize * feeRate - Postage.MINTER_POSTAGE * newMinter - Postage.TOKEN_POSTAGE;
+	const prevPrevTxId = commitTx.inputs[minterInputIndex].prevTxId.toString('hex')
+	const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
+	if (prevPrevTxHex instanceof Error) {
+		logerror(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
+		return prevPrevTxHex
+	}
 
-  if (process.env.FEE_ADDRESS && process.env.FEE_SATS) {
-    changeAmount -= parseInt(process.env.FEE_SATS)
-  }
+	const prevPrevTx = new btc.Transaction(prevPrevTxHex)
 
-  if (changeAmount < 546) {
-      const message = 'Insufficient satoshis balance!';
-      return new Error(message);
-  }
+	const backtraceInfo = getBackTraceInfo(commitTx, prevPrevTx, minterInputIndex)
 
-  // update change amount
-  const changeOutputIndex = revealTx.outputs.length - 1;
-    revealTx.outputs[changeOutputIndex].satoshis = changeAmount;
-    
-  const { shPreimage, prevoutsCtx, spentScripts } =
-      getTxCtx(revealTx, minterInputIndex, Buffer.from(minterTapScript, 'hex'))
+	const dummySigner = getDummySigner()
+	await minter.connect(dummySigner)
 
-  const changeInfo: ChangeInfo = {
-      script: toByteString(changeScript.toHex()),
-      satoshis: int2ByteString(BigInt(changeAmount), 8n),
-  }
+	const preTxState: PreTxStatesInfo = {
+		statesHashRoot: protocolState.hashRoot,
+		txoStateHashes: protocolState.stateHashList
+	}
 
-  const minterCall = await minter.methods.mint(
-      newState.stateHashList,
-      tokenState,
-      splitAmountList,
-      await wallet.getPubKeyPrefix(),
-      await wallet.getXOnlyPublicKey(),
-      () => DUMMY_MINER_SIG,
-      int2ByteString(BigInt(Postage.MINTER_POSTAGE), 8n),
-      int2ByteString(BigInt(Postage.TOKEN_POSTAGE), 8n),
-      preState,
-      preTxState,
-      backtraceInfo,
-      shPreimage,
-      prevoutsCtx,
-      spentScripts,
-      changeInfo,
-      {
-          fromUTXO: getDummyUTXO(),
-          verify: false,
-          exec: false,
-      } as MethodCallOptions<OpenMinter>
-  )
+	const vsize: number = await calcVsize(
+		wallet,
+		minter as OpenMinter,
+		newState,
+		tokenState,
+		splitAmountList,
+		preTxState,
+		preState,
+		minterTapScript,
+		minterInputIndex,
+		revealTx,
+		changeScript,
+		backtraceInfo,
+		cblockToken
+	)
 
+	let changeAmount =
+		revealTx.inputAmount -
+		vsize * feeRate -
+		Postage.MINTER_POSTAGE * newMinter -
+		Postage.TOKEN_POSTAGE
 
-  const witnesses = [
-      ...callToBufferList(minterCall),
-      minter.lockingScript.toBuffer(),
-      Buffer.from(cblockToken, 'hex'),
-  ]
-  revealTx.inputs[minterInputIndex].witnesses = witnesses
+	if (process.env.FEE_ADDRESS && process.env.FEE_SATS) {
+		changeAmount -= parseInt(process.env.FEE_SATS)
+	}
 
-  let psbt = Transaction.fromRaw(revealTx.toBuffer(), {allowUnknownOutputs: true});
-  const psbt_bitcoinjs = bitcoinjs.Psbt.fromHex(Buffer.from(psbt.toPSBT()).toString('hex'));
-  psbt_bitcoinjs.updateInput(0, {
-      tapLeafScript: [{
-          leafVersion: 192,
-          script: Buffer.from(minterTapScript, 'hex'),
-          controlBlock: witnesses[witnesses.length - 1],
-      }],
-  });
-  psbt = Transaction.fromPSBT(Buffer.from(psbt_bitcoinjs.toHex(), 'hex'), {
-      allowLegacyWitnessUtxo: true,
-      allowUnknownOutputs: true
-  })
+	if (changeAmount < 546) {
+		const message = 'Insufficient satoshis balance!'
+		return new Error(message)
+	}
 
-  // @ts-ignore
-  for (let i = 0; i < psbt.inputs.length; i++) {
-      if (i == minterInputIndex) {
-          // @ts-ignore
-          psbt.inputs[i].witnessUtxo = {
-              amount: BigInt(minterUtxo.satoshis) || 0n,
-              script: Buffer.from(minterUtxo.script, 'hex') || btc.Script.empty(),
-          }
-      }
+	// update change amount
+	const changeOutputIndex = revealTx.outputs.length - 1
+	revealTx.outputs[changeOutputIndex].satoshis = changeAmount
 
-      // @ts-ignore
-      const utxo = feeUtxos.find(utxo => utxo.txId === Buffer.from(psbt.inputs[i].txid).toString('hex') && utxo.outputIndex === psbt.inputs[i].index)
+	const { shPreimage, prevoutsCtx, spentScripts } = getTxCtx(
+		revealTx,
+		minterInputIndex,
+		Buffer.from(minterTapScript, 'hex')
+	)
 
-      if (!utxo) {
-          continue;
-      }
+	const changeInfo: ChangeInfo = {
+		script: toByteString(changeScript.toHex()),
+		satoshis: int2ByteString(BigInt(changeAmount), 8n)
+	}
 
-       // @ts-ignore
-       psbt.inputs[i].witnessUtxo = {
-          amount: BigInt(utxo?.satoshis) || 0n,
-              script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty(),
-          }
-      // @ts-ignore
-      psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
-      // @ts-ignore
-      psbt.inputs[i].sighashType = 1
-  }
+	const minterCall = await minter.methods.mint(
+		newState.stateHashList,
+		tokenState,
+		splitAmountList,
+		await wallet.getPubKeyPrefix(),
+		await wallet.getXOnlyPublicKey(),
+		() => DUMMY_MINER_SIG,
+		int2ByteString(BigInt(Postage.MINTER_POSTAGE), 8n),
+		int2ByteString(BigInt(Postage.TOKEN_POSTAGE), 8n),
+		preState,
+		preTxState,
+		backtraceInfo,
+		shPreimage,
+		prevoutsCtx,
+		spentScripts,
+		changeInfo,
+		{
+			fromUTXO: getDummyUTXO(),
+			verify: false,
+			exec: false
+		} as MethodCallOptions<OpenMinter>
+	)
 
-  return Buffer.from(psbt.toPSBT()).toString('hex')
+	const witnesses = [
+		...callToBufferList(minterCall),
+		minter.lockingScript.toBuffer(),
+		Buffer.from(cblockToken, 'hex')
+	]
+	revealTx.inputs[minterInputIndex].witnesses = witnesses
+
+	let psbt = Transaction.fromRaw(revealTx.toBuffer(), { allowUnknownOutputs: true })
+	const psbt_bitcoinjs = bitcoinjs.Psbt.fromHex(Buffer.from(psbt.toPSBT()).toString('hex'))
+	psbt_bitcoinjs.updateInput(0, {
+		tapLeafScript: [
+			{
+				leafVersion: 192,
+				script: Buffer.from(minterTapScript, 'hex'),
+				controlBlock: witnesses[witnesses.length - 1]
+			}
+		]
+	})
+	psbt = Transaction.fromPSBT(Buffer.from(psbt_bitcoinjs.toHex(), 'hex'), {
+		allowLegacyWitnessUtxo: true,
+		allowUnknownOutputs: true
+	})
+
+	// @ts-ignore
+	for (let i = 0; i < psbt.inputs.length; i++) {
+		if (i == minterInputIndex) {
+			// @ts-ignore
+			psbt.inputs[i].witnessUtxo = {
+				amount: BigInt(minterUtxo.satoshis) || 0n,
+				script: Buffer.from(minterUtxo.script, 'hex') || btc.Script.empty()
+			}
+		}
+
+		const utxo = feeUtxos.find(
+			utxo =>
+				// @ts-ignore
+				utxo.txId === Buffer.from(psbt.inputs[i].txid).toString('hex') &&
+				// @ts-ignore
+				utxo.outputIndex === psbt.inputs[i].index
+		)
+
+		if (!utxo) {
+			continue
+		}
+
+		// @ts-ignore
+		psbt.inputs[i].witnessUtxo = {
+			amount: BigInt(utxo?.satoshis) || 0n,
+			script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty()
+		}
+		// @ts-ignore
+		psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
+		// @ts-ignore
+		psbt.inputs[i].sighashType = 1
+	}
+
+	return Buffer.from(psbt.toPSBT()).toString('hex')
 }
- 
+
 type ResponseData = {
-  psbt?: string
-  message?: string
+	psbt?: string
+	message?: string
 }
- 
+
 async function getIndexerStatus() {
-    try {
-    const response = await axios.get(`${API_URL}/api?v=1`)
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching indexer status:', error)
-    throw error
-  }
+	try {
+		const response = await axios.get(`${API_URL}/api?v=1`)
+		return response.data.data
+	} catch (error) {
+		console.error('Error fetching indexer status:', error)
+		throw error
+	}
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
-) {
-  try {
-      // Check indexer status
-      
-    const indexerStatus = await getIndexerStatus()
-    const currentBlockHeight = indexerStatus.trackerBlockHeight
-    const chainTip = indexerStatus.nodeBlockHeight
-      
-    if (chainTip - currentBlockHeight > 3) {
-      return res.status(503).json({ message: 'Minting is temporarily disabled while the indexer is syncing' })
-    }
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
+	try {
+		// Check indexer status
 
-    if (process.env.SYNCING === 'true') {
-      return res.status(400).json({ message: 'Minting is disabled while syncing' })
-    }
+		const indexerStatus = await getIndexerStatus()
+		const currentBlockHeight = indexerStatus.trackerBlockHeight
+		const chainTip = indexerStatus.nodeBlockHeight
 
-    const payload = req.body
+		if (chainTip - currentBlockHeight > 3) {
+			return res
+				.status(503)
+				.json({ message: 'Minting is temporarily disabled while the indexer is syncing' })
+		}
 
-    const token = await getTokenMetadata(payload.tokenId);
+		if (process.env.SYNCING === 'true') {
+			return res.status(400).json({ message: 'Minting is disabled while syncing' })
+		}
 
-    if (!token) {
-      return res.status(404).json({ message: 'Token not found' });
-    }
+		const payload = req.body
 
-    const mintUtxoCount = await getTokenMinterCount(
-      token.tokenId,
-    );
-    
+		const token = await getTokenMetadata(payload.tokenId)
 
-    if (mintUtxoCount <= 0) {
-      return res.status(404).json({ message: 'Mint Ended' });
-    }
+		if (!token) {
+			return res.status(404).json({ message: 'Token not found' })
+		}
 
-    // Ensure offset is non-negative
-    const offset = Math.max(0, getRandomInt(mintUtxoCount - 1));
+		const mintUtxoCount = await getTokenMinterCount(token.tokenId)
 
-    // Ensure offset is a multiple of 32
-    const adjustedOffset = Math.floor(offset / 32) * 32;
+		if (mintUtxoCount <= 0) {
+			return res.status(404).json({ message: 'Mint Ended' })
+		}
 
-    // Add a comment explaining the adjustment
-    // This adjustment ensures that we always select a minter UTXO from a consistent set,
-    // which can help with load balancing and prevent potential edge cases.
-    // It also guarantees that the offset is non-negative.
+		// Ensure offset is non-negative
+		const offset = Math.max(0, getRandomInt(mintUtxoCount - 1))
 
-    const minter = await getTokenMinter(token, adjustedOffset);
-    const mintUtxoCreateCount = 2
+		// Ensure offset is a multiple of 32
+		const adjustedOffset = Math.floor(offset / 32) * 32
 
-    if (!minter) {
-      return res.status(404).json({ message: 'Minter not found' });
-    }
+		// Add a comment explaining the adjustment
+		// This adjustment ensures that we always select a minter UTXO from a consistent set,
+		// which can help with load balancing and prevent potential edge cases.
+		// It also guarantees that the offset is non-negative.
 
-    const wallet = new WalletService(payload.address, payload.publicKey);
-    // Scale the limit by 10^decimals to account for token precision
-    // @ts-ignore
-      const scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals);
+		const minter = await getTokenMinter(token, adjustedOffset)
+		const mintUtxoCreateCount = 2
 
-      const scaledInfo = scaleConfig(token.info as OpenMinterTokenInfo);
-      
-      let amount: bigint | undefined = scaledLimit;
-      
-        if (!minter.state.data.isPremined && scaledInfo.premine > 0n) {
-              if (typeof amount === 'bigint') {
-                if (amount !== scaledInfo.premine) {
-                  throw new Error(
-                    `first mint amount should equal to premine ${scaledInfo.premine}`,
-                  );
-                }
-              } else {
-                amount = scaledInfo.premine;
-              }
-            } else {
-              amount = amount || scaledInfo.limit;
-              if (token.info.minterMd5 === MinterType.OPEN_MINTER_V1) {
-                  if (
-                    // @ts-ignore
-                  getRemainSupply(minter.state.data, token.info.minterMd5) <
-                  scaledInfo.limit
-                ) {
-                //   console.warn(
-                //     `small limit of ${unScaleByDecimals(limit, token.info.decimals)} in the minter UTXO!`,
-                //   );
-                //   log(`retry to mint token [${token.info.symbol}] ...`);
-                //   continue;
-                }
-                amount =
-                    amount >
-                    // @ts-ignore
-                  getRemainSupply(minter.state.data, token.info.minterMd5)
-                    ? getRemainSupply(minter.state.data, token.info.minterMd5)
-                    : amount;
-              } else if (
-                token.info.minterMd5 == MinterType.OPEN_MINTER_V2 &&
-                amount != scaledInfo.limit
-              ) {
-                console.warn(
-                  `can only mint at the exactly amount of ${scaledInfo.limit} at once`,
-                );
-                amount = scaledInfo.limit;
-              }
-            }
-      
+		if (!minter) {
+			return res.status(404).json({ message: 'Minter not found' })
+		}
 
-    console.log('minting', token.info.name, token.tokenId)
-    const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledInfo.limit);
+		const wallet = new WalletService(payload.address, payload.publicKey)
+		// Scale the limit by 10^decimals to account for token precision
+		// @ts-ignore
+		const scaledLimit = BigInt(token.info.limit) * BigInt(10 ** token.info.decimals)
 
-    if (!psbt) {
-      return res.status(500).json({ message: 'Failed to create PSBT' });
-    }
+		const scaledInfo = scaleConfig(token.info as OpenMinterTokenInfo)
 
-    res.status(200).json({ psbt: psbt as string })
-  } catch (error) {
-    console.error(error, req.body)
-    res.status(500).json({ message: 'Internal server error' })
-  }
+		let amount: bigint | undefined = scaledLimit
+
+		if (!minter.state.data.isPremined && scaledInfo.premine > 0n) {
+			if (typeof amount === 'bigint') {
+				if (amount !== scaledInfo.premine) {
+					throw new Error(`first mint amount should equal to premine ${scaledInfo.premine}`)
+				}
+			} else {
+				amount = scaledInfo.premine
+			}
+		} else {
+			amount = amount || scaledInfo.limit
+			if (token.info.minterMd5 === MinterType.OPEN_MINTER_V1) {
+				if (
+					// @ts-ignore
+					getRemainSupply(minter.state.data, token.info.minterMd5) < scaledInfo.limit
+				) {
+					//   console.warn(
+					//     `small limit of ${unScaleByDecimals(limit, token.info.decimals)} in the minter UTXO!`,
+					//   );
+					//   log(`retry to mint token [${token.info.symbol}] ...`);
+					//   continue;
+				}
+				amount =
+					amount >
+					// @ts-ignore
+					getRemainSupply(minter.state.data, token.info.minterMd5)
+						? getRemainSupply(minter.state.data, token.info.minterMd5)
+						: amount
+			} else if (token.info.minterMd5 == MinterType.OPEN_MINTER_V2 && amount != scaledInfo.limit) {
+				console.warn(`can only mint at the exactly amount of ${scaledInfo.limit} at once`)
+				amount = scaledInfo.limit
+			}
+		}
+
+		console.log('minting', token.info.name, token.tokenId)
+		const psbt = await openMint(
+			wallet,
+			payload.feeRate,
+			payload.utxos,
+			token,
+			mintUtxoCreateCount,
+			minter,
+			scaledInfo.limit
+		)
+
+		if (!psbt) {
+			return res.status(500).json({ message: 'Failed to create PSBT' })
+		}
+
+		res.status(200).json({ psbt: psbt as string })
+	} catch (error) {
+		console.error(error, req.body)
+		res.status(500).json({ message: 'Internal server error' })
+	}
 }
