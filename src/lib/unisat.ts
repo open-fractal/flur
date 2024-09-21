@@ -14,27 +14,34 @@ export interface UnisatAPI {
 		{ txid: string; vout: number; satoshis: number; scriptPk: string }[]
 	>
 	on: (event: string, callback: (...args: any[]) => void) => void
-	removeListener: (event: string, callback: (...args: any[]) => void) => void // Added removeListener method
+	removeListener: (event: string, callback: (...args: any[]) => void) => void // Added removeListener method,
+	pushTx: (txHex: string) => Promise<string>
 }
 
 import useSWR from 'swr'
 
-// Function to fetch wallet data
 const fetchWalletData = async () => {
 	if (typeof window.unisat === 'undefined') {
-		return { address: '', isWalletConnected: false }
-	}
-
-	try {
-		const accounts = await window.unisat.getAccounts()
-		if (accounts.length > 0) {
-			return { address: accounts[0], isWalletConnected: true }
+		return {
+			address: '',
+			isWalletConnected: false,
+			balance: { confirmed: 0, unconfirmed: 0, total: 0 }
 		}
-	} catch (error) {
-		console.error('Error fetching wallet data:', error)
 	}
 
-	return { address: '', isWalletConnected: false }
+	const accounts = await window.unisat.getAccounts()
+	if (accounts.length === 0) {
+		return {
+			address: '',
+			isWalletConnected: false,
+			balance: { confirmed: 0, unconfirmed: 0, total: 0 }
+		}
+	}
+
+	const address = accounts[0]
+	const balance = await window.unisat.getBalance()
+
+	return { address, isWalletConnected: true, balance }
 }
 
 export const useWallet = () => {
@@ -53,15 +60,30 @@ export const useWallet = () => {
 		mutate({ ...data, isWalletConnected: isConnected }, false)
 	}
 
+	// New function to update balance
+	const updateBalance = async () => {
+		if (data?.isWalletConnected) {
+			const balance = await window.unisat.getBalance()
+			mutate({ ...data, balance }, false)
+		}
+	}
+
 	// Set up event listener for account changes
 	useEffect(() => {
-		const handleAccountsChanged = (accounts: string[]) => {
-			mutate(
-				accounts.length > 0
-					? { address: accounts[0], isWalletConnected: true }
-					: { address: '', isWalletConnected: false },
-				false
-			)
+		const handleAccountsChanged = async (accounts: string[]) => {
+			if (accounts.length > 0) {
+				const balance = await window.unisat.getBalance()
+				mutate({ address: accounts[0], isWalletConnected: true, balance }, false)
+			} else {
+				mutate(
+					{
+						address: '',
+						isWalletConnected: false,
+						balance: { confirmed: 0, unconfirmed: 0, total: 0 }
+					},
+					false
+				)
+			}
 		}
 
 		if (typeof window.unisat !== 'undefined') {
@@ -78,7 +100,9 @@ export const useWallet = () => {
 	return {
 		address: data?.address || '',
 		isWalletConnected: data?.isWalletConnected || false,
+		balance: data?.balance || { confirmed: 0, unconfirmed: 0, total: 0 },
 		setAddress,
-		setIsWalletConnected
+		setIsWalletConnected,
+		updateBalance
 	}
 }

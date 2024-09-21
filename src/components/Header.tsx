@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react'
-import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -22,8 +21,6 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { validateTokenId } from '@/lib/utils'
 
-const fetcher = (url: string) => fetch(url).then(res => res.json())
-
 const truncateAddress = (address: string) => {
 	return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
@@ -38,15 +35,17 @@ const tabItems = [
 
 export const Header: React.FC = () => {
 	const [searchInput, setSearchInput] = useState('')
-	const { address, setAddress, isWalletConnected, setIsWalletConnected } = useWallet()
+	const {
+		address,
+		setAddress,
+		isWalletConnected,
+		setIsWalletConnected,
+		balance,
+		updateBalance
+	} = useWallet()
 	const { toast } = useToast()
 	const pathname = usePathname()
 	const router = useRouter()
-
-	const { data: balanceData, error: balanceError } = useSWR(
-		isWalletConnected ? `https://utxo-detective-fractal.twetch.app/balance/${address}?v=1` : null,
-		fetcher
-	)
 
 	const { setTheme } = useTheme()
 
@@ -60,13 +59,14 @@ export const Header: React.FC = () => {
 				const accounts = await window.unisat.requestAccounts()
 				setIsWalletConnected(true)
 				setAddress(accounts[0])
+				updateBalance() // Update balance after connecting
 			} catch (error) {
 				console.error('Error connecting wallet:', error)
 			}
 		} else {
 			alert('Unisat wallet not detected. Please install the extension.')
 		}
-	}, [setIsWalletConnected, setAddress])
+	}, [setIsWalletConnected, setAddress, updateBalance])
 
 	const disconnectWallet = useCallback(() => {
 		setIsWalletConnected(false)
@@ -82,8 +82,16 @@ export const Header: React.FC = () => {
 		})
 	}
 
-	const formatBalance = (satoshis: number) => {
-		return (satoshis / 1e8).toFixed(2)
+	const formatBalance = (balance: { total: number }) => {
+		const fb = balance.total / 1e8
+		if (fb < 0.001) {
+			return fb.toFixed(6) // Show more precision for very small amounts
+		} else {
+			return fb.toLocaleString(undefined, {
+				minimumFractionDigits: 3,
+				maximumFractionDigits: 3
+			})
+		}
 	}
 
 	const handleSearch = (e: React.FormEvent) => {
@@ -154,9 +162,7 @@ export const Header: React.FC = () => {
 							<DropdownMenuTrigger asChild>
 								<Button variant="outline">
 									{truncateAddress(address)}
-									{balanceData && !balanceError && (
-										<span className="ml-2">({formatBalance(balanceData.satoshis)} FB)</span>
-									)}
+									<span className="ml-2">({formatBalance(balance)} FB)</span>
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent>
@@ -244,11 +250,7 @@ export const Header: React.FC = () => {
 										<Copy className="mr-2 h-4 w-4" />
 										Copy Address: {truncateAddress(address)}
 									</Button>
-									{balanceData && !balanceError && (
-										<div className="text-center">
-											Balance: {formatBalance(balanceData.satoshis)} FB
-										</div>
-									)}
+									<div className="text-center">Balance: {formatBalance(balance)} FB</div>
 									<Button onClick={disconnectWallet}>Disconnect Wallet</Button>
 								</div>
 							) : (

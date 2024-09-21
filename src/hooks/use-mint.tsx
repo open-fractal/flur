@@ -58,14 +58,12 @@ export function useMint(tokenId: string) {
 				feeRate: feeRate,
 				publicKey: await window.unisat.getPublicKey(),
 				address: (await window.unisat.getAccounts())[0],
-				utxos: utxos
-					.map((utxo: any) => ({
-						txId: utxo.txid,
-						outputIndex: utxo.vout,
-						script: utxo.scriptPk,
-						satoshis: utxo.satoshis
-					}))
-					.slice(0, 5)
+				utxos: utxos.map((utxo: any) => ({
+					txId: utxo.txid,
+					outputIndex: utxo.vout,
+					script: utxo.scriptPk,
+					satoshis: utxo.satoshis
+				}))
 			}
 
 			// const { mintNow } = await import('@/lib/mint')
