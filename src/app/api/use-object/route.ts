@@ -20,27 +20,34 @@ export async function POST(req: Request) {
 		schema: tokenListSchema,
 		prompt: `Create a list of 5 unique and creative meme coin tokens based on the theme: "${context}".
 
-Rules:
-1. Each token should have:
-   - A catchy name (1-5 words, spaces allowed)
+CRITICAL RULES FOR NAMES:
+1. Names should be creative and memorable
+2. Each name MUST have a different word count (1, 2, 3, 4, and 5 words)
+3. All words across all names MUST be unique (no repetition)
+4. Names MUST follow maximum length: 64 characters per name
+5. Names should be catchy and push boundaries of creativity
+6. NO token name should contain the theme word "${context}" or any variation of it
+
+Other rules:
+7. Each token should have:
    - A memorable symbol (5-8 characters)
    - Appropriate limit and max values
-   - Different name word count from others in the list (use 1, 2, 3, 4, and 5 words)
-   - Ensure all words in names are unique across the entire list of tokens
-   - Names shoudl be no longer than 32 characters
 
-2. Tokens should be:
+8. Tokens should be:
    - Humorous
    - Trendy
-   - Phrases
+   - Appealing to the crypto community
 
-4. Ensure that (max supply / limit) results in a number between 1000 and 10000 mints:
-   - Example: If limit is 100, max supply should be between 100,000 and 1,000,000
-   - This creates a reasonable number of minting opportunities for each token
+9. Ensure that (max supply / limit) results in a number between 1000 and 10000 mints:
+   - Example: If limit is 100, max supply should be between 1,000 and 10,000
 
-5. Make each token unique and distinct from the others in the list.
+10. Make each token unique and distinct from the others in the list.
 
-6. Double-check that no words are repeated across any of the token names.
+11. Double-check all rules, especially the name requirements, before finalizing the list.
+
+12. Names can be clever wordplay, puns, or references to internet culture related to the theme, but without using the theme word itself.
+
+13. Verify that NO token name includes the theme word "${context}" or any variation of it.
 `,
 		seed: new Date().getTime()
 	})
