@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import '@/app/globals.css'
 import { useTheme } from 'next-themes'
 import { Input } from '@/components/ui/input'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { validateTokenId } from '@/lib/utils'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
@@ -198,29 +198,33 @@ export const Header: React.FC = () => {
 						</Button>
 					</SheetTrigger>
 					<SheetContent side="right" className="w-[300px] sm:w-[400px]">
-						<div className="flex flex-col gap-4">
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => setIsSheetOpen(false)}
-								className="self-end"
-							>
-								<X className="h-6 w-6" />
-							</Button>
-							<Tabs value={pathname === '/docs' ? '/docs' : '/'} className="flex justify-center">
-								<TabsList>
-									<TabsTrigger value="/" asChild>
-										<Link href="/" onClick={() => setIsSheetOpen(false)}>
-											Explore
-										</Link>
-									</TabsTrigger>
-									<TabsTrigger value="/docs" asChild>
-										<Link href="/docs" onClick={() => setIsSheetOpen(false)}>
-											Docs
-										</Link>
-									</TabsTrigger>
+						<div className="flex flex-col gap-6">
+							<div className="flex justify-between items-center">
+								<Link href="/" onClick={() => setIsSheetOpen(false)}>
+									<img src="/logo.svg" alt="Logo" width={84} height={30} />
+								</Link>
+								<SheetClose asChild>
+									<Button variant="ghost" size="icon">
+										<X className="h-6 w-6" />
+									</Button>
+								</SheetClose>
+							</div>
+							<Tabs value={getActiveTab()} className="w-full">
+								<TabsList className="w-full">
+									{tabItems.map(tab => (
+										<TabsTrigger key={tab.value} value={tab.value} asChild className="flex-1">
+											<Link
+												href={tab.value}
+												onClick={() => setIsSheetOpen(false)}
+												className="w-full"
+											>
+												{tab.label}
+											</Link>
+										</TabsTrigger>
+									))}
 								</TabsList>
 							</Tabs>
+
 							<form onSubmit={handleSearch} className="relative">
 								<Input
 									type="text"
@@ -233,15 +237,7 @@ export const Header: React.FC = () => {
 									<Search className="h-4 w-4 text-muted-foreground" />
 								</div>
 							</form>
-							<a
-								href="https://github.com/open-fractal/flur"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-							>
-								<Github size={16} />
-								GitHub
-							</a>
+
 							{isWalletConnected ? (
 								<div className="flex flex-col gap-2">
 									<Button variant="outline" onClick={copyAddress}>
@@ -258,6 +254,25 @@ export const Header: React.FC = () => {
 							) : (
 								<Button onClick={connectWallet}>Connect Wallet</Button>
 							)}
+
+							<div className="flex justify-center gap-4">
+								<a
+									href="https://github.com/open-fractal/flur"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
+								>
+									<Github size={24} />
+								</a>
+								<a
+									href="https://x.com/Flur69"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
+								>
+									<Twitter size={24} />
+								</a>
+							</div>
 						</div>
 					</SheetContent>
 				</Sheet>
