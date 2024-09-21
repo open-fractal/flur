@@ -584,6 +584,8 @@ export default async function handler(
               }
             }
       
+
+    console.log('minting', token.info.name, token.tokenId)
     const psbt = await openMint(wallet, payload.feeRate, payload.utxos, token, mintUtxoCreateCount, minter, scaledInfo.limit);
 
     if (!psbt) {
