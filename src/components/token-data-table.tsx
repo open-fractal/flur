@@ -51,6 +51,7 @@ import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useMemo } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 // Define TokenData interface
 export interface TokenData {
@@ -354,6 +355,7 @@ export function TokenDataTable({}) {
 	const [currentPage, setCurrentPage] = React.useState(initialState.currentPage)
 	const [globalFilter, setGlobalFilter] = React.useState(initialState.globalFilter)
 	const [filterValue, setFilterValue] = React.useState(initialState.filterValue)
+	const isMobile = useMediaQuery('(max-width: 640px)')
 
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
 	const router = useRouter()
@@ -447,7 +449,7 @@ export function TokenDataTable({}) {
 
 	const renderPageNumbers = () => {
 		const pageNumbers = []
-		const maxVisiblePages = 5
+		const maxVisiblePages = isMobile ? 2 : 5
 
 		if (totalPages <= maxVisiblePages) {
 			for (let i = 1; i <= totalPages; i++) {
