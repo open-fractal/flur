@@ -7,6 +7,7 @@ import {
 	callToBufferList,
 	TokenMetadata,
 	resetTx,
+	toStateScript,
 	OpenMinterTokenInfo,
 	getOpenMinterContractP2TR,
 	OpenMinterContract,
@@ -207,20 +208,6 @@ export function createOpenMinterState(
 	return { splitAmountList, minterStates }
 }
 
-function selectUtxos(utxos: UTXO[], targetAmount: number): UTXO[] {
-	const sortedUtxos = utxos.sort((a, b) => b.satoshis - a.satoshis)
-	const selectedUtxos: UTXO[] = []
-	let totalSatoshis = 0
-
-	for (const utxo of sortedUtxos) {
-		if (totalSatoshis >= targetAmount) break
-		selectedUtxos.push(utxo)
-		totalSatoshis += utxo.satoshis
-	}
-
-	return selectedUtxos
-}
-
 async function openMint(
 	wallet: WalletService,
 	feeRate: number,
@@ -306,19 +293,12 @@ async function openMint(
 
 	const changeScript = btc.Script.fromAddress(address)
 
-	const revealTx = new btc.Transaction().from([minterUtxo])
-
-	// Calculate the initial required amount
-	const initialRequiredAmount =
-		Postage.MINTER_POSTAGE * newMinter +
-		Postage.TOKEN_POSTAGE +
-		(process.env.FEE_SATS ? parseInt(process.env.FEE_SATS) : 0)
-
-	// Select UTXOs based on the initial required amount
-	const selectedFeeUtxos = selectUtxos(feeUtxos, initialRequiredAmount)
-
-	// Add selected UTXOs to the transaction
-	revealTx.from(selectedFeeUtxos)
+	const revealTx = new btc.Transaction().from([minterUtxo, ...feeUtxos]).addOutput(
+		new btc.Transaction.Output({
+			satoshis: 0,
+			script: toStateScript(newState)
+		})
+	)
 
 	for (let i = 0; i < splitAmountList.length; i++) {
 		if (splitAmountList[i] > 0n) {
@@ -403,31 +383,9 @@ async function openMint(
 		changeAmount -= parseInt(process.env.FEE_SATS)
 	}
 
-	// If changeAmount is negative, we need to add more inputs
 	if (changeAmount < 546) {
-		const additionalRequired = 546 - changeAmount
-		const additionalUtxos = selectUtxos(
-			feeUtxos.filter(utxo => !selectedFeeUtxos.includes(utxo)),
-			additionalRequired
-		)
-
-		if (additionalUtxos.length === 0) {
-			return new Error('Insufficient satoshis balance!')
-		}
-
-		revealTx.from(additionalUtxos)
-		selectedFeeUtxos.push(...additionalUtxos)
-
-		// Recalculate changeAmount
-		changeAmount =
-			revealTx.inputAmount -
-			vsize * feeRate -
-			Postage.MINTER_POSTAGE * newMinter -
-			Postage.TOKEN_POSTAGE
-
-		if (process.env.FEE_ADDRESS && process.env.FEE_SATS) {
-			changeAmount -= parseInt(process.env.FEE_SATS)
-		}
+		const message = 'Insufficient satoshis balance!'
+		return new Error(message)
 	}
 
 	// update change amount
@@ -499,20 +457,29 @@ async function openMint(
 				amount: BigInt(minterUtxo.satoshis) || 0n,
 				script: Buffer.from(minterUtxo.script, 'hex') || btc.Script.empty()
 			}
-		} else {
-			const utxo = selectedFeeUtxos[i - 1]
-			if (!utxo) continue
-
-			// @ts-ignore
-			psbt.inputs[i].witnessUtxo = {
-				amount: BigInt(utxo.satoshis) || 0n,
-				script: Buffer.from(utxo.script, 'hex') || btc.Script.empty()
-			}
-			// @ts-ignore
-			psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
-			// @ts-ignore
-			psbt.inputs[i].sighashType = 1
 		}
+
+		const utxo = feeUtxos.find(
+			utxo =>
+				// @ts-ignore
+				utxo.txId === Buffer.from(psbt.inputs[i].txid).toString('hex') &&
+				// @ts-ignore
+				utxo.outputIndex === psbt.inputs[i].index
+		)
+
+		if (!utxo) {
+			continue
+		}
+
+		// @ts-ignore
+		psbt.inputs[i].witnessUtxo = {
+			amount: BigInt(utxo?.satoshis) || 0n,
+			script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty()
+		}
+		// @ts-ignore
+		psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
+		// @ts-ignore
+		psbt.inputs[i].sighashType = 1
 	}
 
 	return Buffer.from(psbt.toPSBT()).toString('hex')
