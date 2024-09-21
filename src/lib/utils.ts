@@ -72,3 +72,11 @@ export async function broadcast(txHex: string): Promise<string | Error> {
 		return error as Error
 	}
 }
+
+export const satsToBTC = (sats: number): number => {
+  return sats / 1e8
+}
+
+export const btcToSats = (btc: number): number => {
+  return Math.floor(btc * 1e8)
+}

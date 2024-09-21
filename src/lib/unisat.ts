@@ -106,3 +106,13 @@ export const useWallet = () => {
 		updateBalance
 	}
 }
+
+export async function getBitcoinUtxoCount(): Promise<number> {
+	try {
+		const response = await window.unisat.getBitcoinUtxos()
+		return response.length
+	} catch (error) {
+		console.error('Error fetching Bitcoin UTXO count:', error)
+		throw error
+	}
+}

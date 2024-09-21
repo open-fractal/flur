@@ -12,6 +12,23 @@ import { useMint } from '@/hooks/use-mint'
 import { TokenHeader } from '@/components/token-header'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { InfoIcon } from 'lucide-react'
+import { useWallet, getBitcoinUtxoCount } from '@/lib/unisat'
+import { useSplit } from '@/hooks/use-split'
+import { Slider } from '@/components/ui/slider'
+import { Input } from '@/components/ui/input'
+import {
+	Form,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormControl,
+	FormDescription,
+	FormMessage
+} from '@/components/ui/form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
+import { btcToSats } from '@/lib/utils'
 
 interface TokenResponse {
 	code: number
@@ -61,8 +78,9 @@ const fetcher = (url: string) =>
 
 const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	const [error, setError] = useState<string | null>(null)
-
+	const { handleSplit, isSplitting } = useSplit()
 	const { isMinting, handleMint } = useMint(token.tokenId)
+	const [serviceFee, setServiceFee] = useState<string | null>(null)
 
 	const { data: tokenResponse, error: tokenError } = useSWR<TokenResponse>(
 		`${API_URL}/api/tokens/${token.tokenId}?v=1`,
@@ -84,14 +102,59 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 		}
 	)
 
+	const { address } = useWallet()
+
+	// New SWR hook for wallet UTXO count
+	const { data: walletUtxoCount, error: walletUtxoError } = useSWR(
+		address ? ['walletUtxoCount', address] : null,
+		async () => {
+			if (!address) return null
+			return await getBitcoinUtxoCount()
+		}
+	)
+
+	const [showSplitForm, setShowSplitForm] = useState(false)
+
+	// Define the form schema
+	const formSchema = z.object({
+		minBTC: z.number().min(0.01, 'Minimum 0.01 BTC required'),
+		splitCount: z
+			.number()
+			.min(2, 'Minimum split count is 2')
+			.max(100, 'Maximum split count is 100')
+	})
+
+	// Initialize the form
+	const form = useForm<z.infer<typeof formSchema>>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			minBTC: 0.01, // Updated default value
+			splitCount: 10
+		}
+	})
+
+	// Handle form submission
+	const onSubmit = (values: z.infer<typeof formSchema>) => {
+		const minSats = btcToSats(values.minBTC)
+		handleSplit(values.splitCount, minSats)
+		setShowSplitForm(false)
+	}
+
 	useEffect(() => {
-		if (tokenError || utxoCountError) {
-			setError('Failed to load token details. Please try again later.')
-			console.error('Error fetching data:', tokenError || utxoCountError)
+		if (tokenError || utxoCountError || walletUtxoError) {
+			setError('Failed to load token details or wallet information. Please try again later.')
+			console.error('Error fetching data:', tokenError || utxoCountError || walletUtxoError)
 		} else {
 			setError(null)
 		}
-	}, [tokenError, utxoCountError])
+	}, [tokenError, utxoCountError, walletUtxoError])
+
+	useEffect(() => {
+		const fee = process.env.NEXT_PUBLIC_FEE_SATS
+		if (fee) {
+			setServiceFee((parseInt(fee) / 1e8).toString())
+		}
+	}, [])
 
 	if (error) {
 		return <ErrorDisplay message={error} />
@@ -176,6 +239,116 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 												></div>
 											</p>
 										</div>
+
+										<div>
+											<p className="text-sm font-medium flex items-center gap-2">
+												Wallet UTXOs
+												<HoverCard>
+													<HoverCardTrigger>
+														<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+													</HoverCardTrigger>
+													<HoverCardContent className="w-80">
+														<div className="space-y-2">
+															<p className="text-sm">
+																Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
+																paying minting fees.
+															</p>
+															<p className="text-sm">
+																Splitting UTXOs creates smaller amounts for better fee management
+																and concurrent minting.
+															</p>
+														</div>
+													</HoverCardContent>
+												</HoverCard>
+											</p>
+											<div className="flex items-center justify-between">
+												<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
+													{walletUtxoCount !== null ? walletUtxoCount : 'Loading...'}
+													{walletUtxoCount !== null && (
+														<div
+															className={`w-2 h-2 rounded-full ${
+																walletUtxoCount && walletUtxoCount > 0
+																	? 'bg-green-500'
+																	: 'bg-red-500'
+															} animate-pulse`}
+														></div>
+													)}
+												</p>
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => setShowSplitForm(!showSplitForm)}
+													disabled={
+														isSplitting || walletUtxoCount === null || walletUtxoCount === 0
+													}
+												>
+													Split UTXOs
+												</Button>
+											</div>
+										</div>
+
+										{showSplitForm && (
+											<Form {...form}>
+												<form
+													onSubmit={form.handleSubmit(onSubmit)}
+													className="space-y-4 border rounded p-4"
+												>
+													<FormField
+														control={form.control}
+														name="minBTC"
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel>Minimum FB per UTXO</FormLabel>
+																<FormControl>
+																	<Input
+																		type="number"
+																		step="0.01"
+																		min="0.01"
+																		{...field}
+																		onChange={e => field.onChange(Number(e.target.value))}
+																	/>
+																</FormControl>
+																<FormDescription>Minimum 0.01 FB (1,000,000 sats)</FormDescription>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<FormField
+														control={form.control}
+														name="splitCount"
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel>Split Count: {field.value}</FormLabel>
+																<FormControl>
+																	<Slider
+																		min={2}
+																		max={100}
+																		step={1}
+																		value={[field.value]}
+																		onValueChange={value => field.onChange(value[0])}
+																	/>
+																</FormControl>
+															</FormItem>
+														)}
+													/>
+													<div>
+														{serviceFee && (
+															<p className="text-sm text-muted-foreground mb-1">
+																Service fee: {serviceFee} FB
+															</p>
+														)}
+														<Button
+															type="submit"
+															disabled={isSplitting}
+															variant="outline"
+															className="w-full mt-0"
+														>
+															{isSplitting ? 'Splitting...' : 'Split'}
+														</Button>
+													</div>
+												</form>
+											</Form>
+										)}
 
 										<Button
 											onClick={handleMint}

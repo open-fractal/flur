@@ -235,10 +235,10 @@ export async function deploy(
 			})
 		)
 
-	if (process.env.FEE_ADDRESS && process.env.NEXT_PUBLIC_FEE_SATS) {
+	if (process.env.NEXT_PUBLIC_FEE_ADDRESS && process.env.NEXT_PUBLIC_FEE_SATS) {
 		commitTx.addOutput(
 			new btc.Transaction.Output({
-				script: btc.Script.fromAddress(process.env.FEE_ADDRESS),
+				script: btc.Script.fromAddress(process.env.NEXT_PUBLIC_FEE_ADDRESS),
 				satoshis: parseInt(process.env.NEXT_PUBLIC_FEE_SATS)
 			})
 		)
