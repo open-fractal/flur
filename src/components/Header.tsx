@@ -135,26 +135,6 @@ export const Header: React.FC = () => {
 							))}
 						</TabsList>
 					</Tabs>
-					<div className="flex items-center gap-4">
-						{' '}
-						{/* Changed back from gap-4 to gap-2 */}
-						<a
-							href="https://github.com/open-fractal/flur"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
-						>
-							<Github size={16} />
-						</a>
-						<a
-							href="https://x.com/Flur69"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
-						>
-							<Twitter size={16} />
-						</a>
-					</div>
 				</div>
 				<div className="hidden sm:flex items-center gap-4">
 					<form onSubmit={handleSearch} className="relative">
@@ -192,6 +172,24 @@ export const Header: React.FC = () => {
 							Connect Wallet
 						</Button>
 					)}
+					<div className="flex items-center gap-4">
+						<a
+							href="https://github.com/open-fractal/flur"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
+						>
+							<Github size={16} />
+						</a>
+						<a
+							href="https://x.com/Flur69"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-gray-600 hover:text-white transition-all ease-in-out duration-300 transform hover:scale-110"
+						>
+							<Twitter size={16} />
+						</a>
+					</div>
 				</div>
 				<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
 					<SheetTrigger asChild>
