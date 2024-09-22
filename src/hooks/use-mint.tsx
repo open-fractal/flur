@@ -57,13 +57,11 @@ export function useMint(tokenId: string) {
 			const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
 
 			// Ensure offset is a multiple of 32
-			const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
+			// const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
 
 			const {
 				data: { data: minters }
-			} = await axios.get(
-				`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=${adjustedOffset}`
-			)
+			} = await axios.get(`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=0`)
 
 			const randomIndex = Math.floor(Math.random() * minters.utxos.length)
 			const minter = minters.utxos[randomIndex]
