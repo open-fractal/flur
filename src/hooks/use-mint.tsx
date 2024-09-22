@@ -54,7 +54,7 @@ export function useMint(tokenId: string) {
 			])
 
 			// Calculate offset using vanilla JavaScript
-			const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
+			// const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
 
 			// Ensure offset is a multiple of 32
 			// const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
