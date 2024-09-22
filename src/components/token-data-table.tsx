@@ -108,7 +108,7 @@ const ActionCell = React.memo(({ token }: { token: TokenData }) => {
 	return (
 		<div className="w-full text-center">
 			<Button
-				onClick={handleMint}
+				onClick={() => handleMint(100)}
 				disabled={isMintingComplete || isMinting}
 				size="sm"
 				variant="outline"

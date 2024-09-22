@@ -312,7 +312,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token: initialToken }) =>
 												)}
 
 												<Button
-													onClick={handleMint}
+													onClick={() => handleMint(utxoCount)}
 													disabled={isMinting || !isMintable || utxoCount === 0}
 													className="w-full"
 												>
