@@ -42,9 +42,9 @@ export function useMint(tokenId: string) {
 		const { getTokenMetadata } = await import('@/lib/scrypt/common')
 
 		// Implement getRandomInt function in vanilla JavaScript
-		function getRandomInt(max: number) {
-			return Math.floor(Math.random() * Math.floor(max))
-		}
+		// function getRandomInt(max: number) {
+		// 	return Math.floor(Math.random() * Math.floor(max))
+		// }
 
 		try {
 			const [feeRate, utxos, tokenData] = await Promise.all([
