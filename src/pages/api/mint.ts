@@ -531,15 +531,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 	try {
 		// Check indexer status
 
-		const indexerStatus = await getIndexerStatus()
-		const currentBlockHeight = indexerStatus.trackerBlockHeight
-		const chainTip = indexerStatus.nodeBlockHeight
+		// const indexerStatus = await getIndexerStatus()
+		// const currentBlockHeight = indexerStatus.trackerBlockHeight
+		// const chainTip = indexerStatus.nodeBlockHeight
 
-		if (chainTip - currentBlockHeight > 3) {
-			return res
-				.status(503)
-				.json({ message: 'Minting is temporarily disabled while the indexer is syncing' })
-		}
+		// if (chainTip - currentBlockHeight > 3) {
+		// 	return res
+		// 		.status(503)
+		// 		.json({ message: 'Minting is temporarily disabled while the indexer is syncing' })
+		// }
 
 		if (process.env.SYNCING === 'true') {
 			return res.status(400).json({ message: 'Minting is disabled while syncing' })
