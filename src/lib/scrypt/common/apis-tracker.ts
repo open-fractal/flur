@@ -155,7 +155,7 @@ export const getTokenMinter = async function(
 	metadata: TokenMetadata,
 	offset: number = 0
 ): Promise<OpenMinterContract | null> {
-	const url = `${API_URL}/api/minters/${metadata.tokenId}/utxos?limit=32&offset=${offset}`
+	const url = `${API_URL}/api/minters/${metadata.tokenId}/utxos?limit=500&offset=${offset}`
 	return fetch(url)
 		.then(res => res.json())
 		.then((res: any) => {

@@ -405,8 +405,25 @@ async function openMint(
 	}
 
 	if (changeAmount < 546) {
-		const message = 'Insufficient satoshis balance!'
-		return new Error(message)
+		const additionalRequired = 546 - changeAmount
+		const additionalUtxos = selectUtxos(
+			feeUtxos.filter(utxo => !selectedFeeUtxos.includes(utxo)),
+			additionalRequired
+		)
+		if (additionalUtxos.length === 0) {
+			return new Error('Insufficient satoshis balance!')
+		}
+		revealTx.from(additionalUtxos)
+		selectedFeeUtxos.push(...additionalUtxos)
+		// Recalculate changeAmount
+		changeAmount =
+			revealTx.inputAmount -
+			vsize * feeRate -
+			Postage.MINTER_POSTAGE * newMinter -
+			Postage.TOKEN_POSTAGE
+		if (process.env.FEE_ADDRESS && process.env.FEE_SATS) {
+			changeAmount -= parseInt(process.env.FEE_SATS)
+		}
 	}
 
 	// update change amount
@@ -550,7 +567,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 		const offset = Math.max(0, getRandomInt(mintUtxoCount - 1))
 
 		// Ensure offset is a multiple of 32
-		const adjustedOffset = Math.floor(offset / 32) * 32
+		const adjustedOffset = Math.floor(offset / 500) * 500
 
 		// Add a comment explaining the adjustment
 		// This adjustment ensures that we always select a minter UTXO from a consistent set,
