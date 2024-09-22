@@ -42,9 +42,9 @@ export function useMint(tokenId: string) {
 		const { getTokenMetadata } = await import('@/lib/scrypt/common')
 
 		// Implement getRandomInt function in vanilla JavaScript
-		// function getRandomInt(max: number) {
-		// 	return Math.floor(Math.random() * Math.floor(max))
-		// }
+		function getRandomInt(max: number) {
+			return Math.floor(Math.random() * Math.floor(max))
+		}
 
 		try {
 			const [feeRate, utxos, tokenData] = await Promise.all([
@@ -54,14 +54,16 @@ export function useMint(tokenId: string) {
 			])
 
 			// Calculate offset using vanilla JavaScript
-			// const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
+			const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
 
 			// Ensure offset is a multiple of 32
-			// const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
+			const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
 
 			const {
 				data: { data: minters }
-			} = await axios.get(`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=0`)
+			} = await axios.get(
+				`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=${adjustedOffset}`
+			)
 
 			const randomIndex = Math.floor(Math.random() * minters.utxos.length)
 			const minter = minters.utxos[randomIndex]
