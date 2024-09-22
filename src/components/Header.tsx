@@ -11,7 +11,6 @@ import {
 import { Copy, Github, Menu, Search, X, Twitter } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/lib/unisat'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
@@ -20,18 +19,28 @@ import { useTheme } from 'next-themes'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { validateTokenId } from '@/lib/utils'
+import {
+	NavigationMenu,
+	NavigationMenuContent,
+	NavigationMenuItem,
+	NavigationMenuLink,
+	NavigationMenuList,
+	NavigationMenuTrigger,
+	navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+import { cn } from "@/lib/utils"
 
 const truncateAddress = (address: string) => {
 	return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
-// Define an array of tab items
-const tabItems = [
-	{ value: '/', label: 'Mint' },
-	{ value: '/create', label: 'Deploy' },
-	{ value: '/docs', label: 'Docs' }
-	// Add more tabs here as needed
-]
+const customNavigationMenuTriggerStyle = () => {
+	return cn(
+		"group inline-flex h-8 w-auto items-center justify-center m-3 px-0 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+		"bg-transparent",
+		"hover:bg-transparent"
+	)
+}
 
 export const Header: React.FC = () => {
 	const [searchInput, setSearchInput] = useState('')
@@ -113,13 +122,14 @@ export const Header: React.FC = () => {
 
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-	// Function to determine the active tab
-	const getActiveTab = useCallback(() => {
-		if (pathname === '/') {
-			return '/'
-		}
-		return tabItems.find(tab => pathname?.startsWith(tab.value) && tab.value !== '/')?.value || '/'
-	}, [pathname])
+	const isActive = (path: string) => {
+		if (path === '/' && pathname === '/') return true
+		if (path !== '/' && pathname?.startsWith(path)) return true
+		return false
+	}
+
+	const activeItemStyle = "text-white border-b-2 border-white"
+	const inactiveItemStyle = "text-gray-400 hover:text-white"
 
 	return (
 		<>
@@ -129,20 +139,43 @@ export const Header: React.FC = () => {
 					<Link href="/">
 						<img src="/logo.svg" alt="Logo" width={84} height={30} />
 					</Link>
-					<Tabs value={getActiveTab()} className="hidden sm:block">
-						<TabsList>
-							{tabItems.map(tab => (
-								<TabsTrigger key={tab.value} value={tab.value} asChild>
-									<Link
-										href={tab.value}
-										className="hover:text-white transition-colors duration-200"
-									>
-										{tab.label}
-									</Link>
-								</TabsTrigger>
-							))}
-						</TabsList>
-					</Tabs>
+					<NavigationMenu className="hidden sm:block">
+						<NavigationMenuList className="flex">
+							<NavigationMenuItem>
+								<Link href="/" legacyBehavior passHref>
+									<NavigationMenuLink className={cn(
+										customNavigationMenuTriggerStyle(),
+										isActive('/') ? activeItemStyle : inactiveItemStyle,
+										"whitespace-nowrap"
+									)}>
+										Mint
+									</NavigationMenuLink>
+								</Link>
+							</NavigationMenuItem>
+							<NavigationMenuItem>
+								<Link href="/create" legacyBehavior passHref>
+									<NavigationMenuLink className={cn(
+										customNavigationMenuTriggerStyle(),
+										isActive('/create') ? activeItemStyle : inactiveItemStyle,
+										"whitespace-nowrap"
+									)}>
+										Deploy
+									</NavigationMenuLink>
+								</Link>
+							</NavigationMenuItem>
+							<NavigationMenuItem>
+								<Link href="/docs" legacyBehavior passHref>
+									<NavigationMenuLink className={cn(
+										customNavigationMenuTriggerStyle(),
+										isActive('/docs') ? activeItemStyle : inactiveItemStyle,
+										"whitespace-nowrap"
+									)}>
+										Docs
+									</NavigationMenuLink>
+								</Link>
+							</NavigationMenuItem>
+						</NavigationMenuList>
+					</NavigationMenu>
 				</div>
 				<div className="hidden sm:flex items-center gap-4">
 					<form onSubmit={handleSearch} className="relative">
@@ -215,21 +248,55 @@ export const Header: React.FC = () => {
 									</Button>
 								</SheetClose>
 							</div>
-							<Tabs value={getActiveTab()} className="w-full">
-								<TabsList className="w-full">
-									{tabItems.map(tab => (
-										<TabsTrigger key={tab.value} value={tab.value} asChild className="flex-1">
-											<Link
-												href={tab.value}
+							<NavigationMenu orientation="vertical" className="w-full">
+								<NavigationMenuList className="flex-col items-start space-y-2">
+									<NavigationMenuItem className="w-full">
+										<Link href="/" legacyBehavior passHref>
+											<NavigationMenuLink 
+												className={cn(
+													customNavigationMenuTriggerStyle(),
+													"justify-start w-full",
+													isActive('/') ? activeItemStyle : inactiveItemStyle,
+													"whitespace-nowrap"
+												)}
 												onClick={() => setIsSheetOpen(false)}
-												className="w-full"
 											>
-												{tab.label}
-											</Link>
-										</TabsTrigger>
-									))}
-								</TabsList>
-							</Tabs>
+												Mint
+											</NavigationMenuLink>
+										</Link>
+									</NavigationMenuItem>
+									<NavigationMenuItem className="w-full">
+										<Link href="/create" legacyBehavior passHref>
+											<NavigationMenuLink 
+												className={cn(
+													customNavigationMenuTriggerStyle(),
+													"justify-start w-full",
+													isActive('/create') ? activeItemStyle : inactiveItemStyle,
+													"whitespace-nowrap"
+												)}
+												onClick={() => setIsSheetOpen(false)}
+											>
+												Deploy
+											</NavigationMenuLink>
+										</Link>
+									</NavigationMenuItem>
+									<NavigationMenuItem className="w-full">
+										<Link href="/docs" legacyBehavior passHref>
+											<NavigationMenuLink 
+												className={cn(
+													customNavigationMenuTriggerStyle(),
+													"justify-start w-full",
+													isActive('/docs') ? activeItemStyle : inactiveItemStyle,
+													"whitespace-nowrap"
+												)}
+												onClick={() => setIsSheetOpen(false)}
+											>
+												Docs
+											</NavigationMenuLink>
+										</Link>
+									</NavigationMenuItem>
+								</NavigationMenuList>
+							</NavigationMenu>
 
 							<form onSubmit={handleSearch} className="relative">
 								<Input
