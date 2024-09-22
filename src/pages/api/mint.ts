@@ -547,6 +547,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 		const payload = req.body
 
+		if (!payload.token) {
+			return res.status(400).json({ message: 'Token not found. Reload the page.' })
+		}
+
 		const token = parseTokenMetadata(payload.token)
 
 		if (!token) {
