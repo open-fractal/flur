@@ -62,6 +62,7 @@ export interface TokenData {
 	supply: string
 	decimals: number
 	revealHeight: string
+	mintUtxoCount: number
 	info: {
 		max: string
 		limit: string
@@ -95,21 +96,17 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 
 // New component for the action cell
 const ActionCell = React.memo(({ token }: { token: TokenData }) => {
-	const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
-	const maxSupply = parseInt(token.info.max)
-	const isMintingComplete = currentSupply >= maxSupply
-
 	const { handleMint, isMinting } = useMint(token.tokenId)
 
-	if (isMintingComplete) {
+	if (token.mintUtxoCount <= 0) {
 		return null
 	}
 
 	return (
 		<div className="w-full text-center">
 			<Button
-				onClick={() => handleMint(100)}
-				disabled={isMintingComplete || isMinting}
+				onClick={() => handleMint(0)}
+				disabled={isMinting}
 				size="sm"
 				variant="outline"
 				className="w-full px-2"
@@ -341,7 +338,7 @@ export function TokenDataTable({}) {
 			columnVisibility: {},
 			currentPage: 1,
 			globalFilter: '',
-			filterValue: 'minting'
+			filterValue: 'mintable'
 		}
 	}, [])
 
@@ -364,9 +361,7 @@ export function TokenDataTable({}) {
 		if (!tokens) return []
 		if (filterValue === 'all') return tokens
 		return tokens.filter(token => {
-			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
-			const maxSupply = parseInt(token.info.max)
-			return currentSupply < maxSupply
+			return token.mintUtxoCount > 0
 		})
 	}, [tokens, filterValue])
 
@@ -510,7 +505,7 @@ export function TokenDataTable({}) {
 							<SelectValue placeholder="Filter tokens" />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="minting">Minting Now</SelectItem>
+							<SelectItem value="mintable">Mintable</SelectItem>
 							<SelectItem value="all">Show All</SelectItem>
 						</SelectContent>
 					</Select>
@@ -554,7 +549,7 @@ export function TokenDataTable({}) {
 										key={row.id}
 										data-state={row.getIsSelected() && 'selected'}
 										onClick={() => router.push(`/token/${row.original.tokenId}`)}
-										className="cursor-pointer duration-200"
+										className="cursor-pointer duration-200 h-12"
 									>
 										{row.getVisibleCells().map(cell => (
 											<TableCell
@@ -568,8 +563,8 @@ export function TokenDataTable({}) {
 									</TableRow>
 								))
 						) : (
-							<TableRow>
-								<TableCell colSpan={columns.length} className="h-24 text-center">
+							<TableRow className="h-12">
+								<TableCell colSpan={columns.length} className="text-center">
 									No results.
 								</TableCell>
 							</TableRow>
