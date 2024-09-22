@@ -40,7 +40,7 @@ const fetcher = (url: string) =>
 	})
 
 export function useToken(tokenId: string) {
-	const { data, error } = useSWR<TokenResponse>(`${API_URL}/api/tokens/${tokenId}?v=1`, fetcher, {
+	const { data, error } = useSWR<TokenResponse>(`${API_URL}/api/tokens/${tokenId}`, fetcher, {
 		refreshInterval: 10000, // Refetch every 10 seconds
 		dedupingInterval: 5000 // Dedupe requests within 5 seconds
 	})

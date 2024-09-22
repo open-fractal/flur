@@ -519,7 +519,7 @@ type ResponseData = {
 
 async function getIndexerStatus() {
 	try {
-		const response = await axios.get(`${API_URL}/api?v=1`)
+		const response = await axios.get(`${API_URL}/api`)
 		return response.data.data
 	} catch (error) {
 		console.error('Error fetching indexer status:', error)

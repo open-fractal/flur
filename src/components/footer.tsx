@@ -11,7 +11,7 @@ interface ApiResponse {
 	}
 }
 
-const INDEXER_API_ENDPOINT = `${API_URL}/api?v=1`
+const INDEXER_API_ENDPOINT = `${API_URL}/api`
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 export function Footer() {

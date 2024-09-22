@@ -49,7 +49,7 @@ export function TokenBalances() {
 	const [isOpen, setIsOpen] = useState(false)
 
 	const { data: balanceResponse, error: balanceError } = useSWR<BalanceResponse>(
-		address ? `${API_URL}/api/addresses/${address}/balances?v=1` : null,
+		address ? `${API_URL}/api/addresses/${address}/balances` : null,
 		fetcher
 	)
 
@@ -107,9 +107,7 @@ export function TokenBalances() {
 			<Card className={`w-full mt-8 ${isOpen ? 'mb-8' : 'mb-4'} rounded-md`}>
 				<CardHeader className="py-3">
 					<div className="flex justify-between items-center">
-						<CardTitle>
-							Token Balances ({tokenCount})
-						</CardTitle>
+						<CardTitle>Token Balances ({tokenCount})</CardTitle>
 						<Collapsible.Trigger asChild>
 							<button className="p-2 hover:bg-muted rounded transition-colors">
 								{isOpen ? (
@@ -149,7 +147,9 @@ export function TokenBalances() {
 												onClick={() => handleRowClick(balance.tokenId)}
 												className="cursor-pointer hover:bg-muted/50 duration-200"
 											>
-												<TableCell className="font-mono">{truncateTokenId(balance.tokenId)}</TableCell>
+												<TableCell className="font-mono">
+													{truncateTokenId(balance.tokenId)}
+												</TableCell>
 												<TableCell>{token?.symbol || 'Loading...'}</TableCell>
 												<TableCell className="text-right">{formattedBalance}</TableCell>
 											</TableRow>
