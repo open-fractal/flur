@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'
 
-const PAGE_SIZE = 500
+const PAGE_SIZE = 32
 
 export function useMint(tokenId: string) {
 	const [isMinting, setIsMinting] = useState(false)
