@@ -39,7 +39,7 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 
 	return (
 		<div className="bg-black text-white border-b">
-			<div className="p-4">
+			<div className="px-8 py-4 ">
 				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
 					<div className="flex flex-col justify-start items-start">
 						<h1 className="text-xl font-bold whitespace-nowrap">
