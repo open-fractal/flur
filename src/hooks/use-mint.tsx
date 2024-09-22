@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { useMinterUtxoCount } from '@/hooks/use-utxo-count'
 
-const PAGE_SIZE = 500
+const PAGE_SIZE = 1000
 
 export function useMint(tokenId: string) {
 	const [isMinting, setIsMinting] = useState(false)
