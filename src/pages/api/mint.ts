@@ -44,8 +44,6 @@ import { WalletService } from '@/lib/scrypt/providers'
 import { scaleConfig } from '@/lib/scrypt/token'
 import { Transaction } from '@scure/btc-signer'
 import * as bitcoinjs from 'bitcoinjs-lib'
-import axios from 'axios'
-import { API_URL } from '@/lib/constants'
 
 const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json')
 OpenMinter.loadArtifact(OpenMinterArtifact)
