@@ -62,6 +62,7 @@ export interface TokenData {
 	supply: string
 	decimals: number
 	revealHeight: string
+	mintUtxoCount: number
 	info: {
 		max: string
 		limit: string
@@ -108,7 +109,7 @@ const ActionCell = React.memo(({ token }: { token: TokenData }) => {
 	return (
 		<div className="w-full text-center">
 			<Button
-				onClick={() => handleMint(100)}
+				onClick={() => handleMint(0)}
 				disabled={isMintingComplete || isMinting}
 				size="sm"
 				variant="outline"
@@ -364,9 +365,7 @@ export function TokenDataTable({}) {
 		if (!tokens) return []
 		if (filterValue === 'all') return tokens
 		return tokens.filter(token => {
-			const currentSupply = parseInt(token.supply) / Math.pow(10, token.decimals)
-			const maxSupply = parseInt(token.info.max)
-			return currentSupply < maxSupply
+			return token.mintUtxoCount > 0
 		})
 	}, [tokens, filterValue])
 
