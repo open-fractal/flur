@@ -517,15 +517,15 @@ type ResponseData = {
 	message?: string
 }
 
-async function getIndexerStatus() {
-	try {
-		const response = await axios.get(`${API_URL}/api`)
-		return response.data.data
-	} catch (error) {
-		console.error('Error fetching indexer status:', error)
-		throw error
-	}
-}
+// async function getIndexerStatus() {
+// 	try {
+// 		const response = await axios.get(`${API_URL}/api`)
+// 		return response.data.data
+// 	} catch (error) {
+// 		console.error('Error fetching indexer status:', error)
+// 		throw error
+// 	}
+// }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
 	try {
