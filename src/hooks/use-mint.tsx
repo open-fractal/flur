@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import axios from 'axios' // Add this import at the top of the file
 import { Transaction } from '@scure/btc-signer' // Or whatever library you're using for Bitcoin transactions
-import { EXPLORER_URL } from '@/lib/constants'
+import { EXPLORER_URL, API_URL } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'
+import { useMinterUtxoCount } from '@/hooks/use-utxo-count'
+
+const PAGE_SIZE = 500
 
 export function useMint(tokenId: string) {
 	const [isMinting, setIsMinting] = useState(false)
 	const { toast } = useToast()
+
+	const { utxoCount } = useMinterUtxoCount(tokenId)
 
 	const handleMint = async (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.stopPropagation() // Prevent row click event
@@ -37,10 +42,48 @@ export function useMint(tokenId: string) {
 
 		setIsMinting(true)
 
-		try {
-			const feeRate = await getFeeRate()
+		const { getTokenMetadata } = await import('@/lib/scrypt/common')
 
-			const utxos = await window.unisat.getBitcoinUtxos()
+		// Implement getRandomInt function in vanilla JavaScript
+		function getRandomInt(max: number) {
+			return Math.floor(Math.random() * Math.floor(max))
+		}
+
+		// Calculate offset using vanilla JavaScript
+		const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
+
+		// Ensure offset is a multiple of 32
+		const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
+
+		try {
+			const [
+				feeRate,
+				utxos,
+				tokenData,
+				{
+					data: { data: minters }
+				}
+			] = await Promise.all([
+				getFeeRate(),
+				window.unisat.getBitcoinUtxos(),
+				getTokenMetadata(tokenId),
+				axios.get(
+					`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=${adjustedOffset}`
+				)
+			])
+
+			const randomIndex = Math.floor(Math.random() * minters.utxos.length)
+			const minter = minters.utxos[randomIndex]
+
+			if (!minter) {
+				toast({
+					title: 'Minter Not Found',
+					description: 'No minter found for the given token.',
+					variant: 'destructive'
+				})
+				setIsMinting(false)
+				return
+			}
 
 			// Check if there are any UTXOs available
 			if (!utxos || utxos.length === 0) {
@@ -54,10 +97,12 @@ export function useMint(tokenId: string) {
 			}
 
 			const payload = {
-				tokenId: tokenId, // Use the tokenId passed to useMint
+				utxoCount: utxoCount,
+				token: tokenData,
 				feeRate: feeRate,
 				publicKey: await window.unisat.getPublicKey(),
 				address: (await window.unisat.getAccounts())[0],
+				minter: minter,
 				utxos: utxos
 					.map((utxo: any) => ({
 						txId: utxo.txid,

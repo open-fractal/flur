@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import Link from 'next/link'
-import { API_URL } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { useMint } from '@/hooks/use-mint'
 import { TokenHeader } from '@/components/token-header'
@@ -29,78 +28,21 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { btcToSats } from '@/lib/utils'
+import { useMinterUtxoCount } from '@/hooks/use-utxo-count'
+import { useToken, TokenData } from '@/hooks/use-token'
 
-interface TokenResponse {
-	code: number
-	msg: string
-	data: TokenData
-}
-
-export interface TokenData {
-	minterAddr: string
-	tokenAddr: string
-	info: {
-		max: string
-		name: string
-		limit: string
-		symbol: string
-		premine: string
-		decimals: number
-		minterMd5: string
-	}
-	tokenId: string
-	revealTxid: string
-	revealHeight: number
-	genesisTxid: string
-	name: string
-	symbol: string
-	decimals: number
-	minterPubKey: string
-	tokenPubKey: string
-	currentSupply: string
-	supply: number
-	holders: number
-}
-
-interface UtxoCountResponse {
-	code: number
-	msg: string
-	data: {
-		count: number
-	}
-}
-
-const fetcher = (url: string) =>
-	fetch(url).then(res => {
-		if (!res.ok) throw new Error('Network response was not ok')
-		return res.json()
-	})
-
-const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
+const TokenDetail: React.FC<{ token: TokenData }> = ({ token: initialToken }) => {
 	const [error, setError] = useState<string | null>(null)
 	const { handleSplit, isSplitting } = useSplit()
-	const { isMinting, handleMint } = useMint(token.tokenId)
+	const { isMinting, handleMint } = useMint(initialToken.tokenId)
 	const [serviceFee, setServiceFee] = useState<string | null>(null)
 
-	const { data: tokenResponse, error: tokenError } = useSWR<TokenResponse>(
-		`${API_URL}/api/tokens/${token.tokenId}?v=1`,
-		fetcher,
-		{
-			refreshInterval: 10000, // Refetch every 10 seconds
-			dedupingInterval: 5000 // Dedupe requests within 5 seconds
-		}
+	const { token, isLoading: isTokenLoading, isError: tokenError } = useToken(initialToken.tokenId)
+	const { utxoCount, isLoading: isUtxoCountLoading, isError: utxoCountError } = useMinterUtxoCount(
+		initialToken.tokenId
 	)
 
-	const tokenData = tokenResponse?.data || token
-
-	const { data: utxoCountData, error: utxoCountError } = useSWR<UtxoCountResponse>(
-		`${API_URL}/api/minters/${token.tokenId}/utxoCount`,
-		fetcher,
-		{
-			refreshInterval: 10000, // Refetch every 10 seconds
-			dedupingInterval: 5000 // Dedupe requests within 5 seconds
-		}
-	)
+	const tokenData = token || initialToken
 
 	const { address } = useWallet()
 
@@ -160,8 +102,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 		return <ErrorDisplay message={error} />
 	}
 
-	// const tokenData = tokenResponse.data
-	const utxoCount = utxoCountData?.data?.count
+	const isLoading = isTokenLoading || isUtxoCountLoading
 
 	// Safely parse numeric values
 	const maxSupply = safeParseInt(tokenData.info?.max)
@@ -170,10 +111,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 	const mintCount = tokenData?.supply / Math.pow(10, tokenData.decimals)
 	const currentSupply = mintCount // Remove premine from currentSupply
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
-
 	const isMintable = currentSupply < maxSupply && !!utxoCount && utxoCount > 0
-
-	const isLoading = !utxoCountData
 
 	return (
 		<>
@@ -191,7 +129,9 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 						</Card>
 					) : (
 						<>
-							<h2 className="text-2xl font-bold mb-4">{isMintable ? 'Mint Live!' : 'Mint Ended'}</h2>
+							<h2 className="text-2xl font-bold mb-4">
+								{isMintable ? 'Mint Live!' : 'Mint Ended'}
+							</h2>
 							{!isMintable && <p className="text-muted-foreground">Check back later!</p>}
 							{isMintable && (
 								<Card className="w-[400px] max-w-[100vw]">
@@ -202,7 +142,9 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 											<>
 												<div>
 													<div className="flex justify-between">
-														<p className="text-sm font-medium mb-1">Mint Progress: {mintProgress}%</p>
+														<p className="text-sm font-medium mb-1">
+															Mint Progress: {mintProgress}%
+														</p>
 													</div>
 													<Progress value={parseFloat(mintProgress)} className="w-full" />
 												</div>
@@ -229,9 +171,9 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 																<div className="space-y-2">
 																	<h4 className="text-sm font-semibold">Mint UTXOs</h4>
 																	<p className="text-sm">
-																		Mint UTXOs are special Bitcoin outputs used for minting new tokens.
-																		Each UTXO can only be used once, ensuring accurate token supply
-																		tracking.
+																		Mint UTXOs are special Bitcoin outputs used for minting new
+																		tokens. Each UTXO can only be used once, ensuring accurate token
+																		supply tracking.
 																	</p>
 																	<p className="text-sm">
 																		More available Mint UTXOs allow for higher concurrent minting
@@ -263,8 +205,8 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token }) => {
 																	<HoverCardContent className="w-80">
 																		<div className="space-y-2">
 																			<p className="text-sm">
-																				Wallet UTXOs are unspent Bitcoin outputs in your wallet used for
-																				paying minting fees.
+																				Wallet UTXOs are unspent Bitcoin outputs in your wallet used
+																				for paying minting fees.
 																			</p>
 																			<p className="text-sm">
 																				Splitting UTXOs creates smaller amounts for better fee

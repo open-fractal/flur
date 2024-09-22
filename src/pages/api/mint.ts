@@ -16,9 +16,8 @@ import {
 	toP2tr,
 	logerror,
 	btc,
-	getTokenMetadata,
-	getTokenMinter,
-	getTokenMinterCount,
+	parseTokenMetadata,
+	parseTokenMinter,
 	MinterType
 } from '@/lib/scrypt/common'
 
@@ -114,9 +113,6 @@ export function getRemainSupply(state: OpenMinterState | OpenMinterV2State, mint
 	} else if (minterMd5 === MinterType.OPEN_MINTER_V2) {
 		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupplyCount')
 	}
-}
-function getRandomInt(max: number) {
-	return Math.floor(Math.random() * max)
 }
 
 const calcVsize = async (
@@ -551,30 +547,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 		const payload = req.body
 
-		const token = await getTokenMetadata(payload.tokenId)
+		const token = parseTokenMetadata(payload.token)
 
 		if (!token) {
 			return res.status(404).json({ message: 'Token not found' })
 		}
 
-		const mintUtxoCount = await getTokenMinterCount(token.tokenId)
+		const mintUtxoCount = payload.utxoCount
 
 		if (mintUtxoCount <= 0) {
 			return res.status(404).json({ message: 'Mint Ended' })
 		}
 
-		// Ensure offset is non-negative
-		const offset = Math.max(0, getRandomInt(mintUtxoCount - 1))
-
-		// Ensure offset is a multiple of 32
-		const adjustedOffset = Math.floor(offset / 500) * 500
-
-		// Add a comment explaining the adjustment
-		// This adjustment ensures that we always select a minter UTXO from a consistent set,
-		// which can help with load balancing and prevent potential edge cases.
-		// It also guarantees that the offset is non-negative.
-
-		const minter = await getTokenMinter(token, adjustedOffset)
+		const minters = await parseTokenMinter(token, payload.minter)
+		const minter = minters[0]
 		const mintUtxoCreateCount = 2
 
 		if (!minter) {
@@ -640,7 +626,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
 		res.status(200).json({ psbt: psbt as string })
 	} catch (error) {
-		console.error(error, req.body)
+		console.error(error)
 		res.status(500).json({ message: 'Internal server error' })
 	}
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { TokenData } from '@/app/token/[id]/page.client'
+import { TokenData } from '@/hooks/use-token'
 import { formatNumber } from '@/lib/utils'
 import { CopyableTokenId } from '@/components/CopyableTokenId'
 

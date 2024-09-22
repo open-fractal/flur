@@ -34,6 +34,16 @@ export type BalanceJSON = {
 	}>
 }
 
+export const parseTokenMetadata = (token: any): TokenMetadata => {
+	if (token.info.max) {
+		// convert string to  bigint
+		token.info.max = BigInt(token.info.max)
+		token.info.premine = BigInt(token.info.premine)
+		token.info.limit = BigInt(token.info.limit)
+	}
+	return token as TokenMetadata
+}
+
 export const getTokenMetadata = async function(id: string): Promise<TokenMetadata | null> {
 	const url = `${API_URL}/api/tokens/${id}`
 	return fetch(url)
@@ -43,13 +53,7 @@ export const getTokenMetadata = async function(id: string): Promise<TokenMetadat
 				if (res.data === null) {
 					return null
 				}
-				const token = res.data
-				if (token.info.max) {
-					// convert string to  bigint
-					token.info.max = BigInt(token.info.max)
-					token.info.premine = BigInt(token.info.premine)
-					token.info.limit = BigInt(token.info.limit)
-				}
+				const token = parseTokenMetadata(res.data)
 
 				if (!token.tokenAddr) {
 					const minterP2TR = toP2tr(token.minterAddr)
@@ -151,6 +155,42 @@ const fetchOpenMinterState = async function(
 	return null
 }
 
+export const parseTokenMinter = (
+	metadata: TokenMetadata,
+	minter: any
+): Promise<OpenMinterContract[]> => {
+	const contracts = [minter]
+	if (isOpenMinter(metadata.info.minterMd5)) {
+		return Promise.all(
+			contracts.map(async (c: any) => {
+				const protocolState = ProtocolState.fromStateHashList(c.txoStateHashes as ProtocolStateList)
+
+				const data = await fetchOpenMinterState(metadata, c.utxo.txId, c.utxo.outputIndex)
+
+				if (data === null) {
+					throw new Error(
+						`fetch open minter state failed, minter: ${metadata.minterAddr}, txId: ${c.utxo.txId}`
+					)
+				}
+
+				if (typeof c.utxo.satoshis === 'string') {
+					c.utxo.satoshis = parseInt(c.utxo.satoshis)
+				}
+
+				return {
+					utxo: c.utxo,
+					state: {
+						protocolState,
+						data
+					}
+				} as OpenMinterContract
+			})
+		)
+	} else {
+		throw new Error('Unkown minter!')
+	}
+}
+
 export const getTokenMinter = async function(
 	metadata: TokenMetadata,
 	offset: number = 0
@@ -175,44 +215,10 @@ export const getTokenMinter = async function(
 				throw new Error('No minters available')
 			}
 
-			// Prepare the contracts array with only the selected contract
-			contracts = [selectedContract]
-
 			// Add a comment explaining the random selection
 			// This random selection helps distribute the load across different minter UTXOs
 			// and can prevent potential bottlenecks or overuse of a single UTXO
-
-			if (isOpenMinter(metadata.info.minterMd5)) {
-				return Promise.all(
-					contracts.map(async (c: any) => {
-						const protocolState = ProtocolState.fromStateHashList(
-							c.txoStateHashes as ProtocolStateList
-						)
-
-						const data = await fetchOpenMinterState(metadata, c.utxo.txId, c.utxo.outputIndex)
-
-						if (data === null) {
-							throw new Error(
-								`fetch open minter state failed, minter: ${metadata.minterAddr}, txId: ${c.utxo.txId}`
-							)
-						}
-
-						if (typeof c.utxo.satoshis === 'string') {
-							c.utxo.satoshis = parseInt(c.utxo.satoshis)
-						}
-
-						return {
-							utxo: c.utxo,
-							state: {
-								protocolState,
-								data
-							}
-						} as OpenMinterContract
-					})
-				)
-			} else {
-				throw new Error('Unkown minter!')
-			}
+			return parseTokenMinter(metadata, selectedContract)
 		})
 		.then(minters => {
 			return minters[0] || null
