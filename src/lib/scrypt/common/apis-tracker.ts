@@ -15,6 +15,9 @@ import { logerror } from './log'
 import { btc } from './btc'
 import { API_URL } from '@/lib/constants'
 
+const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
+const TransferGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/transferGuard.json')
+const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 export type ContractJSON = {
 	utxo: {
 		txId: string
@@ -46,29 +49,36 @@ export const parseTokenMetadata = (token: any): TokenMetadata => {
 
 export const getTokenMetadata = async function(id: string): Promise<TokenMetadata | null> {
 	const url = `${API_URL}/api/tokens/${id}`
-	return fetch(url)
-		.then(res => res.json())
-		.then((res: any) => {
-			if (res.code === 0) {
-				if (res.data === null) {
-					return null
-				}
-				const token = parseTokenMetadata(res.data)
 
-				if (!token.tokenAddr) {
-					const minterP2TR = toP2tr(token.minterAddr)
-					const network = 'fractal-mainnet'
-					token.tokenAddr = p2tr2Address(getTokenContractP2TR(minterP2TR).p2tr, network)
-				}
-				return token
-			} else {
-				throw new Error(res.msg)
+	try {
+		const response = await fetch(url)
+		const res = await response.json()
+
+		if (res.code === 0) {
+			if (res.data === null) {
+				return null
 			}
-		})
-		.catch(e => {
-			logerror(`get token metadata failed!`, e)
-			return null
-		})
+			const token = parseTokenMetadata(res.data)
+
+			// If tokenAddr is not present, calculate it
+			if (!token.tokenAddr) {
+				const { BurnGuard, TransferGuard, CAT20 } = await import('@/lib/scrypt/contracts/dist')
+				BurnGuard.loadArtifact(BurnGuardArtifact)
+				TransferGuard.loadArtifact(TransferGuardArtifact)
+				CAT20.loadArtifact(CAT20Artifact)
+
+				const minterP2TR = toP2tr(token.minterAddr)
+				const network = 'fractal-mainnet'
+				token.tokenAddr = p2tr2Address(getTokenContractP2TR(minterP2TR).p2tr, network)
+			}
+			return token
+		} else {
+			throw new Error(res.msg)
+		}
+	} catch (e) {
+		logerror(`get token metadata failed!`, e)
+		return null
+	}
 }
 
 export const getTokenMinterCount = async function(id: string): Promise<number> {

@@ -6,6 +6,8 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'
 
+const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
+
 const PAGE_SIZE = 1000
 
 export function useMint(tokenId: string) {
@@ -52,6 +54,8 @@ export function useMint(tokenId: string) {
 				window.unisat.getBitcoinUtxos(),
 				getTokenMetadata(tokenId)
 			])
+
+			debugger
 
 			// Calculate offset using vanilla JavaScript
 			const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
