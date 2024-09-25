@@ -18,6 +18,7 @@ import { API_URL } from '@/lib/constants'
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 const TransferGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/transferGuard.json')
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
+
 export type ContractJSON = {
 	utxo: {
 		txId: string
@@ -76,7 +77,7 @@ export const getTokenMetadata = async function(id: string): Promise<TokenMetadat
 			throw new Error(res.msg)
 		}
 	} catch (e) {
-		logerror(`get token metadata failed!`, e)
+		console.error(`get token metadata failed!`, e)
 		return null
 	}
 }
