@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+	btc,
 	toTxOutpoint,
 	getDummySigner,
 	getDummyUTXO,
@@ -19,7 +20,6 @@ import {
 	Postage,
 	GuardContract,
 	TokenContract,
-	btc,
 	parseTokens,
 	parseTokenMetadata
 } from '@/lib/scrypt/common'
