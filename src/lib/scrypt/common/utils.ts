@@ -36,6 +36,18 @@ export function toXOnly(pubkey: Buffer): Buffer {
 	return pubkey.subarray(1, 33)
 }
 
+export function toXOnlyFromTaproot(address: string | btc.Address): string {
+	const p2trAddress = typeof address === 'string' ? btc.Address.fromString(address) : address
+
+	if (p2trAddress.type !== 'taproot') {
+		throw new Error(`address ${address} is not taproot`)
+	}
+
+	return btc.Script.fromAddress(address)
+		.getPublicKeyHash()
+		.toString('hex')
+}
+
 export const checkDisableOpCode = function(scriptPubKey: any) {
 	for (const chunk of scriptPubKey.chunks) {
 		// New opcodes will be listed here. May use a different sigversion to modify existing opcodes.

@@ -8,7 +8,10 @@ export async function psbtFromTx(
 	utxos: UTXO[],
 	wallet: WalletService
 ): Promise<Transaction> {
-	const psbt = Transaction.fromRaw(tx.toBuffer())
+	const psbt = Transaction.fromRaw(tx.toBuffer(), {
+		allowUnknownInputs: true,
+		allowUnknownOutputs: true
+	})
 
 	// @ts-ignore
 	for (let i = 0; i < psbt.inputs.length; i++) {
@@ -29,11 +32,16 @@ export async function psbtFromTx(
 			amount: BigInt(utxo?.satoshis) || 0n,
 			script: Buffer.from(utxo?.script, 'hex') || btc.Script.empty()
 		}
+
 		// @ts-ignore
-		psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
-		// @ts-ignore
-		psbt.inputs[i].sighashType = 1
+		if (!psbt.inputs[i].finalScriptWitess && !psbt.inputs[i]?.finalScriptWitess?.length) {
+			// @ts-ignore
+			psbt.inputs[i].tapInternalKey = Buffer.from(await wallet.getXOnlyPublicKey(), 'hex')
+			// @ts-ignore
+			psbt.inputs[i].sighashType = 1
+		}
 	}
 
+	// process.exit()
 	return psbt
 }

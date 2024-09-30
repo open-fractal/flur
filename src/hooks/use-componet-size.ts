@@ -13,7 +13,9 @@ function useComponentSize(defaultWidth = 0) {
 			return
 		}
 
+		// @ts-ignore
 		const newHeight = ref.current.offsetHeight
+		// @ts-ignore
 		const newWidth = ref.current.offsetWidth
 
 		if (newHeight !== size.height || newWidth !== size.width) {

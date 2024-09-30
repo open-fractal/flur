@@ -27,10 +27,5 @@ var __exportStar =
 				__createBinding(exports, m, p)
 	}
 Object.defineProperty(exports, '__esModule', { value: true })
-const path_1 = require('path')
-const cat20Sell_1 = require('./contracts/cat20Sell')
-// (() => {
-//     cat20Sell_1.CAT20Sell.loadArtifact((0, path_1.join)(__dirname, '..', 'artifacts', 'token', 'cat20Sell.json'));
-// })();
 __exportStar(require('./contracts/cat20Sell'), exports)
 //# sourceMappingURL=index.js.map

@@ -10,6 +10,7 @@ import {
 	TableHeader,
 	TableRow
 } from '@/components/ui/table'
+import { TokenData } from '@/hooks/use-token'
 
 type Order = {
 	createdTime: string
@@ -64,7 +65,9 @@ function generateDefaultData(): { orderHistoryData: Order[]; tradeHistoryData: T
 
 const { orderHistoryData, tradeHistoryData } = generateDefaultData()
 
-export function MyPositions() {
+export function MyPositions(props: { token: TokenData }) {
+	const { token } = props
+	console.log(token)
 	return (
 		<Tabs defaultValue="open-orders" className="w-full h-full flex flex-col">
 			<div className="px-4 pt-4">

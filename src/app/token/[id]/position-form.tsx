@@ -4,14 +4,13 @@ import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { TokenData } from '@/types/token'
+import { TokenData } from '@/hooks/use-token'
 import { useBalance } from '@/hooks/use-balance'
 import { useEffect } from 'react'
 import axios from 'axios'
 import { useToast } from '@/hooks/use-toast'
 import { getFeeRate } from '@/lib/utils' // Add this import
 import { Transaction } from '@scure/btc-signer'
-import { broadcast } from '@/lib/utils'
 import { EXPLORER_URL } from '@/lib/constants'
 
 import { Button } from '@/components/ui/button'
@@ -28,9 +27,6 @@ const FormSchema = z.object({
 interface PositionFormProps {
 	token: TokenData
 }
-
-// Add this style object at the top of the file, outside of the component
-const formItemStyles = 'space-y-1 mb-4'
 
 export function PositionForm({ token }: PositionFormProps) {
 	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
@@ -60,7 +56,7 @@ export function PositionForm({ token }: PositionFormProps) {
 	useEffect(() => {
 		const price = buyForm.getValues('price')
 		if (price > 0) {
-			const maxBuyAmount = fbBalance / price
+			const maxBuyAmount = parseFloat(fbBalance) / price
 			const amount = Number(((maxBuyAmount * buySliderValue) / 100).toFixed(8))
 			buyForm.setValue('amount', amount)
 		}
@@ -68,7 +64,7 @@ export function PositionForm({ token }: PositionFormProps) {
 
 	// Effect to update sell amount based on slider
 	useEffect(() => {
-		const amount = Number(((tokenBalance * sellSliderValue) / 100).toFixed(8))
+		const amount = Number(((parseFloat(tokenBalance) * sellSliderValue) / 100).toFixed(8))
 		sellForm.setValue('amount', amount)
 	}, [sellSliderValue, sellForm, tokenBalance])
 
@@ -143,6 +139,7 @@ export function PositionForm({ token }: PositionFormProps) {
 				// Extract and broadcast the transaction
 				const signedPsbt = Transaction.fromPSBT(Buffer.from(signedPsbtHex, 'hex'))
 				const rawTx = Buffer.from(signedPsbt.extract()).toString('hex')
+				console.log(rawTx)
 
 				const txid = 'bbf303a94a6245bdb9d259939eafe548256b3cacbc8ca5d1ad9c9b90c702aa35'
 				// const txid = await broadcast(rawTx)

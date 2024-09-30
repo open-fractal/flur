@@ -9,7 +9,7 @@ import {
 	TableHeader,
 	TableRow
 } from '@/components/ui/table'
-import { TokenData } from '@/types/token'
+import { TokenData } from '@/hooks/use-token'
 type Trade = {
 	price: number
 	amount: number
@@ -25,7 +25,7 @@ type TradeHistoryProps = {
 function generateTradeset(basePrice: number, count: number): Trade[] {
 	const trades: Trade[] = []
 	let currentPrice = basePrice
-	let currentTime = new Date()
+	const currentTime = new Date()
 
 	for (let i = 0; i < count; i++) {
 		// Generate a random price change (-0.5% to +0.5%)

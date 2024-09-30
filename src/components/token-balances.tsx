@@ -17,6 +17,9 @@ import { useWallet } from '@/lib/unisat'
 import { API_URL } from '@/lib/constants'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { TransferToken } from '@/app/token/[id]/transfer-token'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -47,6 +50,7 @@ export function TokenBalances() {
 	const { address } = useWallet()
 	const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
 	const [isOpen, setIsOpen] = useState(false)
+	const [selectedToken, setSelectedToken] = useState<string | null>(null)
 
 	const { data: balanceResponse, error: balanceError } = useSWR<BalanceResponse>(
 		address ? `${API_URL}/api/addresses/${address}/balances` : null,
@@ -133,6 +137,7 @@ export function TokenBalances() {
 										<TableHead>Token ID</TableHead>
 										<TableHead>Symbol</TableHead>
 										<TableHead className="text-right">Balance</TableHead>
+										<TableHead className="w-[90px]"></TableHead> {/* Adjusted width */}
 									</TableRow>
 								</TableHeader>
 								<TableBody>
@@ -144,14 +149,40 @@ export function TokenBalances() {
 										return (
 											<TableRow
 												key={balance.tokenId}
-												onClick={() => handleRowClick(balance.tokenId)}
 												className="cursor-pointer hover:bg-muted/50 duration-200"
 											>
-												<TableCell className="font-mono">
+												<TableCell
+													className="font-mono"
+													onClick={() => handleRowClick(balance.tokenId)}
+												>
 													{truncateTokenId(balance.tokenId)}
 												</TableCell>
-												<TableCell>{token?.symbol || 'Loading...'}</TableCell>
-												<TableCell className="text-right">{formattedBalance}</TableCell>
+												<TableCell onClick={() => handleRowClick(balance.tokenId)}>
+													{token?.symbol || 'Loading...'}
+												</TableCell>
+												<TableCell
+													className="text-right"
+													onClick={() => handleRowClick(balance.tokenId)}
+												>
+													{formattedBalance}
+												</TableCell>
+												<TableCell className="w-[90px]">
+													{' '}
+													{/* Adjusted width */}
+													<Dialog
+														open={selectedToken === balance.tokenId}
+														onOpenChange={open => setSelectedToken(open ? balance.tokenId : null)}
+													>
+														<DialogTrigger asChild>
+															<Button variant="outline" size="sm" className="w-full">
+																Transfer
+															</Button>
+														</DialogTrigger>
+														<DialogContent className="p-0 w-[400px]">
+															{token && <TransferToken token={token} />}
+														</DialogContent>
+													</Dialog>
+												</TableCell>
 											</TableRow>
 										)
 									})}

@@ -80,3 +80,20 @@ export const satsToBTC = (sats: number): number => {
 export const btcToSats = (btc: number): number => {
   return Math.floor(btc * 1e8)
 }
+
+// Add this function to validate taproot addresses
+export function validateTaprootAddress(address: string): boolean {
+  // Taproot addresses always start with 'bc1p'
+  if (!address.startsWith('bc1p')) {
+    return false
+  }
+  
+  // Taproot addresses are always 62 characters long
+  if (address.length !== 62) {
+    return false
+  }
+  
+  // Additional checks can be added here if needed
+  
+  return true
+}

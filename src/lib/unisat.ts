@@ -9,13 +9,26 @@ export interface UnisatAPI {
 	getPublicKey: () => Promise<string>
 	getBalance: () => Promise<{ confirmed: number; unconfirmed: number; total: number }>
 	signMessage: (message: string, type: 'ecdsa' | 'bip322-simple') => Promise<string>
-	signPsbt: (psbtHex: string) => Promise<string>
+	signPsbt: (
+		psbtHex: string,
+		options?: {
+			autoFinalized: boolean
+			toSignInputs: Array<{
+				index: number
+				address?: string
+				publicKey?: string
+				sighashTypes?: number[]
+				disableTweakSigner?: boolean
+			}>
+		}
+	) => Promise<string>
 	getBitcoinUtxos: () => Promise<
 		{ txid: string; vout: number; satoshis: number; scriptPk: string }[]
 	>
+
+	switchChain: (chain: string) => Promise<any>
 	on: (event: string, callback: (...args: any[]) => void) => void
-	removeListener: (event: string, callback: (...args: any[]) => void) => void // Added removeListener method,
-	pushTx: (txHex: string) => Promise<string>
+	removeListener: (event: string, callback: (...args: any[]) => void) => void // Added removeListener method
 }
 
 import useSWR from 'swr'

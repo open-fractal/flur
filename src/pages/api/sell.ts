@@ -1,18 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { UTXO, hash160 } from 'scrypt-ts'
-import { TokenMetadata, btc, Postage } from '@/lib/scrypt/common'
+import { TokenMetadata, btc } from '@/lib/scrypt/common'
 import { psbtFromTx } from '@/lib/psbt'
 import { TaprootSmartContract } from '@/lib/scrypt/contracts/dist/lib/catTx'
 
 import { CAT20, BurnGuard, TransferGuard } from '@/lib/scrypt/contracts/dist'
 import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
 import { WalletService } from '@/lib/scrypt/providers'
-
-// const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json')
-// OpenMinter.loadArtifact(OpenMinterArtifact)
-
-// const OpenMinterV2Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinterV2.json')
-// OpenMinterV2.loadArtifact(OpenMinterV2Artifact)
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -58,7 +52,7 @@ export async function buildSellTx(
 
 	// Create contract tx
 
-	let contractTx = new btc.Transaction()
+	const contractTx = new btc.Transaction()
 		.from(utxos)
 		.addOutput(
 			new btc.Transaction.Output({
@@ -71,13 +65,21 @@ export async function buildSellTx(
 
 	const contractPsbt = await psbtFromTx(contractTx, utxos, wallet)
 
+	const transferTx = new btc.Transaction()
+		.from(utxos)
+		.addOutput()
+		.feePerByte(feeRate)
+		.change(walletAddress)
+
 	return {
-		contractPsbt: Buffer.from(contractPsbt.toPSBT()).toString('hex')
+		contractPsbt: Buffer.from(contractPsbt.toPSBT()).toString('hex'),
+		transferPsbt: Buffer.from(transferTx.toPSBT()).toString('hex')
 	}
 }
 
 type ResponseData = {
 	contractPsbt?: string
+	transferPsbt?: string
 	message?: string
 }
 

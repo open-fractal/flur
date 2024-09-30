@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, FC, ReactElement, useRef, useState } from 'react'
-import { createChart, ColorType, ISeriesApi, CandlestickData } from 'lightweight-charts'
+import { createChart, ColorType, CandlestickData } from 'lightweight-charts'
 import { TokenData } from '@/hooks/use-token'
 
 // Function to generate mock candlestick data

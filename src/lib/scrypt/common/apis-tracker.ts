@@ -14,6 +14,7 @@ import { scaleConfig } from '@/lib/scrypt/token'
 import { logerror } from './log'
 import { btc } from './btc'
 import { API_URL } from '@/lib/constants'
+import { TokenContract } from './contact'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 const TransferGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/transferGuard.json')
@@ -164,6 +165,29 @@ const fetchOpenMinterState = async function(
 	}
 
 	return null
+}
+
+export const parseTokens = (tokens: any): TokenContract[] => {
+	return tokens.map((c: any) => {
+		const protocolState = ProtocolState.fromStateHashList(c.txoStateHashes as ProtocolStateList)
+
+		if (typeof c.utxo.satoshis === 'string') {
+			c.utxo.satoshis = parseInt(c.utxo.satoshis)
+		}
+
+		const r: TokenContract = {
+			utxo: c.utxo,
+			state: {
+				protocolState,
+				data: {
+					ownerAddr: c.state.address,
+					amount: BigInt(c.state.amount)
+				}
+			}
+		}
+
+		return r
+	})
 }
 
 export const parseTokenMinter = (

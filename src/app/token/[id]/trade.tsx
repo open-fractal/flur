@@ -2,13 +2,11 @@
 
 import React from 'react'
 import { TokenData } from '@/hooks/use-token'
-
 import { Orderbook } from './orderbook'
 import { TradeHistory } from './trade-history'
 import { PositionForm } from './position-form'
 import { MyPositions } from './my-positions'
 import { Chart } from './chart'
-
 import useComponentSize from '@/hooks/use-componet-size'
 
 interface TradeProps {
@@ -17,8 +15,6 @@ interface TradeProps {
 
 const Trade: React.FC<TradeProps> = ({ token }) => {
 	const { width, height, ref } = useComponentSize()
-
-	console.log(width, height)
 
 	return (
 		<div className="W-full h-full flex flex-grow">

@@ -6,6 +6,12 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { useMint } from '@/hooks/use-mint'
 import { TokenData } from '@/hooks/use-token'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { InfoIcon } from 'lucide-react'
+import { useWallet, getBitcoinUtxoCount } from '@/lib/unisat'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { SplitUTXOs } from '@/components/split-utxos'
+import useSWR from 'swr'
 
 interface MintProps {
 	token: TokenData
@@ -15,6 +21,17 @@ interface MintProps {
 
 const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => {
 	const { isMinting, handleMint } = useMint(token.tokenId)
+	const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)
+	const { address } = useWallet()
+
+	// SWR hook for wallet UTXO count
+	const { data: walletUtxoCount } = useSWR(
+		address ? ['walletUtxoCount', address] : null,
+		async () => {
+			if (!address) return null
+			return await getBitcoinUtxoCount()
+		}
+	)
 
 	// Safely parse numeric values
 	const maxSupply = safeParseInt(token.info?.max)
@@ -43,11 +60,87 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 					<p className="text-sm font-medium mb-1 text-muted-foreground">{token.info?.limit}</p>
 				</div>
 				<div>
-					<p className="text-sm font-medium">Mint UTXOs</p>
-					<p className="text-sm font-medium mb-1 text-muted-foreground">
+					<p className="text-sm font-medium flex items-center gap-2">
+						Mint UTXOs
+						<HoverCard>
+							<HoverCardTrigger>
+								<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+							</HoverCardTrigger>
+							<HoverCardContent className="w-80">
+								<div className="space-y-2">
+									<h4 className="text-sm font-semibold">Mint UTXOs</h4>
+									<p className="text-sm">
+										Mint UTXOs are special Bitcoin outputs used for minting new tokens. Each UTXO
+										can only be used once, ensuring accurate token supply tracking.
+									</p>
+									<p className="text-sm">
+										More available Mint UTXOs allow for higher concurrent minting capacity.
+									</p>
+								</div>
+							</HoverCardContent>
+						</HoverCard>
+					</p>
+					<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
 						{isUtxoCountLoading ? 'Loading...' : utxoCount}
+						<div
+							className={`w-2 h-2 rounded-full ${
+								isMintable ? 'bg-green-500' : 'bg-red-500'
+							} animate-pulse`}
+						></div>
 					</p>
 				</div>
+
+				{address && walletUtxoCount !== undefined && (
+					<div>
+						<p className="text-sm font-medium flex items-center gap-2">
+							Wallet UTXOs
+							<HoverCard>
+								<HoverCardTrigger>
+									<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+								</HoverCardTrigger>
+								<HoverCardContent className="w-80">
+									<div className="space-y-2">
+										<p className="text-sm">
+											Wallet UTXOs are unspent Bitcoin outputs in your wallet used for paying
+											minting fees.
+										</p>
+										<p className="text-sm">
+											Splitting UTXOs creates smaller amounts for better fee management and
+											concurrent minting.
+										</p>
+									</div>
+								</HoverCardContent>
+							</HoverCard>
+						</p>
+						<div className="flex items-center justify-between">
+							<p className="text-sm font-medium mb-1 text-muted-foreground flex items-center gap-2 h-4">
+								{walletUtxoCount === undefined ? 'Loading...' : walletUtxoCount}
+								{walletUtxoCount !== undefined && (
+									<div
+										className={`w-2 h-2 rounded-full ${
+											!!walletUtxoCount && walletUtxoCount > 0 ? 'bg-green-500' : 'bg-red-500'
+										} animate-pulse`}
+									></div>
+								)}
+							</p>
+							<Dialog open={isSplitDialogOpen} onOpenChange={setIsSplitDialogOpen}>
+								<DialogTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={walletUtxoCount === undefined || walletUtxoCount === 0}
+									>
+										Split UTXOs
+									</Button>
+								</DialogTrigger>
+								<DialogContent className="p-0 w-[400px]">
+									<SplitUTXOs onSplitComplete={() => setIsSplitDialogOpen(false)} />
+								</DialogContent>
+							</Dialog>
+						</div>
+					</div>
+				)}
+
 				<Button
 					onClick={() => handleMint(utxoCount)}
 					disabled={isMinting || !isMintable || utxoCount === 0}

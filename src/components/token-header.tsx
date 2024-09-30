@@ -1,8 +1,14 @@
 'use client'
 
+import React, { useState, useMemo } from 'react'
 import { TokenData } from '@/hooks/use-token'
 import { formatNumber } from '@/lib/utils'
 import { CopyableTokenId } from '@/components/CopyableTokenId'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { TransferToken } from '@/app/token/[id]/transfer-token'
+import { useWallet } from '@/lib/unisat'
+import { useBalance } from '@/hooks/use-balance'
 
 interface TokenHeaderProps {
 	tokenData: TokenData
@@ -25,6 +31,14 @@ const renderStat = (label: string, value: string | number, copyable?: boolean) =
 )
 
 export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
+	const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false)
+	const { isWalletConnected } = useWallet()
+	const { tokenBalance, isLoading } = useBalance(tokenData)
+
+	const canTransfer = useMemo(() => {
+		return isWalletConnected && !isLoading && parseFloat(tokenBalance) > 0
+	}, [isWalletConnected, isLoading, tokenBalance])
+
 	if (!tokenData) return null
 
 	const premine = parseInt(tokenData.info?.premine || '0', 10)
@@ -41,13 +55,23 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 		<div className="bg-black text-white border-b">
 			<div className="px-8 py-4 ">
 				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-					<div className="flex flex-col justify-start items-start">
+					<div className="flex justify-start items-star gap-4">
 						<h1 className="text-xl font-bold whitespace-nowrap">
 							{tokenData.name}
 							<span className="ml-2 text-sm text-gray-400 whitespace-nowrap">
 								{tokenData.symbol}
 							</span>
 						</h1>
+						{canTransfer && (
+							<Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
+								<DialogTrigger asChild>
+									<Button variant="outline">Transfer Tokens</Button>
+								</DialogTrigger>
+								<DialogContent className="p-0 w-[400px]">
+									<TransferToken token={tokenData} />
+								</DialogContent>
+							</Dialog>
+						)}
 					</div>
 					<div className="flex gap-6 max-w-100vh overflow-x-auto">
 						{stats.map(stat => renderStat(stat.label, stat.value, stat.copyable))}
