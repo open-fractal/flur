@@ -1,14 +1,20 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, Suspense } from 'react'
 import { TokenData } from '@/hooks/use-token'
 import { formatNumber } from '@/lib/utils'
 import { CopyableTokenId } from '@/components/CopyableTokenId'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import { TransferToken } from '@/app/token/[id]/transfer-token'
 import { useWallet } from '@/lib/unisat'
 import { useBalance } from '@/hooks/use-balance'
+import dynamic from 'next/dynamic'
+
+// Dynamically import the TransferToken component with SSR disabled
+const TransferToken = dynamic(
+	() => import('@/app/token/[id]/transfer-token').then(mod => mod.TransferToken),
+	{ ssr: false }
+)
 
 interface TokenHeaderProps {
 	tokenData: TokenData
@@ -68,7 +74,9 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 									<Button variant="outline">Transfer Tokens</Button>
 								</DialogTrigger>
 								<DialogContent className="p-0 w-[400px]">
-									<TransferToken token={tokenData} />
+									<Suspense fallback={<div>Loading...</div>}>
+										<TransferToken token={tokenData} />
+									</Suspense>
 								</DialogContent>
 							</Dialog>
 						)}

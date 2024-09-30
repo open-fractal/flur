@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +19,11 @@ import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import { TransferToken } from '@/app/token/[id]/transfer-token'
+
+// Dynamically import TransferToken component
+const TransferToken = lazy(() =>
+	import('@/app/token/[id]/transfer-token').then(mod => ({ default: mod.TransferToken }))
+)
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -179,7 +183,11 @@ export function TokenBalances() {
 															</Button>
 														</DialogTrigger>
 														<DialogContent className="p-0 w-[400px]">
-															{token && <TransferToken token={token} />}
+															{token && (
+																<Suspense fallback={<div>Loading...</div>}>
+																	<TransferToken token={token} />
+																</Suspense>
+															)}
 														</DialogContent>
 													</Dialog>
 												</TableCell>
