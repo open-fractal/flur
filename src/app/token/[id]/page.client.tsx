@@ -9,7 +9,10 @@ import { useToken, TokenData } from '@/hooks/use-token'
 import { useMinterUtxoCount } from '@/hooks/use-utxo-count'
 import Mint from './mint'
 import Trade from './trade'
-const TokenDetail: React.FC<{ token: TokenData }> = ({ token: initialToken }) => {
+const TokenDetail: React.FC<{ token: TokenData; showMarket: boolean }> = ({
+	token: initialToken,
+	showMarket
+}) => {
 	const [error, setError] = useState<string | null>(null)
 
 	const { token, isLoading: isTokenLoading, isError: tokenError } = useToken(initialToken.tokenId)
@@ -59,7 +62,7 @@ const TokenDetail: React.FC<{ token: TokenData }> = ({ token: initialToken }) =>
 					</div>
 				</div>
 			)}
-			{!isLoading && !isMintable && <Trade token={tokenData} />}
+			{!isLoading && !isMintable && <Trade token={tokenData} showMarket={showMarket} />}
 		</>
 	)
 }

@@ -69,16 +69,16 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 							</span>
 						</h1>
 						{canTransfer && (
-							<Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
-								<DialogTrigger asChild>
-									<Button variant="outline">Transfer Tokens</Button>
-								</DialogTrigger>
-								<DialogContent className="p-0 w-[400px]">
-									<Suspense fallback={<div>Loading...</div>}>
+							<Suspense fallback={<Button variant="outline">Loading...</Button>}>
+								<Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
+									<DialogTrigger asChild>
+										<Button variant="outline">Transfer Tokens</Button>
+									</DialogTrigger>
+									<DialogContent className="p-0 w-[400px]">
 										<TransferToken token={tokenData} />
-									</Suspense>
-								</DialogContent>
-							</Dialog>
+									</DialogContent>
+								</Dialog>
+							</Suspense>
 						)}
 					</div>
 					<div className="flex gap-6 max-w-100vh overflow-x-auto">

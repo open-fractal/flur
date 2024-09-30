@@ -23,11 +23,14 @@ type TransferTokenProps = {
 }
 
 export function TransferToken({ token }: TransferTokenProps) {
+	console.log('token', token)
 	const { isTransferring, handleTransfer, totalAmount } = useTransfer(token)
 	const [serviceFee, setServiceFee] = useState<string | null>(null)
 
 	const formSchema = z.object({
-		amount: z.number().min(0, 'Amount must be greater than 0'),
+		amount: z.number().refine(value => value > 0 && value >= 1 / Math.pow(10, token.decimals), {
+			message: `Amount must be greater than ${1 / Math.pow(10, token.decimals)} ${token.symbol}`
+		}),
 		address: z.string().refine(validateTaprootAddress, {
 			message: 'Invalid taproot address'
 		})
@@ -36,7 +39,6 @@ export function TransferToken({ token }: TransferTokenProps) {
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
-			amount: 0,
 			address: ''
 		}
 	})
@@ -65,12 +67,13 @@ export function TransferToken({ token }: TransferTokenProps) {
 
 	return (
 		<div className="p-6">
-			<h2 className="text-lg font-semibold mb-4">
+			<h2 className="text-lg font-semibold mb-4">Transfer Tokens</h2>
+			<p className="text-muted-foreground text-sm mb-4">
 				Balance:{' '}
 				<span className="font-bold">
 					{formatNumber(totalAmount)} {token.symbol}
 				</span>
-			</h2>
+			</p>
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 					<FormField
@@ -82,10 +85,13 @@ export function TransferToken({ token }: TransferTokenProps) {
 								<FormControl>
 									<Input
 										type="number"
-										step="any"
-										min="0"
+										step={`${1 / Math.pow(10, token.decimals)}`}
+										min={`${1 / Math.pow(10, token.decimals)}`}
 										{...field}
-										onChange={e => field.onChange(Number(e.target.value))}
+										onChange={e => {
+											const value = e.target.value
+											field.onChange(value === '' ? undefined : Number(value))
+										}}
 										placeholder={`Enter ${token.symbol} amount`}
 									/>
 								</FormControl>

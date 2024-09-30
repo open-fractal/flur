@@ -75,10 +75,7 @@ export function TokenBalances() {
 					const response = await fetch(`${API_URL}/api/tokens/${tokenId}?v=1`)
 					const data = await response.json()
 					if (data.code === 0 && data.data) {
-						newTokenInfo.set(tokenId, {
-							symbol: data.data.symbol,
-							decimals: data.data.decimals
-						})
+						newTokenInfo.set(tokenId, data.data)
 					}
 				} catch (error) {
 					console.error(`Error fetching token info for ${tokenId}:`, error)
@@ -171,25 +168,27 @@ export function TokenBalances() {
 													{formattedBalance}
 												</TableCell>
 												<TableCell className="w-[90px]">
-													{' '}
-													{/* Adjusted width */}
-													<Dialog
-														open={selectedToken === balance.tokenId}
-														onOpenChange={open => setSelectedToken(open ? balance.tokenId : null)}
-													>
-														<DialogTrigger asChild>
+													<Suspense
+														fallback={
 															<Button variant="outline" size="sm" className="w-full">
-																Transfer
+																Loading...
 															</Button>
-														</DialogTrigger>
-														<DialogContent className="p-0 w-[400px]">
-															{token && (
-																<Suspense fallback={<div>Loading...</div>}>
-																	<TransferToken token={token} />
-																</Suspense>
-															)}
-														</DialogContent>
-													</Dialog>
+														}
+													>
+														<Dialog
+															open={selectedToken === balance.tokenId}
+															onOpenChange={open => setSelectedToken(open ? balance.tokenId : null)}
+														>
+															<DialogTrigger asChild>
+																<Button variant="outline" size="sm" className="w-full">
+																	Transfer
+																</Button>
+															</DialogTrigger>
+															<DialogContent className="p-0 w-[400px]">
+																{token && <TransferToken token={token} />}
+															</DialogContent>
+														</Dialog>
+													</Suspense>
 												</TableCell>
 											</TableRow>
 										)

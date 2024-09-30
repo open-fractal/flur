@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import { API_URL } from '@/lib/constants'
 import { validateTokenId } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-
+import { showMarket } from '@/lib/flags'
 type Props = {
 	params: { id: string }
 	searchParams: { [key: string]: string | string[] | undefined }
@@ -61,7 +61,9 @@ export default async function Page({ params }: Props) {
 
 	// Fetch token details
 	const tokenDetails = await fetchTokenDetails(token_id)
+	const marketOn = await showMarket()
 
+	// If token details couldn't be fetched, show skeleton
 	// If token details couldn't be fetched, show skeleton
 	if (!tokenDetails) {
 		return (
@@ -76,5 +78,5 @@ export default async function Page({ params }: Props) {
 		)
 	}
 
-	return <Component token={tokenDetails} />
+	return <Component token={tokenDetails} showMarket={marketOn} />
 }

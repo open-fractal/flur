@@ -11,11 +11,22 @@ import useComponentSize from '@/hooks/use-componet-size'
 
 interface TradeProps {
 	token: TokenData
+	showMarket: boolean
 }
 
-const Trade: React.FC<TradeProps> = ({ token }) => {
+const Trade: React.FC<TradeProps> = ({ token, showMarket }) => {
 	const { width, height, ref } = useComponentSize()
 
+	return (
+		<div className="W-full h-full flex flex-grow">
+			<div className="flex-grow flex flex-col items-center justify-center">
+				<div className="flex flex-col justify-center items-center">
+					<h2 className="text-2xl font-bold mb-4">Mint Ended</h2>
+					<p className="text-muted-foreground">Check back later!</p>
+				</div>
+			</div>
+		</div>
+	)
 	return (
 		<div className="W-full h-full flex flex-grow">
 			<div className="flex-grow flex flex-col">
