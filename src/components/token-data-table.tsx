@@ -82,7 +82,7 @@ const SortButton = ({ column, children }: { column: any; children: React.ReactNo
 		<Button
 			variant="ghost"
 			onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-			className={`font-semibold text-xs tracking-wide w-full justify-start px-0 ${
+			className={`font-semibold text-xs tracking-wide w-full justify-start px-0 hover:bg-transparent ${
 				column.getIsSorted() ? 'text-white font-bold' : ''
 			}`}
 		>
