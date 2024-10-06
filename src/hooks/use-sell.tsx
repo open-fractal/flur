@@ -60,7 +60,7 @@ import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
 import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
-import { getGuardContractInfo } from './use-transfer'
+import { getGuardContractInfo, fetchTokenTxs } from './use-transfer'
 import cbor from 'cbor'
 import axios from 'axios'
 
@@ -239,16 +239,10 @@ export const getOrderbookScript = (
 	const data = Buffer.from(cbor.encode(m))
 
 	const res = []
-	res.push(btc.Script.fromASM('OP_0').toBuffer()) // cat FT
 
-	return Buffer.concat(res).toString('hex')
-
-	// res.push(
-	// 	toPushData(Buffer.from(leafKeyXPub, 'hex')) // 0 OP_IF "order"
-	// )
-	// res.push(btc.Script.fromASM('OP_CHECKSIGVERIFY').toBuffer()) // checkSig
-	res.push(btc.Script.fromASM('OP_0 OP_IF 6f72646572').toBuffer()) //  cat protocal envelope start
-	res.push(btc.Script.fromASM('OP_1').toBuffer()) // cat FT
+	res.push(btc.Script.fromASM('OP_TRUE').toBuffer()) // true
+	res.push(btc.Script.fromASM('OP_0 OP_IF 6f72646572').toBuffer()) // order envelope start
+	res.push(btc.Script.fromASM('OP_1').toBuffer()) // order v1
 
 	const limit = 520
 	const dataChunks = chunks(Array.from(data), limit)
@@ -270,8 +264,45 @@ export async function createGuardAndSellContract(
 	tokens: TokenContract[],
 	tokenP2TR: string,
 	changeAddress: btc.Address,
-	price: bigint
+	price: bigint,
+	metadata: TokenMetadata
 ) {
+	const preCommitTx = new btc.Transaction().from(feeUtxo)
+	const orderbookCommitScript = Buffer.from(
+		getOrderbookScript('', { md5: '1fc0e92f9c8b9c80bd3a981f87baa7b1', price }),
+		'hex'
+	)
+	const { p2tr: orderbookCommitP2TR } = script2P2TR(orderbookCommitScript)
+
+	preCommitTx.addOutput(
+		new btc.Transaction.Output({
+			satoshis: Postage.TOKEN_POSTAGE,
+			script: orderbookCommitP2TR
+		})
+	)
+	preCommitTx.change(changeAddress).feePerByte(feeRate)
+	// await wallet.signFeeInput(preCommitTx)
+
+	const orderbookCommitUtxoIndex = 0
+
+	const orderbook = {
+		utxo: {
+			txId: preCommitTx.id,
+			outputIndex: orderbookCommitUtxoIndex,
+			script: preCommitTx.outputs[orderbookCommitUtxoIndex].script.toHex(),
+			satoshis: preCommitTx.outputs[orderbookCommitUtxoIndex].satoshis
+		},
+		lockingScript: orderbookCommitScript,
+		...script2P2TR(orderbookCommitScript)
+	}
+
+	// const newFeeUtxo = {
+	// 	txId: preCommitTx.id,
+	// 	outputIndex: preCommitTx.outputs.length - 1,
+	// 	script: preCommitTx.outputs[preCommitTx.outputs.length - 1].script.toHex(),
+	// 	satoshis: preCommitTx.outputs[preCommitTx.outputs.length - 1].satoshis
+	// }
+
 	const guardInfo = getGuardContractInfo()
 	const walletAddress = await wallet.getAddress()
 	const walletXOnlyPublicKey = await wallet.getXOnlyPublicKey()
@@ -293,6 +324,7 @@ export async function createGuardAndSellContract(
 	}
 
 	const catTx = CatTx.create()
+	// catTx.tx.from([orderbook.utxo, newFeeUtxo])
 	catTx.tx.from(feeUtxo)
 	const atIndex = catTx.addStateContractOutput(
 		guardInfo.lockingScript,
@@ -300,34 +332,7 @@ export async function createGuardAndSellContract(
 		Postage.GUARD_POSTAGE
 	)
 
-	const sellContractAtIndex = catTx.addContractOutput(
-		sellContract.lockingScriptHex,
-		Postage.TOKEN_POSTAGE
-	)
-
-	// const btc2 = await import('bitcore-lib')
-
-	// const pk = btc.PrivateKey.fromRandom()
-	// const { tweakedPrivKey } = pk.createTapTweak()
-	// const taproot_private_key = btc.PrivateKey.fromBuffer(tweakedPrivKey)
-	// const publicKey = taproot_private_key.toPublicKey()
-	// const pubkeyX = toXOnly(publicKey.toBuffer()).toString('hex')
-
-	const {
-		data: { priv, pub: pubkeyX }
-	} = await axios.get(`/api/random`)
-	const taproot_private_key = btc.PrivateKey.fromBuffer(Buffer.from(priv, 'hex'))
-
-	const orderbookCommitScript = Buffer.from(getOrderbookScript(pubkeyX, { price }), 'hex')
-	const { p2tr: orderbookCommitP2TR } = script2P2TR(orderbookCommitScript)
-
-	// catTx.tx.addOutput(
-	// 	new btc.Transaction.Output({
-	// 		satoshis: Postage.TOKEN_POSTAGE,
-	// 		script: orderbookCommitP2TR
-	// 	})
-	// )
-
+	catTx.addContractOutput(sellContract.lockingScriptHex, Postage.TOKEN_POSTAGE)
 	catTx.tx.change(changeAddress).feePerByte(feeRate)
 
 	const { tapScript: guardTapScript } = getGuardsP2TR()
@@ -337,6 +342,15 @@ export async function createGuardAndSellContract(
 		return null
 	}
 
+	const signOrderbookReveal = () => {
+		const witnesses: Buffer[] = []
+		witnesses.push(orderbook.lockingScript)
+		witnesses.push(Buffer.from(orderbook.cblock, 'hex'))
+		catTx.tx.inputs[0].witnesses = witnesses
+	}
+
+	// signOrderbookReveal()
+	// await wallet.signFeeWithToken(catTx.tx, metadata)
 	await wallet.signFeeInput(catTx.tx)
 
 	const contact: GuardContract = {
@@ -352,21 +366,8 @@ export async function createGuardAndSellContract(
 		}
 	}
 
-	const orderbookCommitUtxoIndex = sellContractAtIndex + 1
-
-	const orderbook = {
-		utxo: {
-			txId: catTx.tx.id,
-			outputIndex: orderbookCommitUtxoIndex,
-			script: catTx.tx.outputs[orderbookCommitUtxoIndex].script.toHex(),
-			satoshis: catTx.tx.outputs[orderbookCommitUtxoIndex].satoshis
-		},
-		private_key: taproot_private_key,
-		lockingScript: orderbookCommitScript,
-		...script2P2TR(orderbookCommitScript)
-	}
-
 	return {
+		preCommitTx,
 		commitTx: catTx.tx,
 		contact,
 		guardTapScript,
@@ -387,6 +388,7 @@ export async function sendToken(
 	price: bigint,
 	cachedTxs: Map<string, btc.Transaction>
 ): Promise<{
+	preCommitTx: btc.Transaction
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
 	contracts: TokenContract[]
@@ -406,19 +408,25 @@ export async function sendToken(
 		tokens,
 		tokenP2TR,
 		changeAddress,
-		price
+		price,
+		metadata
 	)
 
 	if (commitResult === null) {
 		return null
 	}
 
-	const { commitTx, contact: guardContract, guardTapScript, sellContract, orderbook } = commitResult
+	const {
+		preCommitTx,
+		commitTx,
+		contact: guardContract,
+		guardTapScript,
+		sellContract
+	} = commitResult
 
 	const newState = ProtocolState.getEmptyState()
 
 	const receiverTokenState = CAT20Proto.create(amount, hash160(sellContract.lockingScriptHex))
-	// const receiverTokenState = CAT20Proto.create(amount, toTokenAddress(receiver))
 
 	newState.updateDataList(0, CAT20Proto.toByteString(receiverTokenState))
 
@@ -480,72 +488,7 @@ export async function sendToken(
 		})
 	)
 
-	const tokenTxs: Array<{
-		prevTx: btc.Transaction
-		prevTokenInputIndex: number
-		prevPrevTx: btc.Transaction
-	} | null> = await Promise.all(
-		tokens.map(async ({ utxo: tokenUtxo }) => {
-			let prevTx: btc.Transaction | null = null
-			if (cachedTxs.has(tokenUtxo.txId)) {
-				prevTx = cachedTxs.get(tokenUtxo.txId)
-			} else {
-				const prevTxHex = await getRawTransaction(tokenUtxo.txId)
-				if (prevTxHex instanceof Error) {
-					console.error(`get raw transaction ${tokenUtxo.txId} failed!`, prevTxHex)
-					return null
-				}
-				prevTx = new btc.Transaction(prevTxHex)
-
-				cachedTxs.set(tokenUtxo.txId, prevTx)
-			}
-
-			let prevTokenInputIndex = 0
-
-			const input = prevTx.inputs.find((input: any, inputIndex: number) => {
-				const witnesses = input.getWitnesses()
-
-				if (Array.isArray(witnesses) && witnesses.length > 2) {
-					const lockingScriptBuffer = witnesses[witnesses.length - 2]
-					const { p2tr } = script2P2TR(lockingScriptBuffer)
-
-					const address = p2tr2Address(p2tr, 'fractal-mainnet')
-					if (address === metadata.tokenAddr || address === metadata.minterAddr) {
-						prevTokenInputIndex = inputIndex
-						return true
-					}
-				}
-			})
-
-			if (!input) {
-				console.error(`There is no valid preTx of the ftUtxo!`)
-				return null
-			}
-
-			let prevPrevTx: btc.Transaction | null = null
-
-			const prevPrevTxId = prevTx.inputs[prevTokenInputIndex].prevTxId.toString('hex')
-
-			if (cachedTxs.has(prevPrevTxId)) {
-				prevPrevTx = cachedTxs.get(prevPrevTxId)
-			} else {
-				const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
-				if (prevPrevTxHex instanceof Error) {
-					console.error(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
-					return null
-				}
-				prevPrevTx = new btc.Transaction(prevPrevTxHex)
-				cachedTxs.set(prevPrevTxId, prevPrevTx)
-			}
-
-			return {
-				prevTx,
-				prevTokenInputIndex,
-				prevPrevTx
-			}
-		})
-	)
-
+	const tokenTxs = await fetchTokenTxs(tokens, metadata, cachedTxs)
 	const success = tokenTxs.every(t => t !== null)
 
 	if (!success) {
@@ -658,8 +601,6 @@ export async function sendToken(
 		return null
 	}
 
-	//await wallet.signFeeInput(revealTx);
-
 	const receiverTokenContract: TokenContract = {
 		utxo: {
 			txId: revealTx.id,
@@ -691,19 +632,21 @@ export async function sendToken(
 		}
 		contracts.push(changeTokenContract)
 	}
-	const signOrderbookReveal = () => {
-		const witnesses: Buffer[] = []
-		// const { sighash } = getSHPreimage(revealTx, 2, Buffer.from(orderbook.tapScript, 'hex'))
-		// const sig = btc.crypto.Schnorr.sign(orderbook.private_key, sighash.hash)
-		// witnesses.push(sig)
-		witnesses.push(Buffer.from(orderbook.tapScript, 'hex'))
-		witnesses.push(Buffer.from(orderbook.cblock, 'hex'))
-		revealTx.inputs[2].witnesses = witnesses
-	}
 
-	// signOrderbookReveal()
+	console.log('revealVsize', revealTx.vsize)
+	console.log('commitVsize', commitTx.vsize, 'caclcVsize', vsize)
+
+	// Log witness sizes for reveal transaction
+	console.log('Reveal Transaction Witness Sizes:')
+	revealTx.inputs.forEach((input, index) => {
+		console.log(`Input ${index} witnesses:`)
+		input.witnesses.forEach((witness, witnessIndex) => {
+			console.log(`  Witness ${witnessIndex}: ${witness.length} bytes`)
+		})
+	})
 
 	return {
+		preCommitTx,
 		commitTx,
 		revealTx,
 		contracts
@@ -924,31 +867,51 @@ export function useSellCat20(token: TokenData) {
 				throw new Error('Failed to create PSBT')
 			}
 
-			const { commitTx, revealTx } = response
+			const { commitTx, revealTx, preCommitTx } = response
 
-			// Add this check to disable broadcasting
-			if (false) {
-				console.log('Broadcasting disabled. Commit TX:', commitTx.uncheckedSerialize())
-				console.log('Broadcasting disabled. Reveal TX:', revealTx.uncheckedSerialize())
-				toast({
-					title: 'Broadcasting Disabled',
-					description:
-						'Transaction creation successful, but broadcasting is disabled for development.',
-					variant: 'default'
+			// Log witness sizes for reveal transaction
+			console.log('Reveal Transaction Witness Sizes:')
+			revealTx.inputs.forEach((input, index) => {
+				console.log(`Input ${index} witnesses:`)
+				input.witnesses.forEach((witness, witnessIndex) => {
+					console.log(`  Witness ${witnessIndex}: ${witness.length} bytes`)
 				})
-				return
-			}
+			})
+
+			// const preCommitTxId = await broadcast(preCommitTx.uncheckedSerialize())
+
+			// if (preCommitTxId instanceof Error) {
+			// 	toast({
+			// 		title: 'Failed to Broadcast',
+			// 		// @ts-ignore
+			// 		description: preCommitTxId.response.data,
+			// 		variant: 'destructive'
+			// 	})
+			// 	return
+			// }
 
 			const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 
 			if (commitTxId instanceof Error) {
-				throw new Error(commitTxId.message)
+				toast({
+					title: 'Failed to Broadcast',
+					// @ts-ignore
+					description: commitTxId.response.data,
+					variant: 'destructive'
+				})
+				return
 			}
 
 			const revealTxid = await broadcast(revealTx.uncheckedSerialize())
 
 			if (revealTxid instanceof Error) {
-				throw new Error(revealTxid.message)
+				toast({
+					title: 'Failed to Broadcast',
+					// @ts-ignore
+					description: revealTxid.response.data,
+					variant: 'destructive'
+				})
+				return
 			}
 
 			toast({

@@ -113,8 +113,6 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	const maxSellAmount = getMaxAmount(sellOrders)
 	const maxBuyAmount = getMaxAmount(buyOrders)
 
-	console.log(sellOrders)
-
 	const currentPrice = ((bestSellPrice || bestBuyPrice || 0) * Math.pow(10, token.decimals)) / 1e8
 
 	if (isLoading) {

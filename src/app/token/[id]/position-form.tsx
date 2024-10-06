@@ -38,8 +38,6 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 		isError: isOrderbookError
 	} = useTokenOrderbook(token)
 
-	console.log('selectedOrder', selectedOrder)
-
 	// Update default values for both forms
 	const buyForm = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
@@ -156,15 +154,9 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 				throw new Error('No matching sell order found')
 			}
 
-			console.log('matchingSellOrder', matchingSellOrder)
-
 			// Call handleTakeSell from useTakeSellCat20 hook
 			await handleTakeSell(data.amount.toString(), address, matchingSellOrder)
 			buyForm.reset()
-			toast({
-				title: 'Buy Order Placed',
-				description: `Successfully bought ${data.amount} ${token.symbol} at ${data.price} FB each.`
-			})
 		} catch (error) {
 			console.error('Error placing buy order:', error)
 			setBuyError(error instanceof Error ? error.message : 'An unexpected error occurred')
@@ -199,7 +191,6 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 
 			// Call handleTransfer from useSellCat20 hook
 			await handleSell(data.amount.toString(), address, data.price.toString())
-
 			sellForm.reset()
 		} catch (error) {
 			console.error('Error placing sell order:', error)

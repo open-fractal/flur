@@ -10,65 +10,67 @@ import {
 	TableRow
 } from '@/components/ui/table'
 import { TokenData } from '@/hooks/use-token'
-type Trade = {
-	price: number
-	amount: number
-	time: string
-}
+import {
+	useTokenOrderbookHistory,
+	OrderbookHistoryEntry
+} from '@/hooks/use-token-orderbook-history'
+import { EXPLORER_URL } from '@/lib/constants'
+import Link from 'next/link'
 
 type TradeHistoryProps = {
-	trades?: Trade[]
 	token: TokenData
 }
 
-// Function to generate a dataset of trades
-function generateTradeset(basePrice: number, count: number): Trade[] {
-	const trades: Trade[] = []
-	let currentPrice = basePrice
-	const currentTime = new Date()
+function formatRelativeTime(date: Date): string {
+	const now = new Date()
+	const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-	for (let i = 0; i < count; i++) {
-		// Generate a random price change (-0.5% to +0.5%)
-		const priceChange = currentPrice * (Math.random() * 0.01 - 0.005)
-		currentPrice += priceChange
+	const intervals = [
+		{ label: 'y', seconds: 31536000 },
+		{ label: 'mo', seconds: 2592000 },
+		{ label: 'd', seconds: 86400 },
+		{ label: 'h', seconds: 3600 },
+		{ label: 'm', seconds: 60 },
+		{ label: 's', seconds: 1 }
+	]
 
-		// Generate a random amount (0.00001 to 1 BTC)
-		const amount = Math.random() * 0.99999 + 0.00001
-
-		// Generate a time string (HH:mm:ss)
-		const timeString = currentTime.toTimeString().split(' ')[0]
-
-		trades.push({
-			price: parseFloat(currentPrice.toFixed(2)),
-			amount: parseFloat(amount.toFixed(5)),
-			time: timeString
-		})
-
-		// Decrease time by a random amount (1 to 10 seconds)
-		currentTime.setSeconds(currentTime.getSeconds() - Math.floor(Math.random() * 10 + 1))
+	for (let i = 0; i < intervals.length; i++) {
+		const interval = intervals[i]
+		const count = Math.floor(diffInSeconds / interval.seconds)
+		if (count >= 1) {
+			return `${count}${interval.label}`
+		}
 	}
 
-	return trades.reverse() // Reverse to get most recent trades first
+	return 'now'
 }
 
-// Generate about 200 trades
-const defaultTrades: Trade[] = generateTradeset(65000, 200)
+export function TradeHistory({ token }: TradeHistoryProps) {
+	const { historyEntries, isLoading, isError } = useTokenOrderbookHistory(token)
 
-export function TradeHistory({ trades = defaultTrades, token }: TradeHistoryProps) {
 	const formatNumber = (num: number) => {
 		return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })
 	}
 
-	const getTradeColor = (index: number) => {
-		if (index === trades.length - 1) return 'text-white'
-		return trades[index].price > trades[index + 1].price ? 'text-green-500' : 'text-red-500'
-	}
+	// Remove the getTradeColor function as we'll always use green
 
 	// Define column widths
 	const columnWidths = {
 		price: '40%',
 		amount: '35%',
 		time: '25%'
+	}
+
+	const getBlockExplorerUrl = (txid: string) => {
+		return `${EXPLORER_URL}/tx/${txid}`
+	}
+
+	if (isLoading) {
+		return <div className="text-white">Loading trade history...</div>
+	}
+
+	if (isError) {
+		return <div className="text-red-500">Error loading trade history</div>
 	}
 
 	return (
@@ -103,25 +105,34 @@ export function TradeHistory({ trades = defaultTrades, token }: TradeHistoryProp
 			<div className="p-0 max-h-[600px] overflow-y-auto">
 				<Table>
 					<TableBody>
-						{trades.map((trade, index) => (
-							<TableRow key={index} className="hover:bg-transparent">
+						{historyEntries.map((entry: OrderbookHistoryEntry, index: number) => (
+							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
 								<TableCell
-									className={`text-left text-[11px] py-0 ${getTradeColor(index)}`}
+									className="text-left text-[11px] py-0 text-green-500"
 									style={{ width: columnWidths.price }}
 								>
-									{formatNumber(trade.price)}
+									{formatNumber((parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals))}
 								</TableCell>
 								<TableCell
 									className="text-right text-[11px] text-gray-300 py-0"
 									style={{ width: columnWidths.amount }}
 								>
-									{formatNumber(trade.amount)}
+									{formatNumber(
+										parseInt(entry.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+									)}
 								</TableCell>
 								<TableCell
-									className="text-right text-[11px] text-gray-300 py-0"
+									className="text-right text-[11px] text-gray-300 py-0 whitespace-nowrap"
 									style={{ width: columnWidths.time }}
 								>
-									{trade.time}
+									<a
+										href={getBlockExplorerUrl(entry.spendTxid)}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="hover:underline"
+									>
+										{formatRelativeTime(new Date(entry.createdAt))}
+									</a>
 								</TableCell>
 							</TableRow>
 						))}
