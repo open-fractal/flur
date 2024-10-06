@@ -5,7 +5,6 @@ import {
 	getDummySigner,
 	getDummyUTXO,
 	callToBufferList,
-	toTokenAddress,
 	getGuardsP2TR,
 	getTokenContractP2TR,
 	resetTx,
@@ -23,8 +22,19 @@ import {
 	parseTokens,
 	parseTokenMetadata
 } from '@/lib/scrypt/common'
-import { int2ByteString, MethodCallOptions, toByteString, PubKey, UTXO, fill, Sig } from 'scrypt-ts'
-import { BurnGuard, TransferGuard, CAT20 } from '@/lib/scrypt/contracts/dist'
+import {
+	int2ByteString,
+	MethodCallOptions,
+	toByteString,
+	PubKey,
+	UTXO,
+	fill,
+	Sig,
+	hash160
+} from 'scrypt-ts'
+import { BurnGuard, TransferGuard, CAT20, getSHPreimage } from '@/lib/scrypt/contracts/dist'
+import { CatTx, TaprootSmartContract } from '@/lib/scrypt/contracts/dist/lib/catTx'
+import { chunks, toPushData } from '@/lib/scrypt/contracts/dist/lib/commit'
 import {
 	emptyTokenAmountArray,
 	emptyTokenArray,
@@ -43,18 +53,16 @@ import {
 	MAX_INPUT
 } from '@cat-protocol/cat-smartcontracts'
 import { DUMMY_SIG, WalletService } from '@/lib/scrypt/providers/unisatWalletService'
-import { EXPLORER_URL } from '@/lib/constants'
+import { API_URL, EXPLORER_URL } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import {
-	CatTx,
-	ContractIns,
-	TaprootMastSmartContract,
-	TaprootSmartContract
-} from '@cat-protocol/cat-smartcontracts/dist/lib/catTx'
+import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
+import { getGuardContractInfo } from './use-transfer'
+import cbor from 'cbor'
+import axios from 'axios'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -64,6 +72,9 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
+
+const CAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/cat20Sell.json')
+CAT20Sell.loadArtifact(CAT20SellArtifact)
 
 async function unlockToken(
 	wallet: WalletService,
@@ -216,26 +227,63 @@ async function unlockGuard(
 	return true
 }
 
-export const getGuardContractInfo = function() {
-	const burnGuard = new BurnGuard()
-	const transfer = new TransferGuard()
-	const contractMap = {
-		burn: burnGuard,
-		transfer: transfer
+export const getOrderbookScript = (
+	leafKeyXPub: string,
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	contractMeta: Record<string, any>
+) => {
+	const m = new Map()
+	for (const key in contractMeta) {
+		m.set(key, contractMeta[key])
 	}
-	const guardInfo = new TaprootMastSmartContract(contractMap)
-	return guardInfo
+	const data = Buffer.from(cbor.encode(m))
+
+	const res = []
+	res.push(btc.Script.fromASM('OP_0').toBuffer()) // cat FT
+
+	return Buffer.concat(res).toString('hex')
+
+	// res.push(
+	// 	toPushData(Buffer.from(leafKeyXPub, 'hex')) // 0 OP_IF "order"
+	// )
+	// res.push(btc.Script.fromASM('OP_CHECKSIGVERIFY').toBuffer()) // checkSig
+	res.push(btc.Script.fromASM('OP_0 OP_IF 6f72646572').toBuffer()) //  cat protocal envelope start
+	res.push(btc.Script.fromASM('OP_1').toBuffer()) // cat FT
+
+	const limit = 520
+	const dataChunks = chunks(Array.from(data), limit)
+
+	// if the metadata exceeds the limit of 520, it is split into multiple chunks.
+	for (const chunk of dataChunks) {
+		res.push(toPushData(Buffer.from(chunk)))
+	}
+
+	res.push(btc.Script.fromASM('OP_ENDIF').toBuffer()) // cat protocal envelope end
+
+	return Buffer.concat(res).toString('hex')
 }
 
-export async function createGuardContract(
+export async function createGuardAndSellContract(
 	wallet: WalletService,
-	feeUtxos: UTXO[],
+	feeUtxo: UTXO,
 	feeRate: number,
 	tokens: TokenContract[],
 	tokenP2TR: string,
-	changeAddress: btc.Address
+	changeAddress: btc.Address,
+	price: bigint
 ) {
 	const guardInfo = getGuardContractInfo()
+	const walletAddress = await wallet.getAddress()
+	const walletXOnlyPublicKey = await wallet.getXOnlyPublicKey()
+
+	const sellContract = TaprootSmartContract.create(
+		new CAT20Sell(
+			tokenP2TR,
+			btc.Script.fromAddress(walletAddress).toHex(),
+			hash160(walletXOnlyPublicKey),
+			price
+		)
+	)
 
 	const guardState = GuardProto.createEmptyState()
 	guardState.tokenScript = tokenP2TR
@@ -245,31 +293,44 @@ export async function createGuardContract(
 	}
 
 	const catTx = CatTx.create()
-	catTx.tx.from(feeUtxos)
+	catTx.tx.from(feeUtxo)
 	const atIndex = catTx.addStateContractOutput(
 		guardInfo.lockingScript,
 		GuardProto.toByteString(guardState),
 		Postage.GUARD_POSTAGE
 	)
 
-	const feeAddress = process.env.NEXT_PUBLIC_FEE_ADDRESS
-	const feeSats = process.env.NEXT_PUBLIC_FEE_SATS
-		? parseInt(process.env.NEXT_PUBLIC_FEE_SATS)
-		: undefined
+	const sellContractAtIndex = catTx.addContractOutput(
+		sellContract.lockingScriptHex,
+		Postage.TOKEN_POSTAGE
+	)
 
-	if (feeAddress && feeSats) {
-		const { toP2tr } = await import('@/lib/scrypt/common/utils')
-		const feeScript = toP2tr(feeAddress)
+	// const btc2 = await import('bitcore-lib')
 
-		catTx.tx.addOutput(
-			new btc.Transaction.Output({
-				satoshis: feeSats,
-				script: feeScript
-			})
-		)
-	}
+	// const pk = btc.PrivateKey.fromRandom()
+	// const { tweakedPrivKey } = pk.createTapTweak()
+	// const taproot_private_key = btc.PrivateKey.fromBuffer(tweakedPrivKey)
+	// const publicKey = taproot_private_key.toPublicKey()
+	// const pubkeyX = toXOnly(publicKey.toBuffer()).toString('hex')
+
+	const {
+		data: { priv, pub: pubkeyX }
+	} = await axios.get(`/api/random`)
+	const taproot_private_key = btc.PrivateKey.fromBuffer(Buffer.from(priv, 'hex'))
+
+	const orderbookCommitScript = Buffer.from(getOrderbookScript(pubkeyX, { price }), 'hex')
+	const { p2tr: orderbookCommitP2TR } = script2P2TR(orderbookCommitScript)
+
+	// catTx.tx.addOutput(
+	// 	new btc.Transaction.Output({
+	// 		satoshis: Postage.TOKEN_POSTAGE,
+	// 		script: orderbookCommitP2TR
+	// 	})
+	// )
 
 	catTx.tx.change(changeAddress).feePerByte(feeRate)
+
+	const { tapScript: guardTapScript } = getGuardsP2TR()
 
 	if (catTx.tx.getChangeOutput() === null) {
 		console.error('Insufficient satoshis balance!')
@@ -278,7 +339,7 @@ export async function createGuardContract(
 
 	await wallet.signFeeInput(catTx.tx)
 
-	const guardContract: GuardContract = {
+	const contact: GuardContract = {
 		utxo: {
 			txId: catTx.tx.id,
 			outputIndex: atIndex,
@@ -291,131 +352,27 @@ export async function createGuardContract(
 		}
 	}
 
-	return {
-		catTx: catTx,
-		contract: guardInfo.contractTaprootMap.transfer.contract,
-		contractTaproot: guardInfo.contractTaprootMap.transfer,
-		atOutputIndex: atIndex,
-		guardContract
+	const orderbookCommitUtxoIndex = sellContractAtIndex + 1
+
+	const orderbook = {
+		utxo: {
+			txId: catTx.tx.id,
+			outputIndex: orderbookCommitUtxoIndex,
+			script: catTx.tx.outputs[orderbookCommitUtxoIndex].script.toHex(),
+			satoshis: catTx.tx.outputs[orderbookCommitUtxoIndex].satoshis
+		},
+		private_key: taproot_private_key,
+		lockingScript: orderbookCommitScript,
+		...script2P2TR(orderbookCommitScript)
 	}
-}
 
-export async function hydrateTokens(
-	tokens: TokenContract[],
-	metadata: TokenMetadata,
-	cachedTxs: Map<string, btc.Transaction>
-): Promise<{
-	inputTokens: ContractIns<CAT20State>[]
-	tokenTxs: Array<{
-		prevTx: btc.Transaction
-		prevTokenInputIndex: number
-		prevPrevTx: btc.Transaction
-	} | null>
-}> {
-	const tokenTxs = await fetchTokenTxs(tokens, metadata, cachedTxs)
-
-	const { contract } = getTokenContractP2TR(toP2tr(metadata.minterAddr))
-
-	const inputTokens = tokenTxs.map((tokenTx, index) => {
-		if (!tokenTx) {
-			throw new Error(`Failed to fetch transaction data for token at index ${index}`)
-		}
-
-		const { prevTx, prevTokenInputIndex, prevPrevTx } = tokenTx
-		const token = tokens[index]
-
-		const preCatTx = new CatTx()
-		const catTx = new CatTx()
-
-		catTx.tx = prevTx
-		preCatTx.tx = prevPrevTx
-
-		const contractIns: ContractIns<CAT20State> = {
-			contract,
-			state: token.state.data,
-			catTx: catTx,
-			preCatTx: preCatTx,
-			atOutputIndex: token.utxo.outputIndex,
-			contractTaproot: new TaprootSmartContract(contract)
-		}
-
-		return contractIns
-	})
-
-	return { inputTokens, tokenTxs }
-}
-
-export async function fetchTokenTxs(
-	tokens: TokenContract[],
-	metadata: TokenMetadata,
-	cachedTxs: Map<string, btc.Transaction>
-): Promise<
-	Array<{
-		prevTx: btc.Transaction
-		prevTokenInputIndex: number
-		prevPrevTx: btc.Transaction
-	} | null>
-> {
-	return Promise.all(
-		tokens.map(async ({ utxo: tokenUtxo }) => {
-			let prevTx: btc.Transaction | null = null
-			if (cachedTxs.has(tokenUtxo.txId)) {
-				prevTx = cachedTxs.get(tokenUtxo.txId)!
-			} else {
-				const prevTxHex = await getRawTransaction(tokenUtxo.txId)
-				if (prevTxHex instanceof Error) {
-					console.error(`get raw transaction ${tokenUtxo.txId} failed!`, prevTxHex)
-					return null
-				}
-				prevTx = new btc.Transaction(prevTxHex)
-				cachedTxs.set(tokenUtxo.txId, prevTx)
-			}
-
-			let prevTokenInputIndex = 0
-
-			const input = prevTx.inputs.find((input: any, inputIndex: number) => {
-				const witnesses = input.getWitnesses()
-
-				if (Array.isArray(witnesses) && witnesses.length > 2) {
-					const lockingScriptBuffer = witnesses[witnesses.length - 2]
-					const { p2tr } = script2P2TR(lockingScriptBuffer)
-
-					const address = p2tr2Address(p2tr, 'fractal-mainnet')
-					if (address === metadata.tokenAddr || address === metadata.minterAddr) {
-						prevTokenInputIndex = inputIndex
-						return true
-					}
-				}
-			})
-
-			if (!input) {
-				console.error(`There is no valid preTx of the ftUtxo!`)
-				return null
-			}
-
-			let prevPrevTx: btc.Transaction | null = null
-
-			const prevPrevTxId = prevTx.inputs[prevTokenInputIndex].prevTxId.toString('hex')
-
-			if (cachedTxs.has(prevPrevTxId)) {
-				prevPrevTx = cachedTxs.get(prevPrevTxId)!
-			} else {
-				const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
-				if (prevPrevTxHex instanceof Error) {
-					console.error(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
-					return null
-				}
-				prevPrevTx = new btc.Transaction(prevPrevTxHex)
-				cachedTxs.set(prevPrevTxId, prevPrevTx)
-			}
-
-			return {
-				prevTx,
-				prevTokenInputIndex,
-				prevPrevTx
-			}
-		})
-	)
+	return {
+		commitTx: catTx.tx,
+		contact,
+		guardTapScript,
+		sellContract,
+		orderbook
+	}
 }
 
 export async function sendToken(
@@ -427,6 +384,7 @@ export async function sendToken(
 	changeAddress: btc.Address,
 	receiver: btc.Address,
 	amount: bigint,
+	price: bigint,
 	cachedTxs: Map<string, btc.Transaction>
 ): Promise<{
 	commitTx: btc.Transaction
@@ -437,32 +395,37 @@ export async function sendToken(
 		console.warn('Insufficient token balance!')
 		return null
 	}
-
 	const minterP2TR = toP2tr(metadata.minterAddr)
+
 	const { p2tr: tokenP2TR, tapScript: tokenTapScript } = getTokenContractP2TR(minterP2TR)
 
-	const commitResult = await createGuardContract(
+	const commitResult = await createGuardAndSellContract(
 		wallet,
-		[feeUtxo],
+		feeUtxo,
 		feeRate,
 		tokens,
 		tokenP2TR,
-		changeAddress
+		changeAddress,
+		price
 	)
 
 	if (commitResult === null) {
 		return null
 	}
 
-	const commitTx = commitResult.catTx.tx
-	const guardTapScript = commitResult.contractTaproot.tapleaf
-	const guardContract = commitResult.guardContract
+	const { commitTx, contact: guardContract, guardTapScript, sellContract, orderbook } = commitResult
 
 	const newState = ProtocolState.getEmptyState()
-	const receiverTokenState = CAT20Proto.create(amount, toTokenAddress(receiver))
+
+	const receiverTokenState = CAT20Proto.create(amount, hash160(sellContract.lockingScriptHex))
+	// const receiverTokenState = CAT20Proto.create(amount, toTokenAddress(receiver))
+
 	newState.updateDataList(0, CAT20Proto.toByteString(receiverTokenState))
+
 	const tokenInputAmount = tokens.reduce((acc, t) => acc + t.state.data.amount, 0n)
+
 	const changeTokenInputAmount = tokenInputAmount - amount
+
 	let changeTokenState: null | CAT20State = null
 
 	if (changeTokenInputAmount > 0n) {
@@ -517,7 +480,71 @@ export async function sendToken(
 		})
 	)
 
-	const tokenTxs = await fetchTokenTxs(tokens, metadata, cachedTxs)
+	const tokenTxs: Array<{
+		prevTx: btc.Transaction
+		prevTokenInputIndex: number
+		prevPrevTx: btc.Transaction
+	} | null> = await Promise.all(
+		tokens.map(async ({ utxo: tokenUtxo }) => {
+			let prevTx: btc.Transaction | null = null
+			if (cachedTxs.has(tokenUtxo.txId)) {
+				prevTx = cachedTxs.get(tokenUtxo.txId)
+			} else {
+				const prevTxHex = await getRawTransaction(tokenUtxo.txId)
+				if (prevTxHex instanceof Error) {
+					console.error(`get raw transaction ${tokenUtxo.txId} failed!`, prevTxHex)
+					return null
+				}
+				prevTx = new btc.Transaction(prevTxHex)
+
+				cachedTxs.set(tokenUtxo.txId, prevTx)
+			}
+
+			let prevTokenInputIndex = 0
+
+			const input = prevTx.inputs.find((input: any, inputIndex: number) => {
+				const witnesses = input.getWitnesses()
+
+				if (Array.isArray(witnesses) && witnesses.length > 2) {
+					const lockingScriptBuffer = witnesses[witnesses.length - 2]
+					const { p2tr } = script2P2TR(lockingScriptBuffer)
+
+					const address = p2tr2Address(p2tr, 'fractal-mainnet')
+					if (address === metadata.tokenAddr || address === metadata.minterAddr) {
+						prevTokenInputIndex = inputIndex
+						return true
+					}
+				}
+			})
+
+			if (!input) {
+				console.error(`There is no valid preTx of the ftUtxo!`)
+				return null
+			}
+
+			let prevPrevTx: btc.Transaction | null = null
+
+			const prevPrevTxId = prevTx.inputs[prevTokenInputIndex].prevTxId.toString('hex')
+
+			if (cachedTxs.has(prevPrevTxId)) {
+				prevPrevTx = cachedTxs.get(prevPrevTxId)
+			} else {
+				const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
+				if (prevPrevTxHex instanceof Error) {
+					console.error(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
+					return null
+				}
+				prevPrevTx = new btc.Transaction(prevPrevTxHex)
+				cachedTxs.set(prevPrevTxId, prevPrevTx)
+			}
+
+			return {
+				prevTx,
+				prevTokenInputIndex,
+				prevPrevTx
+			}
+		})
+	)
 
 	const success = tokenTxs.every(t => t !== null)
 
@@ -664,6 +691,17 @@ export async function sendToken(
 		}
 		contracts.push(changeTokenContract)
 	}
+	const signOrderbookReveal = () => {
+		const witnesses: Buffer[] = []
+		// const { sighash } = getSHPreimage(revealTx, 2, Buffer.from(orderbook.tapScript, 'hex'))
+		// const sig = btc.crypto.Schnorr.sign(orderbook.private_key, sighash.hash)
+		// witnesses.push(sig)
+		witnesses.push(Buffer.from(orderbook.tapScript, 'hex'))
+		witnesses.push(Buffer.from(orderbook.cblock, 'hex'))
+		revealTx.inputs[2].witnesses = witnesses
+	}
+
+	// signOrderbookReveal()
 
 	return {
 		commitTx,
@@ -743,12 +781,12 @@ export function calcTotalAmount(tokens: TokenContract[]) {
 	return tokens.reduce((acc, t) => acc + t.state.data.amount, 0n)
 }
 
-export function useTransfer(token: TokenData) {
+export function useSellCat20(token: TokenData) {
 	const [isTransferring, setIsTransferring] = useState(false)
 	const { toast } = useToast()
 	const { utxos, totalAmount } = useTokenUtxos(token)
 
-	const handleTransfer = async (transferAmount: string, transferAddress: string) => {
+	const handleSell = async (transferAmount: string, transferAddress: string, price: string) => {
 		setIsTransferring(true)
 
 		try {
@@ -803,8 +841,21 @@ export function useTransfer(token: TokenData) {
 				return
 			}
 
+			const priceNumber = Number(price)
+			if (isNaN(priceNumber) || priceNumber <= 0) {
+				toast({
+					title: 'Invalid Price',
+					description: 'Please enter a valid price in BTC.',
+					variant: 'destructive'
+				})
+				return
+			}
+
 			// Scale the transfer amount by token decimals
 			const scaledAmount = BigInt(Math.round(transferAmountNumber * Math.pow(10, token.decimals)))
+
+			// Scale the price to satoshis and adjust for token decimals
+			const scaledPrice = BigInt(Math.round((priceNumber * 1e8) / Math.pow(10, token.decimals)))
 
 			// Select token UTXOs
 			const selectedUtxos = []
@@ -865,6 +916,7 @@ export function useTransfer(token: TokenData) {
 				btc.Address.fromString(payload.address),
 				btc.Address.fromString(payload.receiver),
 				scaledAmount,
+				scaledPrice,
 				new Map()
 			)
 
@@ -873,6 +925,20 @@ export function useTransfer(token: TokenData) {
 			}
 
 			const { commitTx, revealTx } = response
+
+			// Add this check to disable broadcasting
+			if (false) {
+				console.log('Broadcasting disabled. Commit TX:', commitTx.uncheckedSerialize())
+				console.log('Broadcasting disabled. Reveal TX:', revealTx.uncheckedSerialize())
+				toast({
+					title: 'Broadcasting Disabled',
+					description:
+						'Transaction creation successful, but broadcasting is disabled for development.',
+					variant: 'default'
+				})
+				return
+			}
+
 			const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 
 			if (commitTxId instanceof Error) {
@@ -919,5 +985,5 @@ export function useTransfer(token: TokenData) {
 		}
 	}
 
-	return { isTransferring, handleTransfer, totalAmount }
+	return { isTransferring, handleSell, totalAmount }
 }

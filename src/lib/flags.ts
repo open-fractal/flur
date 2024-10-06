@@ -2,5 +2,5 @@ import { unstable_flag as flag } from '@vercel/flags/next'
 
 export const showMarket = flag({
 	key: 'market',
-	decide: () => false
+	decide: () => (process.env.ENABLE_MARKET ? true : false)
 })

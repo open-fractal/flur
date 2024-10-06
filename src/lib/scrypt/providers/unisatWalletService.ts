@@ -350,4 +350,107 @@ export class WalletService {
 
 		return sigs
 	}
+	async signFeeWithToken(tx: btc.Transaction, metadata: TokenMetadata) {
+		const psbt = tx2PSBT(tx)
+
+		const xpubkeyToken = toXOnlyFromTaproot(metadata.tokenAddr)
+		const xpubkeyFee = await this.getXOnlyPublicKey()
+		const { cblock: cblockToken, contract } = getTokenContractP2TR(toP2tr(metadata.minterAddr))
+
+		const address = await this.getAddress()
+		const publicKeyHash = await this.getPublicKeyHash()
+		const pubkey = await this.getPublicKey()
+		const toSignInputs: Array<{
+			index: number
+			address?: string
+			publicKey?: string
+			sighashTypes?: number[]
+			disableTweakSigner?: boolean
+		}> = []
+
+		for (let i = 0; i < psbt.inputCount; i++) {
+			if (tx.inputs[i].output.script.isTaproot()) {
+				const pkh = tx.inputs[i].output.script.getPublicKeyHash().toString('hex')
+				const witnessUtxo = {
+					value: BigInt(tx.inputs[i].output.satoshis) || 0n,
+					script: tx.inputs[i].output.script.toBuffer() || btc.Script.empty()
+				}
+				if (pkh === xpubkeyToken) {
+					psbt.updateInput(i, {
+						witnessUtxo: {
+							value: BigInt(tx.inputs[i].output.satoshis) || 0n,
+							script: tx.inputs[i].output.script.toBuffer() || btc.Script.empty()
+						},
+						tapLeafScript: [
+							{
+								leafVersion: 192,
+								script: contract.lockingScript.toBuffer(),
+								controlBlock: Buffer.from(cblockToken, 'hex')
+							}
+						],
+						sighashType: 1
+					})
+				} else if (pkh === xpubkeyFee) {
+					psbt.updateInput(i, {
+						witnessUtxo,
+						tapInternalKey: Buffer.from(xpubkeyFee, 'hex'),
+						sighashType: 1
+					})
+					toSignInputs.push({
+						index: i,
+						address: address.toString(),
+						sighashTypes: [1]
+					})
+				} else {
+					psbt.updateInput(i, {
+						witnessUtxo,
+						sighashType: 1
+					})
+				}
+			} else if (tx.inputs[i].output.script.isWitnessPublicKeyHashOut()) {
+				const pkh = tx.inputs[i].output.script.getPublicKeyHash().toString('hex')
+				if (pkh === publicKeyHash) {
+					const witnessUtxo = {
+						value: BigInt(tx.inputs[i].output.satoshis) || 0n,
+						script: tx.inputs[i].output.script.toBuffer() || btc.Script.empty()
+					}
+					psbt.updateInput(i, {
+						witnessUtxo
+					})
+				}
+			}
+		}
+
+		const psbtHex = psbt.toHex()
+
+		const signedPsbtHex = await window.unisat.signPsbt(psbtHex, {
+			autoFinalized: false,
+			toSignInputs: toSignInputs
+		})
+
+		const signedPsbt = bitcoinjs.Psbt.fromHex(signedPsbtHex)
+
+		for (let i = 0; i < signedPsbt.inputCount; i++) {
+			if (tx.inputs[i].output.script.isTaproot()) {
+				const pkh = tx.inputs[i].output.script.getPublicKeyHash().toString('hex')
+
+				if (pkh === xpubkeyFee) {
+					const keySig = getTapKeySigFromPSBT(signedPsbt, i)
+					if (keySig) {
+						tx.inputs[i].setWitnesses([keySig])
+					} else {
+						console.warn('invalid keySig')
+					}
+				}
+			} else if (tx.inputs[i].output.script.isWitnessPublicKeyHashOut()) {
+				const pkh = tx.inputs[i].output.script.getPublicKeyHash().toString('hex')
+				if (pkh === publicKeyHash) {
+					const keySig = getPartialSigFromPSBT(signedPsbt, i)
+					if (keySig) {
+						tx.inputs[i].setWitnesses([keySig, pubkey.toBuffer()])
+					}
+				}
+			}
+		}
+	}
 }

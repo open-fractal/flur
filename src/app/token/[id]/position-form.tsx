@@ -7,11 +7,10 @@ import { z } from 'zod'
 import { TokenData } from '@/hooks/use-token'
 import { useBalance } from '@/hooks/use-balance'
 import { useEffect } from 'react'
-import axios from 'axios'
 import { useToast } from '@/hooks/use-toast'
-import { getFeeRate } from '@/lib/utils' // Add this import
-import { Transaction } from '@scure/btc-signer'
-import { EXPLORER_URL } from '@/lib/constants'
+import { useSellCat20 } from '@/hooks/use-sell' // Add this import
+import { useTakeSellCat20 } from '@/hooks/use-take-sell' // Add this import
+import { useTokenOrderbook } from '@/hooks/use-token-orderbook'
 
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
@@ -26,10 +25,20 @@ const FormSchema = z.object({
 
 interface PositionFormProps {
 	token: TokenData
+	selectedOrder: { price: number; isBuy: boolean; amount: number } | null
 }
 
-export function PositionForm({ token }: PositionFormProps) {
+export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
+	const { isTransferring, handleSell, totalAmount } = useSellCat20(token) // Add this line
+	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token) // Add this line
+	const {
+		sellOrders,
+		isLoading: isOrderbookLoading,
+		isError: isOrderbookError
+	} = useTokenOrderbook(token)
+
+	console.log('selectedOrder', selectedOrder)
 
 	// Update default values for both forms
 	const buyForm = useForm<z.infer<typeof FormSchema>>({
@@ -73,96 +82,125 @@ export function PositionForm({ token }: PositionFormProps) {
 	const [isSelling, setIsSelling] = React.useState(false)
 	const [sellError, setSellError] = React.useState<string | null>(null)
 
+	const [isBuying, setIsBuying] = React.useState(false)
+	const [buyError, setBuyError] = React.useState<string | null>(null)
+
+	// Update the form when selectedOrder changes
+	useEffect(() => {
+		if (selectedOrder) {
+			const { price, isBuy, amount } = selectedOrder
+			if (isBuy) {
+				// Updating sell form for buy orders (user is selling to meet the buy order)
+				sellForm.reset({
+					price: price,
+					amount: amount
+				})
+				// Calculate and set the slider value
+				const sliderValue = Math.min((amount / parseFloat(tokenBalance)) * 100, 100)
+				setSellSliderValue(sliderValue)
+
+				// Reset buy form
+				buyForm.reset({
+					price: 1,
+					amount: 0
+				})
+				setBuySliderValue(0)
+			} else {
+				// Updating buy form for sell orders (user is buying to meet the sell order)
+				buyForm.reset({
+					price: price,
+					amount: amount
+				})
+				// Calculate and set the slider value
+				const maxBuyAmount = parseFloat(fbBalance) / price
+				const sliderValue = Math.min((amount / maxBuyAmount) * 100, 100)
+				setBuySliderValue(sliderValue)
+
+				// Reset sell form
+				sellForm.reset({
+					price: 1,
+					amount: 0
+				})
+				setSellSliderValue(0)
+			}
+		}
+	}, [selectedOrder, buyForm, sellForm, fbBalance, tokenBalance])
+
 	async function onBuySubmit(data: z.infer<typeof FormSchema>) {
-		console.log('Buy submitted:', data)
-		// Handle buy submission
+		setIsBuying(true)
+		setBuyError(null)
+
+		try {
+			// Check if Unisat wallet is connected
+			if (!window.unisat || !(await window.unisat.getAccounts()).length) {
+				toast({
+					title: 'Wallet Not Connected',
+					description: 'Please connect your Unisat wallet to buy tokens.',
+					variant: 'destructive',
+					action: <Button onClick={() => window.unisat.requestAccounts()}>Connect Wallet</Button>
+				})
+				return
+			}
+
+			// Get the buyer's address
+			const address = (await window.unisat.getAccounts())[0]
+
+			// Find a matching sell order
+			const matchingSellOrder = sellOrders.find(
+				order =>
+					(parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8 <= data.price &&
+					parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals) >= data.amount
+			)
+
+			if (!matchingSellOrder) {
+				throw new Error('No matching sell order found')
+			}
+
+			console.log('matchingSellOrder', matchingSellOrder)
+
+			// Call handleTakeSell from useTakeSellCat20 hook
+			await handleTakeSell(data.amount.toString(), address, matchingSellOrder)
+			buyForm.reset()
+			toast({
+				title: 'Buy Order Placed',
+				description: `Successfully bought ${data.amount} ${token.symbol} at ${data.price} FB each.`
+			})
+		} catch (error) {
+			console.error('Error placing buy order:', error)
+			setBuyError(error instanceof Error ? error.message : 'An unexpected error occurred')
+			toast({
+				title: 'Error',
+				description: error instanceof Error ? error.message : 'An unexpected error occurred',
+				variant: 'destructive'
+			})
+		} finally {
+			setIsBuying(false)
+		}
 	}
 
 	async function onSellSubmit(data: z.infer<typeof FormSchema>) {
 		setIsSelling(true)
 		setSellError(null)
 
-		// Check if Unisat wallet is connected
-		if (!window.unisat || !(await window.unisat.getAccounts()).length) {
-			toast({
-				title: 'Wallet Not Connected',
-				description: 'Please connect your Unisat wallet to sell tokens.',
-				variant: 'destructive',
-				action: <Button onClick={() => window.unisat.requestAccounts()}>Connect Wallet</Button>
-			})
-			setIsSelling(false)
-			return
-		}
-
 		try {
-			const address = (await window.unisat.getAccounts())[0]
-			const publicKey = await window.unisat.getPublicKey()
-			const feeRate = await getFeeRate()
-			const utxos = await window.unisat.getBitcoinUtxos()
-
-			// Check if there are any UTXOs available
-			if (!utxos || utxos.length === 0) {
+			// Check if Unisat wallet is connected
+			if (!window.unisat || !(await window.unisat.getAccounts()).length) {
 				toast({
-					title: 'Insufficient Balance',
-					description: 'You do not have enough balance to sell tokens.',
-					variant: 'destructive'
+					title: 'Wallet Not Connected',
+					description: 'Please connect your Unisat wallet to sell tokens.',
+					variant: 'destructive',
+					action: <Button onClick={() => window.unisat.requestAccounts()}>Connect Wallet</Button>
 				})
-				setIsSelling(false)
 				return
 			}
 
-			const payload = {
-				token: token,
-				price: data.price,
-				amount: data.amount,
-				address: address,
-				publicKey: publicKey,
-				feeRate: feeRate,
-				utxos: utxos
-					.map((utxo: any) => ({
-						txId: utxo.txid,
-						outputIndex: utxo.vout,
-						script: utxo.scriptPk,
-						satoshis: utxo.satoshis
-					}))
-					.slice(0, 1) // Using only the first UTXO, adjust as needed
-			}
+			// Get the receiver address (in this case, it's the sell contract address)
+			const address = (await window.unisat.getAccounts())[0]
 
-			const response = await axios.post('/api/sell', payload)
+			// Call handleTransfer from useSellCat20 hook
+			await handleSell(data.amount.toString(), address, data.price.toString())
 
-			if (response.status === 200) {
-				const { contractPsbt: psbt } = response.data
-
-				// Sign the PSBT with Unisat
-				const signedPsbtHex = await window.unisat.signPsbt(psbt)
-
-				// Extract and broadcast the transaction
-				const signedPsbt = Transaction.fromPSBT(Buffer.from(signedPsbtHex, 'hex'))
-				const rawTx = Buffer.from(signedPsbt.extract()).toString('hex')
-				console.log(rawTx)
-
-				const txid = 'bbf303a94a6245bdb9d259939eafe548256b3cacbc8ca5d1ad9c9b90c702aa35'
-				// const txid = await broadcast(rawTx)
-				// if (txid instanceof Error) {
-				// 	throw new Error(`Failed to broadcast: ${txid.message}`)
-				// }
-
-				console.log('Sell order placed successfully:', txid)
-				sellForm.reset()
-				toast({
-					title: 'Sell Order Placed',
-					description: 'Your sell order has been placed and broadcasted successfully.',
-					action: (
-						<Button asChild>
-							<a href={`${EXPLORER_URL}/tx/${txid}`} target="_blank" rel="noopener noreferrer">
-								View Transaction
-							</a>
-						</Button>
-					)
-				})
-			} else {
-				throw new Error('Invalid response from server')
-			}
+			sellForm.reset()
 		} catch (error) {
 			console.error('Error placing sell order:', error)
 			setSellError(error instanceof Error ? error.message : 'An unexpected error occurred')
@@ -173,110 +211,121 @@ export function PositionForm({ token }: PositionFormProps) {
 
 	return (
 		<div className="w-full max-w-4xl text-white p-4 border-t">
-			<div className="flex space-x-4">
-				{/* Buy Form */}
-				<Form {...buyForm}>
-					<form onSubmit={buyForm.handleSubmit(onBuySubmit)} className="flex-1 space-y-3">
-						<FormField
-							control={buyForm.control}
-							name="price"
-							render={({ field }) => (
-								<FormItem className="space-y-1">
-									<FormLabel>Buy Price (FB)</FormLabel>
-									<FormControl>
-										<Input placeholder="0.00" {...field} />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={buyForm.control}
-							name="amount"
-							render={({ field }) => (
-								<FormItem className="space-y-1">
-									<FormLabel>Buy Amount ({token.symbol})</FormLabel>
-									<FormControl>
-										<Input placeholder="0.00" {...field} />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<Slider
-							value={[buySliderValue]}
-							onValueChange={value => setBuySliderValue(value[0])}
-							max={100}
-							step={1}
-							className="my-6"
-						/>
-						<div className="flex justify-between text-xs text-gray-400">
-							<span>Available</span>
-							<span>{fbBalance} FB</span>
-						</div>
-						<div className="flex justify-between text-xs text-gray-400">
-							<span>Max Buy</span>
-							<span>-- {token.symbol}</span>
-						</div>
-						<Button type="submit" className="w-full bg-green-500 hover:bg-green-600">
-							Buy {token.symbol}
-						</Button>
-					</form>
-				</Form>
+			{isOrderbookLoading && <p>Loading orderbook...</p>}
+			{isOrderbookError && <p>Error loading orderbook. Please try again.</p>}
+			{!isOrderbookLoading && !isOrderbookError && (
+				<div className="flex space-x-4">
+					{/* Buy Form */}
+					<Form {...buyForm}>
+						<form onSubmit={buyForm.handleSubmit(onBuySubmit)} className="flex-1 space-y-3">
+							<FormField
+								control={buyForm.control}
+								name="price"
+								render={({ field }) => (
+									<FormItem className="space-y-1">
+										<FormLabel>Buy Price (FB)</FormLabel>
+										<FormControl>
+											<Input placeholder="0.00" {...field} />
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={buyForm.control}
+								name="amount"
+								render={({ field }) => (
+									<FormItem className="space-y-1">
+										<FormLabel>Buy Amount ({token.symbol})</FormLabel>
+										<FormControl>
+											<Input placeholder="0.00" {...field} />
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+							<Slider
+								value={[buySliderValue]}
+								onValueChange={value => setBuySliderValue(value[0])}
+								max={100}
+								step={1}
+								className="my-6"
+							/>
+							<div className="flex justify-between text-xs text-gray-400">
+								<span>Available</span>
+								<span>{fbBalance} FB</span>
+							</div>
+							<div className="flex justify-between text-xs text-gray-400">
+								<span>Max Buy</span>
+								<span>-- {token.symbol}</span>
+							</div>
+							{buyError && <div className="text-red-500 text-sm">{buyError}</div>}
+							<Button
+								type="submit"
+								className="w-full bg-green-500 hover:bg-green-600"
+								disabled={isTakingSell || isBuying || isOrderbookLoading}
+							>
+								{isTakingSell || isBuying ? 'Placing Order...' : `Buy ${token.symbol}`}
+							</Button>
+						</form>
+					</Form>
 
-				{/* Sell Form */}
-				<Form {...sellForm}>
-					<form onSubmit={sellForm.handleSubmit(onSellSubmit)} className="flex-1 space-y-3">
-						<FormField
-							control={sellForm.control}
-							name="price"
-							render={({ field }) => (
-								<FormItem className="space-y-1">
-									<FormLabel>Sell Price (FB)</FormLabel>
-									<FormControl>
-										<Input placeholder="0.00" {...field} />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={sellForm.control}
-							name="amount"
-							render={({ field }) => (
-								<FormItem className="space-y-1">
-									<FormLabel>Sell Amount ({token.symbol})</FormLabel>
-									<FormControl>
-										<Input placeholder="0.00" {...field} />
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<Slider
-							value={[sellSliderValue]}
-							onValueChange={value => setSellSliderValue(value[0])}
-							max={100}
-							step={1}
-							className="my-6"
-						/>
-						<div className="flex justify-between text-xs text-gray-400">
-							<span>Available</span>
-							<span>
-								{tokenBalance} {tokenSymbol}
-							</span>
-						</div>
-						<div className="flex justify-between text-xs text-gray-400">
-							<span>Max Sell</span>
-							<span>-- FB</span>
-						</div>
-						{sellError && <div className="text-red-500 text-sm">{sellError}</div>}
-						<Button
-							type="submit"
-							className="w-full bg-red-500 hover:bg-red-600"
-							disabled={isSelling}
-						>
-							{isSelling ? 'Placing Order...' : `Sell ${token.symbol}`}
-						</Button>
-					</form>
-				</Form>
-			</div>
+					{/* Sell Form */}
+					<Form {...sellForm}>
+						<form onSubmit={sellForm.handleSubmit(onSellSubmit)} className="flex-1 space-y-3">
+							<FormField
+								control={sellForm.control}
+								name="price"
+								render={({ field }) => (
+									<FormItem className="space-y-1">
+										<FormLabel>Sell Price (FB)</FormLabel>
+										<FormControl>
+											<Input placeholder="0.00" {...field} />
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={sellForm.control}
+								name="amount"
+								render={({ field }) => (
+									<FormItem className="space-y-1">
+										<FormLabel>Sell Amount ({token.symbol})</FormLabel>
+										<FormControl>
+											<Input placeholder="0.00" {...field} />
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+							<Slider
+								value={[sellSliderValue]}
+								onValueChange={value => setSellSliderValue(value[0])}
+								max={100}
+								step={1}
+								className="my-6"
+							/>
+							<div className="flex justify-between text-xs text-gray-400">
+								<span>Available</span>
+								<span>
+									{tokenBalance} {tokenSymbol}
+								</span>
+							</div>
+							<div className="flex justify-between text-xs text-gray-400">
+								<span>Total Amount</span>
+								<span>
+									{totalAmount.toString()} {tokenSymbol}
+								</span>
+							</div>
+							{sellError && <div className="text-red-500 text-sm">{sellError}</div>}
+							<Button
+								type="submit"
+								className="w-full bg-red-500 hover:bg-red-600"
+								disabled={isTransferring || isSelling}
+							>
+								{isTransferring || isSelling ? 'Placing Order...' : `Sell ${token.symbol}`}
+							</Button>
+						</form>
+					</Form>
+				</div>
+			)}
 		</div>
 	)
 }

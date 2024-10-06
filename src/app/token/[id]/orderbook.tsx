@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import {
 	Table,
 	TableBody,
@@ -10,80 +10,136 @@ import {
 	TableRow
 } from '@/components/ui/table'
 import { TokenData } from '@/hooks/use-token'
+import { useTokenOrderbook } from '@/hooks/use-token-orderbook'
+
 type Order = {
 	price: number
 	amount: number
 	total: number
 }
 
-type OrderbookProps = {
-	buyOrders?: Order[]
-	sellOrders?: Order[]
-	currentPrice?: number
-	token: TokenData
+type GroupedOrder = {
+	price: number
+	amount: number
+	total: number
 }
 
-const defaultBuyOrders: Order[] = [
-	{ price: 2.0197, amount: 437.501, total: 883.59 },
-	{ price: 2.0196, amount: 14.04, total: 28.35 },
-	{ price: 2.0195, amount: 237.0, total: 478.62 },
-	{ price: 2.0194, amount: 399.54, total: 806.84 },
-	{ price: 2.0193, amount: 110.0, total: 222.12 },
-	{ price: 2.0192, amount: 301.81, total: 609.42 },
-	{ price: 2.0191, amount: 2000.0, total: 4038.2 },
-	{ price: 2.019, amount: 37.0, total: 74.7 },
-	{ price: 2.0189, amount: 744.0, total: 1502.06 }
-]
+type OrderbookProps = {
+	token: TokenData
+	onOrderSelect: (price: number, amount: number, isBuy: boolean) => void
+}
 
-const defaultSellOrders: Order[] = [
-	{ price: 2.0207, amount: 128.0, total: 258.65 },
-	{ price: 2.0206, amount: 1026.0, total: 2073.14 },
-	{ price: 2.0205, amount: 12.0, total: 24.25 },
-	{ price: 2.0204, amount: 496.0, total: 1002.12 },
-	{ price: 2.0203, amount: 328.3, total: 663.27 },
-	{ price: 2.0202, amount: 616.5, total: 1245.45 },
-	{ price: 2.0201, amount: 31.0, total: 62.62 },
-	{ price: 2.02, amount: 10.0, total: 20.2 },
-	{ price: 2.0199, amount: 10.0, total: 20.2 }
-]
+export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
+	const {
+		sellOrders: rawSellOrders,
+		buyOrders: rawBuyOrders,
+		bestSellPrice,
+		bestBuyPrice,
+		isLoading,
+		isError
+	} = useTokenOrderbook(token)
 
-const defaultCurrentPrice = 2.0198
-
-export function Orderbook({
-	buyOrders = defaultBuyOrders,
-	sellOrders = defaultSellOrders,
-	currentPrice = defaultCurrentPrice,
-	token
-}: OrderbookProps) {
 	const formatNumber = (num: number) => {
 		return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })
 	}
 
-	const formatTotal = (num: number) => {
-		if (num >= 1000) {
-			return (num / 1000).toFixed(2) + 'K'
+	const formatCompactNumber = (num: number) => {
+		const absNum = Math.abs(num)
+		if (absNum >= 1e9) {
+			return (num / 1e9).toFixed(2) + 'B'
+		} else if (absNum >= 1e6) {
+			return (num / 1e6).toFixed(2) + 'M'
+		} else if (absNum >= 1e3) {
+			return (num / 1e3).toFixed(2) + 'K'
+		} else if (absNum < 0.01) {
+			// Show up to 8 decimal places for very small numbers
+			return absNum.toFixed(8).replace(/\.?0+$/, '')
 		}
 		return num.toFixed(2)
 	}
 
-	const getMaxTotal = (orders: Order[]) => {
-		return Math.max(...orders.map(order => order.total))
+	const processOrders = (orders: any[]): Order[] => {
+		return orders.map(order => {
+			const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
+			const amount = parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+			return {
+				price,
+				amount,
+				total: amount // Set total as amount initially
+			}
+		})
 	}
 
-	const maxSellTotal = getMaxTotal(sellOrders)
-	const maxBuyTotal = getMaxTotal(buyOrders)
+	const groupAndSortOrders = (orders: Order[], isSellOrder: boolean): GroupedOrder[] => {
+		const groupedOrders = orders.reduce((acc, order) => {
+			const key = order.price.toFixed(8) // Group by price with 8 decimal places
+			if (!acc[key]) {
+				acc[key] = { ...order }
+			} else {
+				acc[key].amount += order.amount
+			}
+			return acc
+		}, {} as Record<string, GroupedOrder>)
+
+		const sortedOrders = Object.values(groupedOrders).sort((a, b) =>
+			isSellOrder ? b.price - a.price : a.price - b.price
+		)
+
+		let cumulativeTotal = 0
+		return (isSellOrder ? sortedOrders.reverse() : sortedOrders)
+			.map(order => {
+				cumulativeTotal += order.amount
+				return {
+					...order,
+					total: cumulativeTotal
+				}
+			})
+			.reverse()
+	}
+
+	const sellOrders = useMemo(() => groupAndSortOrders(processOrders(rawSellOrders), true), [
+		rawSellOrders,
+		token.decimals
+	])
+	const buyOrders = useMemo(() => groupAndSortOrders(processOrders(rawBuyOrders), false), [
+		rawBuyOrders,
+		token.decimals
+	])
+
+	const getMaxAmount = (orders: GroupedOrder[]) => {
+		return Math.max(...orders.map(order => order.amount))
+	}
+
+	const maxSellAmount = getMaxAmount(sellOrders)
+	const maxBuyAmount = getMaxAmount(buyOrders)
+
+	console.log(sellOrders)
+
+	const currentPrice = ((bestSellPrice || bestBuyPrice || 0) * Math.pow(10, token.decimals)) / 1e8
+
+	if (isLoading) {
+		return <div className="h-full flex items-center justify-center">Loading orderbook...</div>
+	}
+
+	if (isError) {
+		return <div className="h-full flex items-center justify-center">Error loading orderbook</div>
+	}
+
+	const handleOrderClick = (order: GroupedOrder, isBuy: boolean) => {
+		onOrderSelect(order.price, order.amount, isBuy)
+	}
 
 	return (
-		<div className="h-full max-w-md bg-black text-white w-[250px]">
+		<div className="h-full flex flex-col bg-black text-white w-[250px]">
 			<div className="px-4 py-2">
 				<div className="text-sm font-semibold flex justify-between items-center">
 					<span>Order Book</span>
 					<span className="text-xs text-gray-400">0.0001</span>
 				</div>
 			</div>
-			<div className="p-0">
+			<div className="flex-grow flex flex-col overflow-hidden">
 				<Table>
-					<TableHeader>
+					<TableHeader className="sticky top-0 bg-black z-10">
 						<TableRow className="hover:bg-transparent border-b">
 							<TableHead className="text-left text-[10px] text-gray-400 font-normal h-6">
 								Price(FB)
@@ -96,69 +152,81 @@ export function Orderbook({
 							</TableHead>
 						</TableRow>
 					</TableHeader>
-					<TableBody>
-						{sellOrders.map((order, index) => (
-							<TableRow key={`sell-${index}`} className="hover:bg-transparent relative">
-								<TableCell className="text-left text-[11px] text-red-500 py-0 z-10">
-									{formatNumber(order.price)}
-								</TableCell>
-								<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
-									{formatNumber(order.amount)}
-								</TableCell>
-								<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
-									{formatTotal(order.total)}
-								</TableCell>
-								<div
-									className="absolute inset-0 bg-red-500"
-									style={{
-										width: `${(order.total / maxSellTotal) * 100}%`,
-										right: 0,
-										opacity: 0.3
-									}}
-								/>
-							</TableRow>
-						))}
-						<TableRow className="hover:bg-transparent">
-							<TableCell colSpan={3} className="text-center py-1 border-y">
-								<p className="text-xl font-bold flex items-center gap-2 justify-center">
-									{formatNumber(currentPrice)}
-									<span className="text-xs font-normal text-gray-400">
-										${formatNumber(currentPrice)}
-									</span>
-								</p>
-							</TableCell>
-						</TableRow>
-						{buyOrders.map((order, index) => (
-							<TableRow key={`buy-${index}`} className="hover:bg-transparent relative">
-								<TableCell className="text-left text-[11px] text-green-500 py-0 z-10">
-									{formatNumber(order.price)}
-								</TableCell>
-								<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
-									{formatNumber(order.amount)}
-								</TableCell>
-								<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
-									{formatTotal(order.total)}
-								</TableCell>
-								<div
-									className="absolute inset-0 bg-green-500"
-									style={{
-										width: `${(order.total / maxBuyTotal) * 100}%`,
-										left: 0,
-										opacity: 0.3
-										// opacity: 0.1 + (order.total / maxBuyTotal) * 0.2
-									}}
-								/>
-							</TableRow>
-						))}
-					</TableBody>
 				</Table>
-				<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
-					<span className="text-green-500">B 65.40%</span>
-					<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
-						<div className="h-full bg-green-500" style={{ width: '65.40%' }}></div>
-					</div>
-					<span className="text-red-500">34.60% S</span>
+				<div className="flex-grow overflow-auto flex flex-col justify-end">
+					<Table>
+						<TableBody>
+							{sellOrders.map((order, index) => (
+								<TableRow
+									key={`sell-${index}`}
+									className="hover:bg-transparent relative cursor-pointer"
+									onClick={() => handleOrderClick(order, false)}
+								>
+									<TableCell className="text-left text-[11px] text-red-500 py-0 z-10">
+										{formatCompactNumber(order.price)}
+									</TableCell>
+									<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
+										{formatNumber(order.amount)}
+									</TableCell>
+									<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
+										{formatNumber(order.total)}
+									</TableCell>
+									<div
+										className="absolute inset-0 bg-red-500"
+										style={{
+											width: `${(order.amount / maxSellAmount) * 100}%`,
+											right: 0,
+											opacity: 0.3
+										}}
+									/>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
 				</div>
+				<TableRow className="hover:bg-transparent border-t border-b">
+					<p className="text-xl font-bold flex items-center gap-2 justify-center">
+						{formatCompactNumber(currentPrice)} FB
+					</p>
+				</TableRow>
+				<div className="flex-grow overflow-auto">
+					<Table>
+						<TableBody>
+							{buyOrders.map((order, index) => (
+								<TableRow
+									key={`buy-${index}`}
+									className="hover:bg-transparent relative cursor-pointer"
+									onClick={() => handleOrderClick(order, true)}
+								>
+									<TableCell className="text-left text-[11px] text-green-500 py-0 z-10">
+										{formatCompactNumber(order.price)}
+									</TableCell>
+									<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
+										{formatNumber(order.amount)}
+									</TableCell>
+									<TableCell className="text-right text-[11px] text-gray-300 py-0 z-10">
+										{formatNumber(order.total)}
+									</TableCell>
+									<div
+										className="absolute inset-0 bg-green-500"
+										style={{
+											width: `${(order.total / maxBuyAmount) * 100}%`,
+											left: 0,
+											opacity: 0.3
+										}}
+									/>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
+			</div>
+			<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
+				<span className="text-green-500">B 65.40%</span>
+				<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
+					<div className="h-full bg-green-500" style={{ width: '65.40%' }}></div>
+				</div>
+				<span className="text-red-500">34.60% S</span>
 			</div>
 		</div>
 	)
