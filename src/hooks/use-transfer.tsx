@@ -323,7 +323,7 @@ export async function hydrateTokens(
 			throw new Error(`Failed to fetch transaction data for token at index ${index}`)
 		}
 
-		const { prevTx, prevTokenInputIndex, prevPrevTx } = tokenTx
+		const { prevTx, prevPrevTx } = tokenTx
 		const token = tokens[index]
 
 		const preCatTx = new CatTx()

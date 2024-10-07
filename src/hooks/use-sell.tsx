@@ -11,9 +11,7 @@ import {
 	toStateScript,
 	toP2tr,
 	script2P2TR,
-	p2tr2Address,
 	verifyContract,
-	getRawTransaction,
 	TokenMetadata,
 	CHANGE_MIN_POSTAGE,
 	Postage,
@@ -32,7 +30,7 @@ import {
 	Sig,
 	hash160
 } from 'scrypt-ts'
-import { BurnGuard, TransferGuard, CAT20, getSHPreimage } from '@/lib/scrypt/contracts/dist'
+import { BurnGuard, TransferGuard, CAT20 } from '@/lib/scrypt/contracts/dist'
 import { CatTx, TaprootSmartContract } from '@/lib/scrypt/contracts/dist/lib/catTx'
 import { chunks, toPushData } from '@/lib/scrypt/contracts/dist/lib/commit'
 import {
@@ -53,7 +51,7 @@ import {
 	MAX_INPUT
 } from '@cat-protocol/cat-smartcontracts'
 import { DUMMY_SIG, WalletService } from '@/lib/scrypt/providers/unisatWalletService'
-import { API_URL, EXPLORER_URL } from '@/lib/constants'
+import { EXPLORER_URL } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button' // Add this import at the top of the file
 import { getFeeRate, broadcast } from '@/lib/utils'
@@ -62,7 +60,6 @@ import { useTokenUtxos } from '@/hooks/use-token-utxos'
 import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
 import { getGuardContractInfo, fetchTokenTxs } from './use-transfer'
 import cbor from 'cbor'
-import axios from 'axios'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -264,8 +261,7 @@ export async function createGuardAndSellContract(
 	tokens: TokenContract[],
 	tokenP2TR: string,
 	changeAddress: btc.Address,
-	price: bigint,
-	metadata: TokenMetadata
+	price: bigint
 ) {
 	const preCommitTx = new btc.Transaction().from(feeUtxo)
 	const orderbookCommitScript = Buffer.from(
@@ -334,6 +330,11 @@ export async function createGuardAndSellContract(
 
 	catTx.addContractOutput(sellContract.lockingScriptHex, Postage.TOKEN_POSTAGE)
 	catTx.tx.change(changeAddress).feePerByte(feeRate)
+	// Disables tx locktime
+	catTx.tx.inputs.forEach((i: any) => {
+		i.sequenceNumber = 0xffffffff
+	})
+	catTx.tx.nLockTime = Number(price)
 
 	const { tapScript: guardTapScript } = getGuardsP2TR()
 
@@ -342,15 +343,6 @@ export async function createGuardAndSellContract(
 		return null
 	}
 
-	const signOrderbookReveal = () => {
-		const witnesses: Buffer[] = []
-		witnesses.push(orderbook.lockingScript)
-		witnesses.push(Buffer.from(orderbook.cblock, 'hex'))
-		catTx.tx.inputs[0].witnesses = witnesses
-	}
-
-	// signOrderbookReveal()
-	// await wallet.signFeeWithToken(catTx.tx, metadata)
 	await wallet.signFeeInput(catTx.tx)
 
 	const contact: GuardContract = {
@@ -408,8 +400,7 @@ export async function sendToken(
 		tokens,
 		tokenP2TR,
 		changeAddress,
-		price,
-		metadata
+		price
 	)
 
 	if (commitResult === null) {
@@ -541,6 +532,11 @@ export async function sendToken(
 	// update change amount
 	revealTx.outputs[satoshiChangeOutputIndex].satoshis = satoshiChangeAmount
 
+	revealTx.inputs.forEach((i: any) => {
+		i.sequenceNumber = 0xffffffff
+	})
+	revealTx.nLockTime = 2138
+
 	const txCtxs = getTxCtxMulti(revealTx, tokens.map((_, i) => i).concat([tokens.length]), [
 		...new Array(tokens.length).fill(Buffer.from(tokenTapScript, 'hex')),
 		Buffer.from(guardTapScript, 'hex')
@@ -552,7 +548,6 @@ export async function sendToken(
 	}
 
 	const verify = false
-	console.log('config verify:', verify)
 
 	const sigs = await wallet.signToken(revealTx, metadata)
 
@@ -635,15 +630,6 @@ export async function sendToken(
 
 	console.log('revealVsize', revealTx.vsize)
 	console.log('commitVsize', commitTx.vsize, 'caclcVsize', vsize)
-
-	// Log witness sizes for reveal transaction
-	console.log('Reveal Transaction Witness Sizes:')
-	revealTx.inputs.forEach((input, index) => {
-		console.log(`Input ${index} witnesses:`)
-		input.witnesses.forEach((witness, witnessIndex) => {
-			console.log(`  Witness ${witnessIndex}: ${witness.length} bytes`)
-		})
-	})
 
 	return {
 		preCommitTx,
@@ -867,28 +853,7 @@ export function useSellCat20(token: TokenData) {
 				throw new Error('Failed to create PSBT')
 			}
 
-			const { commitTx, revealTx, preCommitTx } = response
-
-			// Log witness sizes for reveal transaction
-			console.log('Reveal Transaction Witness Sizes:')
-			revealTx.inputs.forEach((input, index) => {
-				console.log(`Input ${index} witnesses:`)
-				input.witnesses.forEach((witness, witnessIndex) => {
-					console.log(`  Witness ${witnessIndex}: ${witness.length} bytes`)
-				})
-			})
-
-			// const preCommitTxId = await broadcast(preCommitTx.uncheckedSerialize())
-
-			// if (preCommitTxId instanceof Error) {
-			// 	toast({
-			// 		title: 'Failed to Broadcast',
-			// 		// @ts-ignore
-			// 		description: preCommitTxId.response.data,
-			// 		variant: 'destructive'
-			// 	})
-			// 	return
-			// }
+			const { commitTx, revealTx } = response
 
 			const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import useSWR from 'swr'
 
 export interface UnisatAPI {
 	getAccounts: () => Promise<string[]>
@@ -25,41 +26,54 @@ export interface UnisatAPI {
 	getBitcoinUtxos: () => Promise<
 		{ txid: string; vout: number; satoshis: number; scriptPk: string }[]
 	>
-
 	switchChain: (chain: string) => Promise<any>
 	on: (event: string, callback: (...args: any[]) => void) => void
-	removeListener: (event: string, callback: (...args: any[]) => void) => void // Added removeListener method
+	removeListener: (event: string, callback: (...args: any[]) => void) => void
 }
-
-import useSWR from 'swr'
 
 const fetchWalletData = async () => {
 	if (typeof window.unisat === 'undefined') {
 		return {
 			address: '',
+			publicKey: '',
 			isWalletConnected: false,
 			balance: { confirmed: 0, unconfirmed: 0, total: 0 }
 		}
 	}
 
-	const accounts = await window.unisat.getAccounts()
-	if (accounts.length === 0) {
+	try {
+		const accounts = await window.unisat.getAccounts()
+		const address = accounts[0] || ''
+		const publicKey = await window.unisat.getPublicKey()
+		const balance = await window.unisat.getBalance()
+
+		const { btc } = await import('@/lib/scrypt/common')
+
+		const xOnlyPublicKey = btc.Script.fromAddress(address)
+			.getPublicKeyHash()
+			.toString('hex')
+
+		return {
+			address,
+			publicKey,
+			xOnlyPublicKey,
+			isWalletConnected: !!address,
+			balance
+		}
+	} catch (error) {
+		console.error('Error fetching wallet data:', error)
 		return {
 			address: '',
+			publicKey: '',
+			xOnlyPublicKey: '',
 			isWalletConnected: false,
 			balance: { confirmed: 0, unconfirmed: 0, total: 0 }
 		}
 	}
-
-	const address = accounts[0]
-	const balance = await window.unisat.getBalance()
-
-	return { address, isWalletConnected: true, balance }
 }
 
 export const useWallet = () => {
 	const { data, mutate } = useSWR('wallet', fetchWalletData, {
-		refreshInterval: 5000, // Refresh every 5 seconds
 		revalidateOnFocus: false
 	})
 
@@ -68,12 +82,16 @@ export const useWallet = () => {
 		mutate({ ...data, address: newAddress }, false)
 	}
 
+	const setPublicKey = (newPublicKey: string) => {
+		// @ts-ignore
+		mutate({ ...data, publicKey: newPublicKey }, false)
+	}
+
 	const setIsWalletConnected = (isConnected: boolean) => {
 		// @ts-ignore
 		mutate({ ...data, isWalletConnected: isConnected }, false)
 	}
 
-	// New function to update balance
 	const updateBalance = async () => {
 		if (data?.isWalletConnected) {
 			const balance = await window.unisat.getBalance()
@@ -81,16 +99,18 @@ export const useWallet = () => {
 		}
 	}
 
-	// Set up event listener for account changes
 	useEffect(() => {
 		const handleAccountsChanged = async (accounts: string[]) => {
 			if (accounts.length > 0) {
+				const publicKey = await window.unisat.getPublicKey()
 				const balance = await window.unisat.getBalance()
-				mutate({ address: accounts[0], isWalletConnected: true, balance }, false)
+				mutate({ address: accounts[0], publicKey, isWalletConnected: true, balance }, false)
 			} else {
 				mutate(
 					{
 						address: '',
+						publicKey: '',
+						xOnlyPublicKey: '',
 						isWalletConnected: false,
 						balance: { confirmed: 0, unconfirmed: 0, total: 0 }
 					},
@@ -112,9 +132,12 @@ export const useWallet = () => {
 
 	return {
 		address: data?.address || '',
+		publicKey: data?.publicKey || '',
+		xOnlyPublicKey: data?.xOnlyPublicKey || '',
 		isWalletConnected: data?.isWalletConnected || false,
 		balance: data?.balance || { confirmed: 0, unconfirmed: 0, total: 0 },
 		setAddress,
+		setPublicKey,
 		setIsWalletConnected,
 		updateBalance
 	}

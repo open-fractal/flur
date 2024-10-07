@@ -9,6 +9,7 @@ import { useToken, TokenData } from '@/hooks/use-token'
 import { useMinterUtxoCount } from '@/hooks/use-utxo-count'
 import Mint from './mint'
 import Trade from './trade'
+
 const TokenDetail: React.FC<{ token: TokenData; showMarket: boolean }> = ({
 	token: initialToken,
 	showMarket

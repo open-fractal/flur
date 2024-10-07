@@ -15,7 +15,6 @@ import {
 	OrderbookHistoryEntry
 } from '@/hooks/use-token-orderbook-history'
 import { EXPLORER_URL } from '@/lib/constants'
-import Link from 'next/link'
 
 type TradeHistoryProps = {
 	token: TokenData
@@ -61,7 +60,8 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 		time: '25%'
 	}
 
-	const getBlockExplorerUrl = (txid: string) => {
+	const getBlockExplorerUrl = (txid: string | null): string => {
+		if (!txid) return '#' // Return a fallback URL if txid is null
 		return `${EXPLORER_URL}/tx/${txid}`
 	}
 
@@ -105,7 +105,7 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 			<div className="p-0 max-h-[600px] overflow-y-auto">
 				<Table>
 					<TableBody>
-						{historyEntries.map((entry: OrderbookHistoryEntry, index: number) => (
+						{historyEntries.map((entry: OrderbookHistoryEntry) => (
 							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
 								<TableCell
 									className="text-left text-[11px] py-0 text-green-500"
@@ -131,7 +131,9 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 										rel="noopener noreferrer"
 										className="hover:underline"
 									>
-										{formatRelativeTime(new Date(entry.createdAt))}
+										{entry.spendCreatedAt
+											? formatRelativeTime(new Date(entry.spendCreatedAt))
+											: 'Pending'}
 									</a>
 								</TableCell>
 							</TableRow>

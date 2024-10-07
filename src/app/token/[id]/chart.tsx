@@ -1,36 +1,18 @@
 'use client'
 
-import React, { useEffect, FC, ReactElement, useRef, useState } from 'react'
+import React, { useEffect, FC, ReactElement, useRef, useMemo } from 'react'
 import { createChart, ColorType, CandlestickData } from 'lightweight-charts'
 import { TokenData } from '@/hooks/use-token'
+import { useTokenChart } from '@/hooks/use-token-chart'
 
-// Function to generate mock candlestick data
-function generateMockData(days: number): CandlestickData[] {
-	const data: CandlestickData[] = []
-	const today = new Date()
-	let price = 100 // Starting price
-
-	for (let i = days; i > 0; i--) {
-		const date = new Date(today)
-		date.setDate(date.getDate() - i)
-
-		const open = price + (Math.random() - 0.5) * 10
-		const close = open + (Math.random() - 0.5) * 5
-		const high = Math.max(open, close) + Math.random() * 5
-		const low = Math.min(open, close) - Math.random() * 5
-
-		data.push({
-			time: date.toISOString().split('T')[0], // Format: 'YYYY-MM-DD'
-			open,
-			high,
-			low,
-			close
-		})
-
-		price = close // Set the next day's starting price
-	}
-
-	return data
+// Helper function to determine the appropriate precision
+const getAppropriateDecimalPlaces = (price: number): number => {
+	if (price >= 1) return 2
+	if (price >= 0.1) return 3
+	if (price >= 0.01) return 4
+	if (price >= 0.001) return 5
+	if (price >= 0.0001) return 6
+	return 8
 }
 
 export const Chart: FC<{
@@ -39,18 +21,25 @@ export const Chart: FC<{
 	token: TokenData
 }> = (props): ReactElement => {
 	const { width, height, token } = props
-	const [chartData, setChartData] = useState<CandlestickData[]>([])
 	const chartContainerRef = useRef<HTMLDivElement>(null)
+	const { chartData, isLoading, isError } = useTokenChart(token)
+
+	// Calculate the appropriate decimal places based on the latest price
+	const decimalPlaces = useMemo(() => {
+		if (chartData.length === 0) return 8
+		const latestPrice = chartData[chartData.length - 1].close
+		return getAppropriateDecimalPlaces(latestPrice)
+	}, [chartData])
 
 	useEffect(() => {
-		// Generate 90 days of mock data
-		const mockData = generateMockData(90)
-		setChartData(mockData)
-	}, [])
-
-	useEffect(() => {
-		if (!chartContainerRef.current || !height || typeof height !== 'number' || height <= 0) {
-			console.error('Invalid chart container or dimensions')
+		if (
+			isLoading ||
+			isError ||
+			!chartContainerRef.current ||
+			!height ||
+			typeof height !== 'number' ||
+			height <= 0
+		) {
 			return
 		}
 
@@ -67,7 +56,7 @@ export const Chart: FC<{
 			height: height,
 			watermark: {
 				visible: true,
-				text: `${token.symbol}/FB (Mock Data)`,
+				text: `${token.symbol}/FB`,
 				color: 'rgba(255, 255, 255, 0.5)',
 				fontSize: 24
 			}
@@ -78,10 +67,25 @@ export const Chart: FC<{
 			downColor: '#ef4444',
 			borderVisible: false,
 			wickUpColor: '#22c55e',
-			wickDownColor: '#ef4444'
+			wickDownColor: '#ef4444',
+			priceFormat: {
+				type: 'price',
+				precision: decimalPlaces,
+				minMove: 1 / Math.pow(10, decimalPlaces)
+			}
 		})
 
-		candlestickSeries.setData(chartData)
+		// Convert the API data to the format expected by lightweight-charts
+		// @ts-ignore
+		const formattedChartData: CandlestickData[] = chartData.map(candle => ({
+			time: candle.time,
+			open: candle.open,
+			high: candle.high,
+			low: candle.low,
+			close: candle.close
+		}))
+
+		candlestickSeries.setData(formattedChartData)
 
 		// Fit the time scale to show all data points
 		chart.timeScale().fitContent()
@@ -99,7 +103,15 @@ export const Chart: FC<{
 			window.removeEventListener('resize', handleResize)
 			chart.remove()
 		}
-	}, [height, width, chartData, token.symbol])
+	}, [height, width, chartData, token.symbol, isLoading, isError, decimalPlaces])
+
+	if (isLoading) {
+		return <div>Loading chart data...</div>
+	}
+
+	if (isError) {
+		return <div>Error loading chart data. Please try again later.</div>
+	}
 
 	return <div ref={chartContainerRef} />
 }

@@ -28,6 +28,9 @@ export interface OrderbookHistoryEntry {
 	price: string
 	spendTxid: string | null
 	spendInputIndex: number | null
+	spendCreatedAt: string | null
+	spendBlockHeight: number | null
+	takerPubKey: string | null
 	blockHeight: number
 	createdAt: string
 	tokenUtxo: TokenUtxo
@@ -54,13 +57,17 @@ export function useTokenOrderbookHistory(token: TokenData) {
 		return data
 	}
 
-	// Use SWR for orderbook history data fetching
+	// Use SWR for orderbook history data fetching with a 5-second refresh interval
 	const { data: orderbookHistoryData, error: orderbookHistoryError } = useSWR<
 		OrderbookHistoryResponse,
 		Error
 	>(
 		token ? `${API_URL}/api/orderbook/${token.tokenId}/history?limit=1000000&offset=0` : null,
-		orderbookHistoryFetcher
+		orderbookHistoryFetcher,
+		{
+			refreshInterval: 5000, // Refresh every 5 seconds
+			dedupingInterval: 1000 // Dedupe requests within 1 second
+		}
 	)
 
 	// Process the fetched orderbook history data

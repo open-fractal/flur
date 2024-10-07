@@ -7,7 +7,6 @@ import {
 	callToBufferList,
 	toTokenAddress,
 	getTokenContractP2TR,
-	resetTx,
 	toP2tr,
 	getRawTransaction,
 	TokenMetadata,
