@@ -24,8 +24,8 @@ interface ChartResponse {
  * @param tokenId - The ID of the token
  * @returns Promise with the chart data
  */
-const fetchTokenChart = async (id: string): Promise<CandleData[]> => {
-	const response = await fetch(`${API_URL}/api/orderbook/${id}/chart`)
+const fetchTokenChart = async (id: string, timeframe: string = '12h'): Promise<CandleData[]> => {
+	const response = await fetch(`${API_URL}/api/orderbook/${id}/chart?timeframe=${timeframe}`)
 	const data: ChartResponse = await response.json()
 
 	if (data.code !== 0 || !Array.isArray(data.data)) {
@@ -40,10 +40,10 @@ const fetchTokenChart = async (id: string): Promise<CandleData[]> => {
  * @param tokenData - The token data object
  * @returns Object containing chart data, loading state, and error state
  */
-export function useTokenChart(tokenData: TokenData) {
+export function useTokenChart(tokenData: TokenData, timeframe: string) {
 	const { data, error } = useSWR<CandleData[], Error>(
-		tokenData ? [`tokenChart`, tokenData.tokenId] : null,
-		([, id]) => fetchTokenChart(id as string), // Type assertion to fix the error
+		tokenData ? [`tokenChart`, tokenData.tokenId, timeframe] : null,
+		([, id, timeframe]) => fetchTokenChart(id as string, timeframe as string), // Type assertion to fix the error
 		{
 			refreshInterval: 60000 // Refresh every minute
 		}
@@ -63,8 +63,6 @@ export function useTokenChart(tokenData: TokenData) {
 			close: candle.close / scaleFactor
 		}))
 	}, [data, tokenData.decimals])
-
-	console.log({ scaledChartData })
 
 	return {
 		chartData: scaledChartData,

@@ -22,7 +22,7 @@ interface TokenHeaderProps {
 
 // Helper function to render individual stat
 const renderStat = (label: string, value: string | number, copyable?: boolean) => (
-	<div className="flex flex-col items-start">
+	<div className="flex flex-col items-start" key={label}>
 		<span className="font-semibold">{label}</span>
 		{copyable ? (
 			<span className="text-muted-foreground text-sm">

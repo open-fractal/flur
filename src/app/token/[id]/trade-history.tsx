@@ -10,10 +10,7 @@ import {
 	TableRow
 } from '@/components/ui/table'
 import { TokenData } from '@/hooks/use-token'
-import {
-	useTokenOrderbookHistory,
-	OrderbookHistoryEntry
-} from '@/hooks/use-token-orderbook-history'
+import { useTokenOrderbookHistory } from '@/hooks/use-token-orderbook-history'
 import { EXPLORER_URL } from '@/lib/constants'
 
 type TradeHistoryProps = {
@@ -105,7 +102,7 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 			<div className="p-0 max-h-[600px] overflow-y-auto">
 				<Table>
 					<TableBody>
-						{historyEntries.map((entry: OrderbookHistoryEntry) => (
+						{historyEntries.map(entry => (
 							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
 								<TableCell
 									className="text-left text-[11px] py-0 text-green-500"
@@ -118,7 +115,9 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 									style={{ width: columnWidths.amount }}
 								>
 									{formatNumber(
-										parseInt(entry.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+										entry.status === 'partially_filled' && entry.fillAmount
+											? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
+											: parseInt(entry.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
 									)}
 								</TableCell>
 								<TableCell

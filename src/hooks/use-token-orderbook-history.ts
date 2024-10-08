@@ -1,56 +1,13 @@
 import useSWR from 'swr'
 import { TokenData } from '@/hooks/use-token'
 import { API_URL } from '@/lib/constants'
-
-// Define the structure of a token UTXO
-interface TokenUtxo {
-	utxo: {
-		txId: string
-		outputIndex: number
-		script: string
-		satoshis: string
-	}
-	txoStateHashes: string[]
-	state: {
-		address: string
-		amount: string
-	}
-}
-
-// Define the structure of an orderbook entry
-export interface OrderbookHistoryEntry {
-	txid: string
-	outputIndex: number
-	tokenPubKey: string
-	tokenTxid: string
-	tokenOutputIndex: number
-	ownerPubKey: string
-	price: string
-	spendTxid: string | null
-	spendInputIndex: number | null
-	spendCreatedAt: string | null
-	spendBlockHeight: number | null
-	takerPubKey: string | null
-	blockHeight: number
-	createdAt: string
-	tokenUtxo: TokenUtxo
-}
-
-// Define the structure of the API response
-interface OrderbookHistoryResponse {
-	code: number
-	msg: string
-	data: {
-		utxos: OrderbookHistoryEntry[]
-		trackerBlockHeight: number
-	}
-}
+import { OrderbookResponse } from './use-token-orderbook'
 
 export function useTokenOrderbookHistory(token: TokenData) {
 	// Define the fetcher function for orderbook history data
-	const orderbookHistoryFetcher = async (url: string): Promise<OrderbookHistoryResponse> => {
+	const orderbookHistoryFetcher = async (url: string): Promise<OrderbookResponse> => {
 		const response = await fetch(url)
-		const data: OrderbookHistoryResponse = await response.json()
+		const data: OrderbookResponse = await response.json()
 		if (data.code !== 0 || !data.data?.utxos) {
 			throw new Error('Failed to fetch orderbook history data')
 		}
@@ -59,7 +16,7 @@ export function useTokenOrderbookHistory(token: TokenData) {
 
 	// Use SWR for orderbook history data fetching with a 5-second refresh interval
 	const { data: orderbookHistoryData, error: orderbookHistoryError } = useSWR<
-		OrderbookHistoryResponse,
+		OrderbookResponse,
 		Error
 	>(
 		token ? `${API_URL}/api/orderbook/${token.tokenId}/history?limit=1000000&offset=0` : null,

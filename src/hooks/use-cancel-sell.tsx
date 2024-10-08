@@ -16,7 +16,15 @@ import {
 	parseTokens,
 	parseTokenMetadata
 } from '@/lib/scrypt/common'
-import { int2ByteString, MethodCallOptions, toByteString, UTXO, fill, hash160 } from 'scrypt-ts'
+import {
+	int2ByteString,
+	MethodCallOptions,
+	toByteString,
+	UTXO,
+	fill,
+	hash160,
+	PubKey
+} from 'scrypt-ts'
 import { BurnGuard, TransferGuard, CAT20 } from '@/lib/scrypt/contracts/dist'
 import { TaprootSmartContract, CatTx } from '@/lib/scrypt/contracts/dist/lib/catTx'
 import {
@@ -150,7 +158,6 @@ export async function takeToken(
 		satoshis: sellContractTx.outputs[selectedOrder.outputIndex].satoshis
 	}
 
-	const sellerSats = amount * price
 	const sellerLockingScript = `5120${selectedOrder.ownerPubKey}`
 
 	const minterP2TR = toP2tr(metadata.minterAddr)
@@ -162,7 +169,7 @@ export async function takeToken(
 		throw new Error('There was an error creating the sell contract')
 	}
 
-	const costEstimate = Number(sellerSats) + 1000
+	const costEstimate = 10000
 	let totalInputValue = 0n
 	const usedFeeUtxos: UTXO[] = []
 
@@ -197,7 +204,6 @@ export async function takeToken(
 	}
 
 	const tokenInputAmount = tokens.reduce((acc, t) => acc + t.state.data.amount, 0n)
-	const changeTokenInputAmount = tokenInputAmount - amount
 	const guardCommitTxHeader = getTxHeaderCheck(guard.catTx.tx, guard.guardContract.utxo.outputIndex)
 
 	const sellInputIndex = tokens.length + 1
@@ -211,12 +217,19 @@ export async function takeToken(
 		guardState: guard.guardContract.state.data
 	}
 
+	if (tokenInputAmount != amount) {
+		throw new Error('tokenInputAmount != amount')
+	}
+
 	const newFeeUtxo = {
 		txId: guard.catTx.tx.id,
 		outputIndex: guard.catTx.tx.outputs.length - 1,
 		script: guard.catTx.tx.outputs[guard.catTx.tx.outputs.length - 1].script.toHex(),
 		satoshis: guard.catTx.tx.outputs[guard.catTx.tx.outputs.length - 1].satoshis
 	}
+
+	console.log('tokenP2TR', tokenP2TR)
+	console.log('utxo', tokens[0].utxo.script)
 
 	const inputUtxos = [
 		...tokens.map(t => t.utxo),
@@ -229,20 +242,9 @@ export async function takeToken(
 	catTx.tx.from(inputUtxos)
 
 	const receivers = [CAT20Proto.create(amount, toTokenAddress(receiver))]
-
-	if (changeTokenInputAmount > 0n) {
-		const tokenChange = CAT20Proto.create(
-			changeTokenInputAmount,
-			hash160(sellContract.lockingScriptHex)
-		)
-		receivers.push(tokenChange)
-	}
-
 	for (const receiver of receivers) {
 		catTx.addStateContractOutput(tokenP2TR, CAT20Proto.toByteString(receiver))
 	}
-
-	catTx.addContractOutput(sellerLockingScript, Number(sellerSats))
 
 	catTx.tx
 		.addOutput(
@@ -257,12 +259,7 @@ export async function takeToken(
 
 	const vsize = 3394
 
-	const satoshiChangeAmount =
-		catTx.tx.inputAmount -
-		vsize * feeRate -
-		Postage.TOKEN_POSTAGE -
-		(changeTokenInputAmount > 0n ? Postage.TOKEN_POSTAGE : 0) -
-		Number(sellerSats)
+	const satoshiChangeAmount = catTx.tx.inputAmount - vsize * feeRate - Postage.TOKEN_POSTAGE
 
 	if (satoshiChangeAmount <= CHANGE_MIN_POSTAGE) {
 		console.error('Insufficient satoshis balance!')
@@ -293,7 +290,7 @@ export async function takeToken(
 	scriptBuffers.push(sellContract.tapleafBuffer)
 	const ctxList = getTxCtxMulti(catTx.tx, inputIndexList, scriptBuffers)
 
-	const sign = async () => {
+	const sign = async (sigs: string[]) => {
 		// token unlock
 		for (let i = 0; i < inputTokens.length; i++) {
 			const inputToken = inputTokens[i]
@@ -400,17 +397,20 @@ export async function takeToken(
 		{
 			await sellContract.contract.connect(getDummySigner())
 			const { shPreimage, prevoutsCtx, spentScripts } = ctxList[sellInputIndex]
+			const pubkeyX = await wallet.getXOnlyPublicKey()
+			const pubKeyPrefix = await wallet.getPubKeyPrefix()
+
 			const sellCall = await sellContract.contract.methods.take(
 				catTx.state.stateHashList,
 				0n,
 				amount,
-				changeTokenInputAmount,
+				0n,
 				toTokenAddress(receiver),
 				toByteString('4a01000000000000'),
-				false,
-				toByteString(''),
-				toByteString(''),
-				() => toByteString(''),
+				true,
+				pubKeyPrefix,
+				PubKey(pubkeyX),
+				() => sigs[0],
 				shPreimage,
 				prevoutsCtx,
 				spentScripts,
@@ -442,10 +442,8 @@ export async function takeToken(
 
 	// const vsize = await calcVsize()
 
-	await wallet.signFeeWithToken(catTx.tx, metadata)
-	await sign()
-
-	console.log('actual reveal', catTx.tx.vsize, 'estimated vsize', vsize)
+	const sigs = await wallet.signContract(catTx.tx, sellContract)
+	await sign(sigs)
 
 	return {
 		revealTx: catTx.tx,
@@ -453,16 +451,12 @@ export async function takeToken(
 	}
 }
 
-export function useTakeSellCat20(token: TokenData) {
+export function useCancelSellCat20(token: TokenData) {
 	const [isTransferring, setIsTransferring] = useState(false)
 	const { toast } = useToast()
 	const { totalAmount } = useTokenUtxos(token)
 
-	const handleTakeSell = async (
-		transferAmount: string,
-		transferAddress: string,
-		selectedOrder: OrderbookEntry
-	) => {
+	const handleCancelSell = async (selectedOrder: OrderbookEntry) => {
 		setIsTransferring(true)
 
 		try {
@@ -507,31 +501,8 @@ export function useTakeSellCat20(token: TokenData) {
 				return
 			}
 
-			const transferAmountNumber = Number(transferAmount)
-			if (isNaN(transferAmountNumber) || transferAmountNumber <= 0) {
-				toast({
-					title: 'Invalid Amount',
-					description: 'Please enter a valid transfer amount.',
-					variant: 'destructive'
-				})
-				return
-			}
-
-			const priceNumber = Number(selectedOrder.price)
-			if (isNaN(priceNumber) || priceNumber <= 0) {
-				toast({
-					title: 'Invalid Price',
-					description: 'Please enter a valid price in BTC.',
-					variant: 'destructive'
-				})
-				return
-			}
-
-			// Scale the transfer amount by token decimals
-			const scaledAmount = BigInt(Math.round(transferAmountNumber * Math.pow(10, token.decimals)))
-
-			// Scale the price to satoshis
-			const scaledPrice = BigInt(priceNumber)
+			const scaledAmount = BigInt(selectedOrder.tokenUtxo.state.amount)
+			const scaledPrice = BigInt(Number(selectedOrder.price))
 
 			const feeRate = await getFeeRate()
 			const bitcoinUtxos = await window.unisat.getBitcoinUtxos()
@@ -569,7 +540,7 @@ export function useTakeSellCat20(token: TokenData) {
 				parseTokenMetadata(token),
 				parseTokens([selectedOrder.tokenUtxo]),
 				btc.Address.fromString(payload.address),
-				btc.Address.fromString(transferAddress),
+				btc.Address.fromString(payload.address),
 				scaledAmount,
 				scaledPrice,
 				new Map(),
@@ -595,7 +566,7 @@ export function useTakeSellCat20(token: TokenData) {
 			}
 			toast({
 				title: 'Transaction Broadcasted!',
-				description: 'Your cat20 purchase is in the mempool',
+				description: 'Your order cancellation is in the mempool',
 				action: (
 					<Button asChild>
 						<a href={`${EXPLORER_URL}/tx/${revealTxid}`} target="_blank" rel="noopener noreferrer">
@@ -608,8 +579,8 @@ export function useTakeSellCat20(token: TokenData) {
 			console.error('Transfer failed:', error)
 			if (error instanceof Error && error.message.includes('User rejected')) {
 				toast({
-					title: 'Transfer Cancelled',
-					description: 'You cancelled the transfer request. No tokens were sent.',
+					title: 'Cancelled',
+					description: 'You cancelled the request. No tokens were sent.',
 					variant: 'destructive'
 				})
 			} else {
@@ -627,5 +598,5 @@ export function useTakeSellCat20(token: TokenData) {
 		}
 	}
 
-	return { isTransferring, handleTakeSell, totalAmount }
+	return { isTransferring, handleCancelSell, totalAmount }
 }

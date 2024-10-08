@@ -34,6 +34,8 @@ export interface OrderbookEntry {
 	blockHeight: number
 	createdAt: string
 	tokenUtxo: TokenUtxo
+	fillAmount: string | null 
+	status: 'open' | 'filled' | 'canceled' | 'partially_filled'
 }
 
 // Define the structure of the API response
@@ -63,8 +65,6 @@ export function useTokenOrderbook(token: TokenData) {
 		{ refreshInterval: 5000 } // Refresh every 5 seconds
 	)
 
-	console.log(orderbookData)
-
 	const sellOrders = orderbookData?.data?.utxos || []
 	const buyOrders: OrderbookEntry[] = [] // Empty for now
 
@@ -85,9 +85,6 @@ export function useTokenOrderbook(token: TokenData) {
 	const formattedTotalSellAmount = (totalSellAmount / Math.pow(10, token.decimals)).toFixed(
 		token.decimals
 	)
-
-	console.log('sellOrders', sellOrders)
-	console.log('buyOrders', buyOrders)
 
 	return {
 		sellOrders,

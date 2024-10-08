@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useEffect, FC, ReactElement, useRef, useMemo } from 'react'
+import React, { useEffect, FC, ReactElement, useRef, useMemo, useState } from 'react'
 import { createChart, ColorType, CandlestickData } from 'lightweight-charts'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenChart } from '@/hooks/use-token-chart'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // Helper function to determine the appropriate precision
 const getAppropriateDecimalPlaces = (price: number): number => {
@@ -15,6 +16,15 @@ const getAppropriateDecimalPlaces = (price: number): number => {
 	return 8
 }
 
+// Define the available timeframes
+const timeframes = [
+	{ value: '1h', label: '1H' },
+	{ value: '4h', label: '4H' },
+	{ value: '12h', label: '12H' },
+	{ value: '1d', label: '1D' },
+	{ value: '1w', label: '1W' }
+]
+
 export const Chart: FC<{
 	width: number
 	height: number
@@ -22,7 +32,8 @@ export const Chart: FC<{
 }> = (props): ReactElement => {
 	const { width, height, token } = props
 	const chartContainerRef = useRef<HTMLDivElement>(null)
-	const { chartData, isLoading, isError } = useTokenChart(token)
+	const [selectedTimeframe, setSelectedTimeframe] = useState('12h') // Changed default to '12h'
+	const { chartData, isLoading, isError } = useTokenChart(token, selectedTimeframe)
 
 	// Calculate the appropriate decimal places based on the latest price
 	const decimalPlaces = useMemo(() => {
@@ -103,7 +114,7 @@ export const Chart: FC<{
 			window.removeEventListener('resize', handleResize)
 			chart.remove()
 		}
-	}, [height, width, chartData, token.symbol, isLoading, isError, decimalPlaces])
+	}, [height, width, chartData, token.symbol, isLoading, isError, decimalPlaces, selectedTimeframe])
 
 	if (isLoading) {
 		return <div>Loading chart data...</div>
@@ -113,5 +124,24 @@ export const Chart: FC<{
 		return <div>Error loading chart data. Please try again later.</div>
 	}
 
-	return <div ref={chartContainerRef} />
+	return (
+		<div className="relative" style={{ width, height }}>
+			<div className="absolute top-2 left-2 z-10 bg-black">
+				<Tabs value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+					<TabsList className="bg-black/60 backdrop-blur-sm">
+						{timeframes.map(tf => (
+							<TabsTrigger
+								key={tf.value}
+								value={tf.value}
+								className="data-[state=active]:bg-white/10"
+							>
+								{tf.label}
+							</TabsTrigger>
+						))}
+					</TabsList>
+				</Tabs>
+			</div>
+			<div ref={chartContainerRef} className="w-full h-full" />
+		</div>
+	)
 }

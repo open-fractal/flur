@@ -780,6 +780,8 @@ export function useSellCat20(token: TokenData) {
 				return
 			}
 
+			debugger
+
 			// Scale the transfer amount by token decimals
 			const scaledAmount = BigInt(Math.round(transferAmountNumber * Math.pow(10, token.decimals)))
 

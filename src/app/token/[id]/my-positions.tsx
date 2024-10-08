@@ -18,6 +18,7 @@ import { Loader2 } from 'lucide-react'
 import { useWallet } from '@/lib/unisat'
 import { useToast } from '@/hooks/use-toast'
 import { EXPLORER_URL } from '@/lib/constants'
+import { useCancelSellCat20 } from '@/hooks/use-cancel-sell' // Add this import
 
 // Utility function to format numbers
 function formatNumber(num: number, maxDecimals: number): string {
@@ -37,6 +38,7 @@ export function MyPositions(props: { token: TokenData }) {
 		isError: isHistoryError
 	} = useUserTokenOrderbookHistory(token)
 	const [activeTab, setActiveTab] = useState<'open-orders' | 'history'>('open-orders')
+	const { handleCancelSell, isTransferring } = useCancelSellCat20(token) // Add this line
 
 	const connectWallet = async () => {
 		if (typeof window.unisat !== 'undefined') {
@@ -59,26 +61,22 @@ export function MyPositions(props: { token: TokenData }) {
 		}
 	}
 
-	const cancelOrder = useCallback(async (txid: string) => {
-		try {
-			// Implement the cancel order logic here
-			// This is a placeholder for the actual implementation
-			console.log('Cancelling order:', txid)
-			// After successful cancellation, refetch the orders
-			toast({
-				title: 'Order Cancelled',
-				description: 'Your order has been successfully cancelled.',
-				variant: 'default'
-			})
-		} catch (error) {
-			console.error('Error cancelling order:', error)
-			toast({
-				title: 'Error',
-				description: 'Failed to cancel order. Please try again.',
-				variant: 'destructive'
-			})
-		}
-	}, [])
+	const cancelOrder = useCallback(
+		async (order: any) => {
+			try {
+				await handleCancelSell(order)
+				// Refetch the orders after successful cancellation
+			} catch (error) {
+				console.error('Error cancelling order:', error)
+				toast({
+					title: 'Error',
+					description: 'Failed to cancel order. Please try again.',
+					variant: 'destructive'
+				})
+			}
+		},
+		[handleCancelSell, toast]
+	)
 
 	if (!isWalletConnected) {
 		return (
@@ -134,10 +132,15 @@ export function MyPositions(props: { token: TokenData }) {
 								</TableCell>
 								<TableCell>{formatNumber(price, 8)}</TableCell>
 								<TableCell>{formatNumber(amount, token.decimals)}</TableCell>
-								<TableCell>Open</TableCell>
+								<TableCell>{order.status || 'Open'}</TableCell>
 								<TableCell>
-									<Button variant="outline" size="sm" onClick={() => cancelOrder(order.txid)}>
-										Cancel
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => cancelOrder(order)}
+										disabled={isTransferring}
+									>
+										{isTransferring ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cancel'}
 									</Button>
 								</TableCell>
 							</TableRow>
@@ -174,16 +177,21 @@ export function MyPositions(props: { token: TokenData }) {
 				</TableHeader>
 				<TableBody>
 					{userOrdersHistory.map((order, index) => {
-						console.log(order, xOnlyPublicKey)
-						// const wallet = new WalletService()
-						// const xOnlyPublicKey = await wallet.getxOnlyPublicKey()
-						const side = order.takerPubKey === xOnlyPublicKey ? 'BUY' : 'SELL'
+						const side =
+							order.takerPubKey === xOnlyPublicKey && order.status !== 'canceled' ? 'BUY' : 'SELL'
 						const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
-						const amount = parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+						const amount =
+							order.status === 'partially_filled' && order.fillAmount
+								? parseInt(order.fillAmount) / Math.pow(10, token.decimals)
+								: parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
 						return (
 							<TableRow key={index}>
 								<TableCell>
-									<a href={`${EXPLORER_URL}/tx/${order.spendTxid}`} target="_blank">
+									<a
+										href={`${EXPLORER_URL}/tx/${order.spendTxid}`}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
 										{new Date(order.spendCreatedAt || '').toLocaleString()}
 									</a>
 								</TableCell>
@@ -192,7 +200,7 @@ export function MyPositions(props: { token: TokenData }) {
 								</TableCell>
 								<TableCell>{formatNumber(price, 8)}</TableCell>
 								<TableCell>{formatNumber(amount, token.decimals)}</TableCell>
-								<TableCell>{'Completed'}</TableCell>
+								<TableCell>{order.status || 'Completed'}</TableCell>
 							</TableRow>
 						)
 					})}
