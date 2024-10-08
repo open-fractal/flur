@@ -49,6 +49,7 @@ import { useTokenUtxos } from '@/hooks/use-token-utxos'
 import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
 import { createGuardContract, hydrateTokens } from './use-transfer'
 import { OrderbookEntry } from './use-token-orderbook'
+import { createGuardAndSellContract } from './use-sell'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -148,14 +149,17 @@ export async function takeToken(
 		return null
 	}
 
-	const sellRawTransaction = await getRawTransaction(selectedOrder.txid)
+	const sellRawTransaction = await getRawTransaction(
+		selectedOrder.genesisTxid || selectedOrder.txid
+	)
 	const sellContractTx = new btc.Transaction(sellRawTransaction)
+	const sellContractUtxoIndex = selectedOrder.genesisOutputIndex || selectedOrder.outputIndex
 
-	const sellContractUtxo = {
+	let sellContractUtxo = {
 		txId: selectedOrder.txid,
-		outputIndex: selectedOrder.outputIndex,
-		script: sellContractTx.outputs[selectedOrder.outputIndex].script.toHex(),
-		satoshis: sellContractTx.outputs[selectedOrder.outputIndex].satoshis
+		outputIndex: sellContractUtxoIndex,
+		script: sellContractTx.outputs[sellContractUtxoIndex].script.toHex(),
+		satoshis: sellContractTx.outputs[sellContractUtxoIndex].satoshis
 	}
 
 	const sellerLockingScript = `5120${selectedOrder.ownerPubKey}`
@@ -188,18 +192,43 @@ export async function takeToken(
 		throw new Error('Insufficient balance to cover the transaction cost')
 	}
 
-	console.log('usedFeeUtxos', usedFeeUtxos)
+	let guard
 
-	const guard = await createGuardContract(
-		wallet,
-		usedFeeUtxos,
-		feeRate,
-		tokens,
-		tokenP2TR,
-		changeAddress
-	)
+	if (selectedOrder.status === 'partially_open') {
+		guard = await createGuardAndSellContract(
+			wallet,
+			usedFeeUtxos,
+			feeRate,
+			tokens,
+			tokenP2TR,
+			changeAddress,
+			price
+		)
 
-	if (guard === null) {
+		if (!guard) {
+			return null
+		}
+
+		sellContractUtxo = {
+			txId: guard.catTx.tx.id,
+			outputIndex: 2,
+			script: guard.catTx.tx.outputs[2].script.toHex(),
+			satoshis: guard.catTx.tx.outputs[2].satoshis
+		}
+	}
+
+	if (selectedOrder.status === 'open') {
+		guard = await createGuardContract(
+			wallet,
+			usedFeeUtxos,
+			feeRate,
+			tokens,
+			tokenP2TR,
+			changeAddress
+		)
+	}
+
+	if (!guard || guard === null) {
 		return null
 	}
 

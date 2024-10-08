@@ -34,8 +34,10 @@ export interface OrderbookEntry {
 	blockHeight: number
 	createdAt: string
 	tokenUtxo: TokenUtxo
-	fillAmount: string | null 
-	status: 'open' | 'filled' | 'canceled' | 'partially_filled'
+	fillAmount: string | null
+	status: 'open' | 'filled' | 'canceled' | 'partially_filled' | 'partially_open'
+	genesisTxid: string | null
+	genesisOutputIndex: number | null
 }
 
 // Define the structure of the API response

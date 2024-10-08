@@ -10,7 +10,6 @@ import {
 	resetTx,
 	toStateScript,
 	toP2tr,
-	script2P2TR,
 	verifyContract,
 	TokenMetadata,
 	CHANGE_MIN_POSTAGE,
@@ -256,52 +255,21 @@ export const getOrderbookScript = (
 
 export async function createGuardAndSellContract(
 	wallet: WalletService,
-	feeUtxo: UTXO,
+	feeUtxo: UTXO | UTXO[],
 	feeRate: number,
 	tokens: TokenContract[],
 	tokenP2TR: string,
 	changeAddress: btc.Address,
-	price: bigint
+	price: bigint,
+	sellerAddress?: btc.Address
 ) {
-	const preCommitTx = new btc.Transaction().from(feeUtxo)
-	const orderbookCommitScript = Buffer.from(
-		getOrderbookScript('', { md5: '1fc0e92f9c8b9c80bd3a981f87baa7b1', price }),
-		'hex'
-	)
-	const { p2tr: orderbookCommitP2TR } = script2P2TR(orderbookCommitScript)
-
-	preCommitTx.addOutput(
-		new btc.Transaction.Output({
-			satoshis: Postage.TOKEN_POSTAGE,
-			script: orderbookCommitP2TR
-		})
-	)
-	preCommitTx.change(changeAddress).feePerByte(feeRate)
-	// await wallet.signFeeInput(preCommitTx)
-
-	const orderbookCommitUtxoIndex = 0
-
-	const orderbook = {
-		utxo: {
-			txId: preCommitTx.id,
-			outputIndex: orderbookCommitUtxoIndex,
-			script: preCommitTx.outputs[orderbookCommitUtxoIndex].script.toHex(),
-			satoshis: preCommitTx.outputs[orderbookCommitUtxoIndex].satoshis
-		},
-		lockingScript: orderbookCommitScript,
-		...script2P2TR(orderbookCommitScript)
-	}
-
-	// const newFeeUtxo = {
-	// 	txId: preCommitTx.id,
-	// 	outputIndex: preCommitTx.outputs.length - 1,
-	// 	script: preCommitTx.outputs[preCommitTx.outputs.length - 1].script.toHex(),
-	// 	satoshis: preCommitTx.outputs[preCommitTx.outputs.length - 1].satoshis
-	// }
-
 	const guardInfo = getGuardContractInfo()
-	const walletAddress = await wallet.getAddress()
-	const walletXOnlyPublicKey = await wallet.getXOnlyPublicKey()
+	const walletAddress = sellerAddress || (await wallet.getAddress())
+	const walletXOnlyPublicKey = sellerAddress
+		? btc.Script.fromAddress(sellerAddress)
+				.getPublicKeyHash()
+				.toString('hex')
+		: await wallet.getXOnlyPublicKey()
 
 	const sellContract = TaprootSmartContract.create(
 		new CAT20Sell(
@@ -345,7 +313,7 @@ export async function createGuardAndSellContract(
 
 	await wallet.signFeeInput(catTx.tx)
 
-	const contact: GuardContract = {
+	const guardContract: GuardContract = {
 		utxo: {
 			txId: catTx.tx.id,
 			outputIndex: atIndex,
@@ -359,12 +327,14 @@ export async function createGuardAndSellContract(
 	}
 
 	return {
-		preCommitTx,
 		commitTx: catTx.tx,
-		contact,
-		guardTapScript,
+		catTx: catTx,
+		contract: guardInfo.contractTaprootMap.transfer.contract,
+		contractTaproot: guardInfo.contractTaprootMap.transfer,
+		atOutputIndex: atIndex,
+		guardContract,
 		sellContract,
-		orderbook
+		guardTapScript
 	}
 }
 
@@ -380,7 +350,6 @@ export async function sendToken(
 	price: bigint,
 	cachedTxs: Map<string, btc.Transaction>
 ): Promise<{
-	preCommitTx: btc.Transaction
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
 	contracts: TokenContract[]
@@ -407,13 +376,7 @@ export async function sendToken(
 		return null
 	}
 
-	const {
-		preCommitTx,
-		commitTx,
-		contact: guardContract,
-		guardTapScript,
-		sellContract
-	} = commitResult
+	const { commitTx, guardContract, guardTapScript, sellContract } = commitResult
 
 	const newState = ProtocolState.getEmptyState()
 
@@ -632,7 +595,6 @@ export async function sendToken(
 	console.log('commitVsize', commitTx.vsize, 'caclcVsize', vsize)
 
 	return {
-		preCommitTx,
 		commitTx,
 		revealTx,
 		contracts
@@ -779,8 +741,6 @@ export function useSellCat20(token: TokenData) {
 				})
 				return
 			}
-
-			debugger
 
 			// Scale the transfer amount by token decimals
 			const scaledAmount = BigInt(Math.round(transferAmountNumber * Math.pow(10, token.decimals)))

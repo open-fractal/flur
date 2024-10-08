@@ -38,7 +38,8 @@ export function MyPositions(props: { token: TokenData }) {
 		isError: isHistoryError
 	} = useUserTokenOrderbookHistory(token)
 	const [activeTab, setActiveTab] = useState<'open-orders' | 'history'>('open-orders')
-	const { handleCancelSell, isTransferring } = useCancelSellCat20(token) // Add this line
+	const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
+	const { handleCancelSell } = useCancelSellCat20(token) // Add this line
 
 	const connectWallet = async () => {
 		if (typeof window.unisat !== 'undefined') {
@@ -64,6 +65,7 @@ export function MyPositions(props: { token: TokenData }) {
 	const cancelOrder = useCallback(
 		async (order: any) => {
 			try {
+				setCancellingOrderId(order.txid) // Use txid as the unique identifier
 				await handleCancelSell(order)
 				// Refetch the orders after successful cancellation
 			} catch (error) {
@@ -73,6 +75,8 @@ export function MyPositions(props: { token: TokenData }) {
 					description: 'Failed to cancel order. Please try again.',
 					variant: 'destructive'
 				})
+			} finally {
+				setCancellingOrderId(null) // Reset the cancelling order ID
 			}
 		},
 		[handleCancelSell, toast]
@@ -138,9 +142,13 @@ export function MyPositions(props: { token: TokenData }) {
 										variant="outline"
 										size="sm"
 										onClick={() => cancelOrder(order)}
-										disabled={isTransferring}
+										disabled={cancellingOrderId === order.txid}
 									>
-										{isTransferring ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cancel'}
+										{cancellingOrderId === order.txid ? (
+											<Loader2 className="w-4 h-4 animate-spin" />
+										) : (
+											'Cancel'
+										)}
 									</Button>
 								</TableCell>
 							</TableRow>

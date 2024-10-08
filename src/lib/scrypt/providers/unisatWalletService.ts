@@ -369,8 +369,6 @@ export class WalletService {
 			disableTweakSigner?: boolean
 		}> = []
 
-		debugger
-
 		const disableTweakSigner = address.type === 'taproot' ? false : true
 		for (let i = 0; i < psbt.inputCount; i++) {
 			if (tx.inputs[i].output.script.isTaproot()) {
