@@ -171,6 +171,17 @@ export const Header: React.FC = () => {
 									</NavigationMenuLink>
 								</Link>
 							</NavigationMenuItem>
+							<NavigationMenuItem>
+								<Link href="https://store.flur.gg" legacyBehavior passHref>
+									<NavigationMenuLink className={cn(
+										customNavigationMenuTriggerStyle(),
+										inactiveItemStyle,
+										"whitespace-nowrap"
+									)} target="_blank" rel="noopener noreferrer">
+										Store
+									</NavigationMenuLink>
+								</Link>
+							</NavigationMenuItem>
 						</NavigationMenuList>
 					</NavigationMenu>
 				</div>
@@ -289,6 +300,23 @@ export const Header: React.FC = () => {
 												onClick={() => setIsSheetOpen(false)}
 											>
 												Docs
+											</NavigationMenuLink>
+										</Link>
+									</NavigationMenuItem>
+									<NavigationMenuItem className="w-full">
+										<Link href="https://store.flur.gg" legacyBehavior passHref>
+											<NavigationMenuLink 
+												className={cn(
+													customNavigationMenuTriggerStyle(),
+													"justify-start w-full",
+													inactiveItemStyle,
+													"whitespace-nowrap"
+												)}
+												onClick={() => setIsSheetOpen(false)}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												Store
 											</NavigationMenuLink>
 										</Link>
 									</NavigationMenuItem>
