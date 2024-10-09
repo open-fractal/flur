@@ -40,7 +40,7 @@ import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
 import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
 import { createGuardContract, hydrateTokens } from './use-transfer'
-import { OrderbookEntry } from './use-token-orderbook'
+import { OrderbookEntry, getTokenUtxo } from './use-token-orderbook'
 import { createGuardAndSellContract } from './use-sell'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
@@ -580,13 +580,15 @@ export function useTakeSellCat20(token: TokenData) {
 				return
 			}
 
+			const tokenUtxo = await getTokenUtxo(selectedOrder.tokenTxid, selectedOrder.tokenOutputIndex)
+
 			const payload = {
 				token: token,
 				amount: scaledAmount.toString(),
 				feeRate: feeRate,
 				publicKey: await window.unisat.getPublicKey(),
 				address: (await window.unisat.getAccounts())[0],
-				tokenUtxos: [selectedOrder.tokenUtxo],
+				tokenUtxos: [tokenUtxo],
 				utxos: bitcoinUtxos.map((utxo: any) => ({
 					txId: utxo.txid,
 					outputIndex: utxo.vout,
@@ -602,7 +604,7 @@ export function useTakeSellCat20(token: TokenData) {
 				payload.utxos,
 				payload.feeRate,
 				parseTokenMetadata(token),
-				parseTokens([selectedOrder.tokenUtxo]),
+				parseTokens([tokenUtxo]),
 				btc.Address.fromString(payload.address),
 				btc.Address.fromString(transferAddress),
 				scaledAmount,

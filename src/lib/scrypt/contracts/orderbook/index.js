@@ -28,4 +28,5 @@ var __exportStar =
 	}
 Object.defineProperty(exports, '__esModule', { value: true })
 __exportStar(require('./contracts/cat20Sell'), exports)
+__exportStar(require('./contracts/buyCAT20'), exports)
 //# sourceMappingURL=index.js.map

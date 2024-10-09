@@ -153,6 +153,14 @@ export class WalletService {
 						address: address.toString(),
 						sighashTypes: [1]
 					})
+				} else {
+					const witnessUtxo = {
+						value: BigInt(tx.inputs[i].output.satoshis) || 0n,
+						script: tx.inputs[i].output.script.toBuffer() || btc.Script.empty()
+					}
+					psbt.updateInput(i, {
+						witnessUtxo
+					})
 				}
 			} else if (tx.inputs[i].output.script.isWitnessPublicKeyHashOut()) {
 				const pkh = tx.inputs[i].output.script.getPublicKeyHash().toString('hex')

@@ -12,6 +12,7 @@ import {
 import { TokenData } from '@/hooks/use-token'
 import { useTokenOrderbookHistory } from '@/hooks/use-token-orderbook-history'
 import { EXPLORER_URL } from '@/lib/constants'
+import { SELL_MD5 } from '@/hooks/use-token-orderbook'
 
 type TradeHistoryProps = {
 	token: TokenData
@@ -48,7 +49,10 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 		return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })
 	}
 
-	// Remove the getTradeColor function as we'll always use green
+	// Add a function to determine the color based on the order type
+	const getTradeColor = (md5: string) => {
+		return md5 === SELL_MD5 ? 'text-green-500' : 'text-red-500'
+	}
 
 	// Define column widths
 	const columnWidths = {
@@ -105,7 +109,7 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 						{historyEntries.map(entry => (
 							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
 								<TableCell
-									className="text-left text-[11px] py-0 text-green-500"
+									className={`text-left text-[11px] py-0 ${getTradeColor(entry.md5)}`}
 									style={{ width: columnWidths.price }}
 								>
 									{formatNumber((parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals))}
@@ -117,7 +121,7 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 									{formatNumber(
 										entry.status === 'partially_filled' && entry.fillAmount
 											? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
-											: parseInt(entry.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+											: parseInt(entry.tokenAmount) / Math.pow(10, token.decimals)
 									)}
 								</TableCell>
 								<TableCell

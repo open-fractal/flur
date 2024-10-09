@@ -223,11 +223,7 @@ async function unlockGuard(
 	return true
 }
 
-export const getOrderbookScript = (
-	leafKeyXPub: string,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	contractMeta: Record<string, any>
-) => {
+export const getOrderbookScript = (contractMeta: Record<string, any>) => {
 	const m = new Map()
 	for (const key in contractMeta) {
 		m.set(key, contractMeta[key])

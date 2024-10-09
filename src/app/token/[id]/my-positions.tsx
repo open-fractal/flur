@@ -14,11 +14,13 @@ import { Button } from '@/components/ui/button'
 import { TokenData } from '@/hooks/use-token'
 import { useUserTokenOrderbook } from '@/hooks/use-user-token-orderbook'
 import { useUserTokenOrderbookHistory } from '@/hooks/use-user-token-orderbook-history'
+import { BUY_MD5, SELL_MD5 } from '@/hooks/use-token-orderbook'
 import { Loader2 } from 'lucide-react'
 import { useWallet } from '@/lib/unisat'
 import { useToast } from '@/hooks/use-toast'
 import { EXPLORER_URL } from '@/lib/constants'
 import { useCancelSellCat20 } from '@/hooks/use-cancel-sell' // Add this import
+import { useCancelBuyCat20 } from '@/hooks/use-cancel-buy' // Add this import
 
 // Utility function to format numbers
 function formatNumber(num: number, maxDecimals: number): string {
@@ -40,6 +42,7 @@ export function MyPositions(props: { token: TokenData }) {
 	const [activeTab, setActiveTab] = useState<'open-orders' | 'history'>('open-orders')
 	const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
 	const { handleCancelSell } = useCancelSellCat20(token) // Add this line
+	const { handleCancelBuy } = useCancelBuyCat20(token) // Add this line
 
 	const connectWallet = async () => {
 		if (typeof window.unisat !== 'undefined') {
@@ -65,8 +68,14 @@ export function MyPositions(props: { token: TokenData }) {
 	const cancelOrder = useCallback(
 		async (order: any) => {
 			try {
-				setCancellingOrderId(order.txid) // Use txid as the unique identifier
-				await handleCancelSell(order)
+				setCancellingOrderId(order.txid)
+				if (order.md5 === SELL_MD5) {
+					await handleCancelSell(order)
+				} else if (order.md5 === BUY_MD5) {
+					await handleCancelBuy(order)
+				} else {
+					throw new Error('Unknown order type')
+				}
 				// Refetch the orders after successful cancellation
 			} catch (error) {
 				console.error('Error cancelling order:', error)
@@ -76,10 +85,10 @@ export function MyPositions(props: { token: TokenData }) {
 					variant: 'destructive'
 				})
 			} finally {
-				setCancellingOrderId(null) // Reset the cancelling order ID
+				setCancellingOrderId(null)
 			}
 		},
-		[handleCancelSell, toast]
+		[handleCancelSell, handleCancelBuy, toast]
 	)
 
 	if (!isWalletConnected) {
@@ -125,9 +134,9 @@ export function MyPositions(props: { token: TokenData }) {
 				</TableHeader>
 				<TableBody>
 					{userOrders.map((order, index) => {
-						const side = order.price ? 'SELL' : 'BUY'
+						const side = order.md5 === SELL_MD5 ? 'SELL' : 'BUY'
 						const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
-						const amount = parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+						const amount = parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
 						return (
 							<TableRow key={index}>
 								<TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
@@ -191,7 +200,7 @@ export function MyPositions(props: { token: TokenData }) {
 						const amount =
 							order.status === 'partially_filled' && order.fillAmount
 								? parseInt(order.fillAmount) / Math.pow(10, token.decimals)
-								: parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+								: parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
 						return (
 							<TableRow key={index}>
 								<TableCell>

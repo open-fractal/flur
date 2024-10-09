@@ -9,6 +9,8 @@ import { useBalance } from '@/hooks/use-balance'
 import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useSellCat20 } from '@/hooks/use-sell' // Add this import
+import { useBuyCat20 } from '@/hooks/use-buy' // Add this import
+import { useTakeBuyCat20 } from '@/hooks/use-take-buy' // Add this import
 import { useTakeSellCat20 } from '@/hooks/use-take-sell' // Add this import
 import { useTokenOrderbook } from '@/hooks/use-token-orderbook'
 
@@ -31,9 +33,13 @@ interface PositionFormProps {
 export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
 	const { isTransferring, handleSell, totalAmount } = useSellCat20(token) // Add this line
+	const { handleBuy } = useBuyCat20(token) // Add this line
 	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token) // Add this line
+	const { handleTakeBuy } = useTakeBuyCat20(token) // Add this line
+
 	const {
 		sellOrders,
+		buyOrders,
 		isLoading: isOrderbookLoading,
 		isError: isOrderbookError
 	} = useTokenOrderbook(token)
@@ -124,6 +130,28 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 		}
 	}, [selectedOrder, buyForm, sellForm, fbBalance, tokenBalance])
 
+	const matchingSellOrder = (() => {
+		const buyPrice = buyForm.watch('price')
+		const buyAmount = buyForm.watch('amount')
+
+		return sellOrders.find(
+			order =>
+				(parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8 <= buyPrice &&
+				parseInt(order.tokenAmount) / Math.pow(10, token.decimals) >= buyAmount
+		)
+	})()
+
+	const matchingBuyOrder = (() => {
+		const sellPrice = sellForm.watch('price')
+		const sellAmount = sellForm.watch('amount')
+
+		return buyOrders.find(
+			order =>
+				(parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8 >= sellPrice &&
+				parseInt(order.tokenAmount) / Math.pow(10, token.decimals) >= sellAmount
+		)
+	})()
+
 	async function onBuySubmit(data: z.infer<typeof FormSchema>) {
 		setIsBuying(true)
 		setBuyError(null)
@@ -143,22 +171,13 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 			// Get the buyer's address
 			const address = (await window.unisat.getAccounts())[0]
 
-			// Find a matching sell order
-			const matchingSellOrder = sellOrders.find(
-				order =>
-					(parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8 <= data.price &&
-					parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals) >= data.amount
-			)
-
-			if (!matchingSellOrder) {
-				throw new Error('No matching sell order found')
+			if (matchingSellOrder) {
+				await handleTakeSell(data.amount.toString(), address, matchingSellOrder)
+			} else {
+				await handleBuy(data.amount.toString(), address, data.price.toString())
 			}
-
-			// Call handleTakeSell from useTakeSellCat20 hook
-			await handleTakeSell(data.amount.toString(), address, matchingSellOrder)
-			buyForm.reset()
 		} catch (error) {
-			console.error('Error placing buy order:', error)
+			console.error('Error processing buy order:', error)
 			setBuyError(error instanceof Error ? error.message : 'An unexpected error occurred')
 			toast({
 				title: 'Error',
@@ -186,15 +205,22 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 				return
 			}
 
-			// Get the receiver address (in this case, it's the sell contract address)
+			// Get the seller's address
 			const address = (await window.unisat.getAccounts())[0]
 
-			// Call handleTransfer from useSellCat20 hook
-			await handleSell(data.amount.toString(), address, data.price.toString())
-			sellForm.reset()
+			if (matchingBuyOrder) {
+				await handleTakeBuy(data.amount.toString(), address, matchingBuyOrder)
+			} else {
+				await handleSell(data.amount.toString(), address, data.price.toString())
+			}
 		} catch (error) {
-			console.error('Error placing sell order:', error)
+			console.error('Error processing sell order:', error)
 			setSellError(error instanceof Error ? error.message : 'An unexpected error occurred')
+			toast({
+				title: 'Error',
+				description: error instanceof Error ? error.message : 'An unexpected error occurred',
+				variant: 'destructive'
+			})
 		} finally {
 			setIsSelling(false)
 		}
@@ -254,7 +280,13 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 								className="w-full bg-green-500 hover:bg-green-600"
 								disabled={isTakingSell || isBuying || isOrderbookLoading}
 							>
-								{isTakingSell || isBuying ? 'Placing Order...' : `Buy ${token.symbol}`}
+								{isTakingSell || isBuying
+									? matchingSellOrder
+										? `Buying ${token.symbol}`
+										: 'Creating Buy Order...'
+									: matchingSellOrder
+									? `Buy ${buyForm.watch('amount')} ${token.symbol}`
+									: 'Create Buy Order'}
 							</Button>
 						</form>
 					</Form>
@@ -311,7 +343,11 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 								className="w-full bg-red-500 hover:bg-red-600"
 								disabled={isTransferring || isSelling}
 							>
-								{isTransferring || isSelling ? 'Placing Order...' : `Sell ${token.symbol}`}
+								{isTransferring || isSelling
+									? 'Placing Order...'
+									: matchingBuyOrder
+									? `Sell ${token.symbol}`
+									: `Create Sell Order`}
 							</Button>
 						</form>
 					</Form>

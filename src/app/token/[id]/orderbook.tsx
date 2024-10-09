@@ -61,7 +61,8 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	const processOrders = (orders: any[]): Order[] => {
 		return orders.map(order => {
 			const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
-			const amount = parseInt(order.tokenUtxo.state.amount) / Math.pow(10, token.decimals)
+			const amount = parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
+
 			return {
 				price,
 				amount,
@@ -105,6 +106,20 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 		rawBuyOrders,
 		token.decimals
 	])
+
+	// Calculate total buy and sell amounts
+	const totalBuyAmount = useMemo(() => buyOrders.reduce((sum, order) => sum + order.amount, 0), [
+		buyOrders
+	])
+	const totalSellAmount = useMemo(() => sellOrders.reduce((sum, order) => sum + order.amount, 0), [
+		sellOrders
+	])
+
+	// Calculate the buy percentage
+	const buyPercentage = useMemo(() => {
+		const total = totalBuyAmount + totalSellAmount
+		return total > 0 ? (totalBuyAmount / total) * 100 : 0
+	}, [totalBuyAmount, totalSellAmount])
 
 	const getMaxAmount = (orders: GroupedOrder[]) => {
 		return Math.max(...orders.map(order => order.amount))
@@ -208,7 +223,7 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 									<div
 										className="absolute inset-0 bg-green-500"
 										style={{
-											width: `${(order.total / maxBuyAmount) * 100}%`,
+											width: `${(order.amount / maxBuyAmount) * 100}%`,
 											left: 0,
 											opacity: 0.3
 										}}
@@ -220,11 +235,11 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 				</div>
 			</div>
 			<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
-				<span className="text-green-500">B 65.40%</span>
+				<span className="text-green-500">B {buyPercentage.toFixed(2)}%</span>
 				<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
-					<div className="h-full bg-green-500" style={{ width: '65.40%' }}></div>
+					<div className="h-full bg-green-500" style={{ width: `${buyPercentage}%` }}></div>
 				</div>
-				<span className="text-red-500">34.60% S</span>
+				<span className="text-red-500">{(100 - buyPercentage).toFixed(2)}% S</span>
 			</div>
 		</div>
 	)

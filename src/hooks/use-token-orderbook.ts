@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { TokenData } from '@/hooks/use-token'
 import { API_URL } from '@/lib/constants'
-
+import axios from 'axios'
 // Define the structure of a token UTXO
 interface TokenUtxo {
 	utxo: {
@@ -17,6 +17,18 @@ interface TokenUtxo {
 	}
 }
 
+interface TokenUtxoResponse {
+	code: number
+	msg: string
+	data: TokenUtxo
+}
+
+export async function getTokenUtxo(txid: string, vout: number) {
+	const res = await axios.get(`${API_URL}/api/token/${txid}/${vout}`)
+	const data = res.data as TokenUtxoResponse
+	return data.data as TokenUtxo
+}
+
 // Define the structure of an orderbook entry
 export interface OrderbookEntry {
 	txid: string
@@ -24,6 +36,7 @@ export interface OrderbookEntry {
 	tokenPubKey: string
 	tokenTxid: string
 	tokenOutputIndex: number
+	tokenAmount: string
 	ownerPubKey: string
 	price: string
 	spendTxid: string | null
@@ -33,12 +46,15 @@ export interface OrderbookEntry {
 	takerPubKey: string | null
 	blockHeight: number
 	createdAt: string
-	tokenUtxo: TokenUtxo
 	fillAmount: string | null
 	status: 'open' | 'filled' | 'canceled' | 'partially_filled' | 'partially_open'
 	genesisTxid: string | null
 	genesisOutputIndex: number | null
+	md5: string
 }
+
+export const BUY_MD5 = 'fd87e8ee5f4c3eb411dc059022e92e79'
+export const SELL_MD5 = '1fc0e92f9c8b9c80bd3a981f87baa7b1'
 
 // Define the structure of the API response
 interface OrderbookResponse {
@@ -67,14 +83,14 @@ export function useTokenOrderbook(token: TokenData) {
 		{ refreshInterval: 5000 } // Refresh every 5 seconds
 	)
 
-	const sellOrders = orderbookData?.data?.utxos || []
-	const buyOrders: OrderbookEntry[] = [] // Empty for now
+	const sellOrders = orderbookData?.data?.utxos.filter(order => order.md5 === SELL_MD5) || []
+	const buyOrders = orderbookData?.data?.utxos.filter(order => order.md5 === BUY_MD5) || []
 
 	// Calculate total amount and best price for sell orders
 	const { totalSellAmount, bestSellPrice } = sellOrders.reduce(
 		(acc, order) => {
 			const price = parseFloat(order.price)
-			const amount = parseInt(order.tokenUtxo.state.amount)
+			const amount = parseInt(order.tokenAmount)
 			return {
 				totalSellAmount: acc.totalSellAmount + amount,
 				bestSellPrice: Math.min(acc.bestSellPrice, price)
