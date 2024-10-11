@@ -24,7 +24,7 @@ interface TokenUtxoResponse {
 }
 
 export async function getTokenUtxo(txid: string, vout: number) {
-	const res = await axios.get(`${API_URL}/api/token/${txid}/${vout}`)
+	const res = await axios.get(`${API_URL}/api/orderbook/token/${txid}/${vout}`)
 	const data = res.data as TokenUtxoResponse
 	return data.data as TokenUtxo
 }
@@ -78,7 +78,7 @@ const orderbookFetcher = async (url: string): Promise<OrderbookResponse> => {
 
 export function useTokenOrderbook(token: TokenData) {
 	const { data: orderbookData, error: orderbookError } = useSWR<OrderbookResponse, Error>(
-		token ? `${API_URL}/api/orderbook/${token.tokenId}/utxos?limit=1000000&offset=0` : null,
+		token ? `${API_URL}/api/orderbook/${token.tokenId}/utxos` : null,
 		orderbookFetcher,
 		{ refreshInterval: 5000 } // Refresh every 5 seconds
 	)

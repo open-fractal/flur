@@ -580,7 +580,12 @@ export function useTakeSellCat20(token: TokenData) {
 				return
 			}
 
-			const tokenUtxo = await getTokenUtxo(selectedOrder.tokenTxid, selectedOrder.tokenOutputIndex)
+			const tokenUtxo = await getTokenUtxo(
+				selectedOrder.status === 'partially_open' ? selectedOrder.txid : selectedOrder.tokenTxid,
+				selectedOrder.status === 'partially_open'
+					? selectedOrder.outputIndex
+					: selectedOrder.tokenOutputIndex
+			)
 
 			const payload = {
 				token: token,

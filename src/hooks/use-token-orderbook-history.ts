@@ -18,14 +18,10 @@ export function useTokenOrderbookHistory(token: TokenData) {
 	const { data: orderbookHistoryData, error: orderbookHistoryError } = useSWR<
 		OrderbookResponse,
 		Error
-	>(
-		token ? `${API_URL}/api/orderbook/${token.tokenId}/history?limit=1000000&offset=0` : null,
-		orderbookHistoryFetcher,
-		{
-			refreshInterval: 5000, // Refresh every 5 seconds
-			dedupingInterval: 1000 // Dedupe requests within 1 second
-		}
-	)
+	>(token ? `${API_URL}/api/orderbook/${token.tokenId}/history` : null, orderbookHistoryFetcher, {
+		refreshInterval: 5000, // Refresh every 5 seconds
+		dedupingInterval: 1000 // Dedupe requests within 1 second
+	})
 
 	// Process the fetched orderbook history data
 	const historyEntries = orderbookHistoryData?.data?.utxos || []
