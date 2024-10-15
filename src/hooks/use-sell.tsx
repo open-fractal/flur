@@ -56,7 +56,7 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
+import { FXPCat20Sell } from '@/lib/scrypt/contracts/dist'
 import { getGuardContractInfo, fetchTokenTxs } from './use-transfer'
 import cbor from 'cbor'
 
@@ -69,8 +69,8 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const CAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/cat20Sell.json')
-CAT20Sell.loadArtifact(CAT20SellArtifact)
+const FXPCAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Sell.json')
+FXPCat20Sell.loadArtifact(FXPCAT20SellArtifact)
 
 async function unlockToken(
 	wallet: WalletService,
@@ -268,7 +268,7 @@ export async function createGuardAndSellContract(
 		: await wallet.getXOnlyPublicKey()
 
 	const sellContract = TaprootSmartContract.create(
-		new CAT20Sell(
+		new FXPCat20Sell(
 			tokenP2TR,
 			btc.Script.fromAddress(walletAddress).toHex(),
 			hash160(walletXOnlyPublicKey),

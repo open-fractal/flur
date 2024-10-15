@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { BuyCAT20 } from '@/lib/scrypt/contracts/orderbook'
+import { FXPCat20Buy } from '@/lib/scrypt/contracts/dist'
 import { getOrderbookScript } from './use-sell'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
@@ -30,8 +30,8 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const CAT20BuyArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/buyCAT20.json')
-BuyCAT20.loadArtifact(CAT20BuyArtifact)
+const FXPCAT20BuyArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Buy.json')
+FXPCat20Buy.loadArtifact(FXPCAT20BuyArtifact)
 
 export async function createBuyContract(
 	wallet: WalletService,
@@ -53,12 +53,12 @@ export async function createBuyContract(
 
 	const orderbookLockingScript = getOrderbookScript({
 		args,
-		md5: 'fd87e8ee5f4c3eb411dc059022e92e79'
+		md5: '5453660eb0df468a6c2190a5cd7bc167'
 	})
 	const { p2tr: orderbookP2TR } = script2P2TR(Buffer.from(orderbookLockingScript, 'hex'))
 
 	const buyContract = TaprootSmartContract.create(
-		new BuyCAT20(args[0] as ByteString, args[1] as ByteString, args[2] as bigint)
+		new FXPCat20Buy(args[0] as ByteString, args[1] as ByteString, args[2] as bigint)
 	)
 
 	const catTx = CatTx.create()

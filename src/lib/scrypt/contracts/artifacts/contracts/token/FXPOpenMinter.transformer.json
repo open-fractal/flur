@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/FXPOpenMinter.scrypt",
+  "sourceMapFile": "contracts/token/FXPOpenMinter.scrypt.map",
+  "ctxMethods": []
+}

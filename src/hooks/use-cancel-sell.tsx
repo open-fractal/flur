@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
+import { FXPCat20Sell } from '@/lib/scrypt/contracts/dist'
 import { createGuardContract, hydrateTokens } from './use-transfer'
 import { OrderbookEntry, getTokenUtxo } from './use-token-orderbook'
 import { createGuardAndSellContract } from './use-sell'
@@ -51,8 +51,8 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const CAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/cat20Sell.json')
-CAT20Sell.loadArtifact(CAT20SellArtifact)
+const FXPCAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Sell.json')
+FXPCat20Sell.loadArtifact(FXPCAT20SellArtifact)
 
 const DEFAULTS = {
 	verify: false
@@ -366,6 +366,7 @@ export async function takeToken(
 				0n,
 				toTokenAddress(receiver),
 				toByteString('4a01000000000000'),
+				false,
 				true,
 				pubKeyPrefix,
 				PubKey(pubkeyX),
@@ -378,7 +379,7 @@ export async function takeToken(
 					fromUTXO: getDummyUTXO(),
 					verify: false,
 					exec: false
-				} as MethodCallOptions<CAT20Sell>
+				} as MethodCallOptions<FXPCat20Sell>
 			)
 			unlockTaprootContractInput(
 				sellCall,
@@ -475,8 +476,12 @@ export function useCancelSellCat20(token: TokenData) {
 				return
 			}
 
-			const tokenUtxo = await getTokenUtxo(selectedOrder.tokenTxid, selectedOrder.tokenOutputIndex)
-
+			const tokenUtxo = await getTokenUtxo(
+				selectedOrder.status === 'partially_open' ? selectedOrder.txid : selectedOrder.tokenTxid,
+				selectedOrder.status === 'partially_open'
+					? selectedOrder.outputIndex
+					: selectedOrder.tokenOutputIndex
+			)
 			const payload = {
 				token: token,
 				amount: scaledAmount.toString(),

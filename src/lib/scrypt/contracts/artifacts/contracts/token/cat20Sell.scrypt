@@ -1,0 +1,36 @@
+import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";import "cat20Proto.scrypt";import "../../../../../node_modules/scrypt-ts-lib-btc/artifacts/opmul.scrypt";import "sellUtil.scrypt";import "../utils/stateUtils.scrypt";
+
+contract CAT20Sell {
+  bytes cat20Script;
+  bytes recvOutput;
+  bytes sellerAddress;
+  int price;
+  public function take(bytes[5] curTxoStateHashes, int tokenInputIndex, int toBuyUserAmount, int sellChange, Ripemd160 buyUserAddress, bytes tokenSatoshiBytes, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, ChangeInfo changeInfo) {
+    if(cancel) {
+        require(hash160(pubKeyPrefix + ownerPubKey) == this.sellerAddress);
+        require(checkSig(ownerSig, ownerPubKey));
+      } else {
+        require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+        SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+        SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
+        require(spentScriptsCtx[(tokenInputIndex)] == this.cat20Script);
+        require(sellChange >= 0);
+        bytes curStateHashes = hash160(CAT20Proto.stateHash({buyUserAddress, toBuyUserAmount}));
+        bytes toBuyerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        bytes changeToSellTokenOutput = b'';
+        if(sellChange > 0) {
+          Ripemd160 contractAddress = hash160(spentScriptsCtx[(prevoutsCtx.inputIndexVal)]);
+          curStateHashes += hash160(CAT20Proto.stateHash({contractAddress, sellChange}));
+          changeToSellTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        }
+        int satoshiToSeller = OpMul.mul(this.price, toBuyUserAmount);
+        bytes toSellerOutput = TxUtil.buildOutput(this.recvOutput, SellUtil.int32ToSatoshiBytes(satoshiToSeller));
+        int curStateCnt = sellChange == 0 ? 1 : 2;
+        bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
+        bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+        Sha256 hashOutputs = sha256(stateOutput + toBuyerTokenOutput + changeToSellTokenOutput + toSellerOutput + changeOutput);
+        require(hashOutputs == shPreimage.hashOutputs);
+      }
+    require(true);
+  }
+}

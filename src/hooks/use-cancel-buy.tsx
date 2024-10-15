@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { BuyCAT20 } from '@/lib/scrypt/contracts/orderbook'
+import { FXPCat20Buy } from '@/lib/scrypt/contracts/dist'
 import { OrderbookEntry } from './use-token-orderbook'
 import { unlockTaprootContractInput } from './use-take-sell'
 import { createTakeBuyContract } from './use-take-buy'
@@ -42,6 +42,9 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
+
+const FXPCAT20BuyArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Buy.json')
+FXPCat20Buy.loadArtifact(FXPCAT20BuyArtifact)
 
 const DEFAULTS = {
 	verify: false
@@ -150,6 +153,7 @@ export async function takeToken(
 				toTokenAddress(receiver),
 				toByteString('4a01000000000000'),
 				0n,
+				false,
 				true,
 				pubKeyPrefix,
 				PubKey(pubkeyX),
@@ -163,7 +167,7 @@ export async function takeToken(
 					fromUTXO: getDummyUTXO(),
 					verify: false,
 					exec: false
-				} as MethodCallOptions<BuyCAT20>
+				} as MethodCallOptions<FXPCat20Buy>
 			)
 			unlockTaprootContractInput(
 				buyCall,

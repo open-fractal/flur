@@ -38,10 +38,11 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { CAT20Sell } from '@/lib/scrypt/contracts/orderbook'
+import { FXPCat20Sell, FXPSellGuard } from '@/lib/scrypt/contracts/dist'
 import { createGuardContract, hydrateTokens } from './use-transfer'
 import { OrderbookEntry, getTokenUtxo } from './use-token-orderbook'
 import { createGuardAndSellContract } from './use-sell'
+import { FXP_SERVICE_FEE, FXP_SERVICE_FEE_P2TR } from '@/lib/constants'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -52,8 +53,11 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const CAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/cat20Sell.json')
-CAT20Sell.loadArtifact(CAT20SellArtifact)
+const FXPCAT20SellArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Sell.json')
+FXPCat20Sell.loadArtifact(FXPCAT20SellArtifact)
+
+const FXPSellGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPSellGuard.json')
+FXPSellGuard.loadArtifact(FXPSellGuardArtifact)
 
 const DEFAULTS = {
 	verify: false
@@ -109,7 +113,7 @@ export async function createTakeSellContract(
 	const script = btc.Script.fromHex(seller_locking_script)
 
 	const sellContract = TaprootSmartContract.create(
-		new CAT20Sell(
+		new FXPCat20Sell(
 			token.utxo.script,
 			seller_locking_script,
 			hash160(script.getPublicKeyHash()),
@@ -279,6 +283,16 @@ export async function takeToken(
 
 	catTx.addContractOutput(sellerLockingScript, Number(sellerSats))
 
+	// Service Fee
+	catTx.addContractOutput(FXP_SERVICE_FEE_P2TR, Number(FXP_SERVICE_FEE))
+
+	// FXPSellGuard - only if the order is complete
+	if (changeTokenInputAmount == 0n) {
+		const fxpSellGuard = TaprootSmartContract.create(new FXPSellGuard())
+		catTx.addContractOutput(fxpSellGuard.lockingScriptHex)
+	}
+
+	// Change Output
 	catTx.tx
 		.addOutput(
 			new btc.Transaction.Output({
@@ -290,12 +304,14 @@ export async function takeToken(
 
 	const { inputTokens, tokenTxs } = await hydrateTokens(tokens, metadata, cachedTxs)
 
-	const vsize = 3394
+	const vsize = 3580
 
 	const satoshiChangeAmount =
 		catTx.tx.inputAmount -
 		vsize * feeRate -
 		Postage.TOKEN_POSTAGE -
+		Postage.TOKEN_POSTAGE -
+		Number(FXP_SERVICE_FEE) -
 		(changeTokenInputAmount > 0n ? Postage.TOKEN_POSTAGE : 0) -
 		Number(sellerSats)
 
@@ -442,6 +458,7 @@ export async function takeToken(
 				changeTokenInputAmount,
 				toTokenAddress(receiver),
 				toByteString('4a01000000000000'),
+				true,
 				false,
 				toByteString(''),
 				toByteString(''),
@@ -454,7 +471,7 @@ export async function takeToken(
 					fromUTXO: getDummyUTXO(),
 					verify: false,
 					exec: false
-				} as MethodCallOptions<CAT20Sell>
+				} as MethodCallOptions<FXPCat20Sell>
 			)
 			unlockTaprootContractInput(
 				sellCall,
@@ -481,6 +498,10 @@ export async function takeToken(
 	await sign()
 
 	console.log('actual reveal', catTx.tx.vsize, 'estimated vsize', vsize)
+
+	if (Math.abs(Number(catTx.tx.vsize - vsize)) > 10) {
+		debugger
+	}
 
 	return {
 		revealTx: catTx.tx,

@@ -1,0 +1,16 @@
+import "../utils/txProof.scrypt";import "cat20Proto.scrypt";import "../utils/stateUtils.scrypt";import "../utils/sigHashUtils.scrypt";import "sellUtil.scrypt";
+
+contract FXPBuyGuard {
+  public function redeem(XrayedTxIdPreimg1 preTx, CAT20State preState, PreTxStatesInfo preTxStatesInfo, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx) {
+    require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+    SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+    SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
+    StateUtils.verifyPreStateHash(preTxStatesInfo, CAT20Proto.stateHash(preState), preTx.outputScriptList[0], 1);
+    bytes prevTixd = TxProof.getTxIdFromPreimg1(preTx);
+    require(prevTixd == prevoutsCtx.spentTxhash);
+    bytes serviceFeeScript = b'512067fe8e4767ab1a9056b1e7c6166d690e641d3f40e188241f35f803b1f84546c2';
+    bytes serviceFeeSats = SellUtil.int32ToSatoshiBytes(1000000);
+    require(preTx.outputScriptList[(2)] == serviceFeeScript || preTx.outputScriptList[(3)] == serviceFeeScript);
+    require(preTx.outputSatoshisList[(2)] == serviceFeeSats || preTx.outputSatoshisList[(3)] == serviceFeeSats);
+  }
+}

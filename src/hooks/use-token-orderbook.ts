@@ -1,6 +1,6 @@
 import useSWR from 'swr'
 import { TokenData } from '@/hooks/use-token'
-import { API_URL } from '@/lib/constants'
+import { API_URL, ContractType } from '@/lib/constants'
 import axios from 'axios'
 // Define the structure of a token UTXO
 interface TokenUtxo {
@@ -53,8 +53,8 @@ export interface OrderbookEntry {
 	md5: string
 }
 
-export const BUY_MD5 = 'fd87e8ee5f4c3eb411dc059022e92e79'
-export const SELL_MD5 = '1fc0e92f9c8b9c80bd3a981f87baa7b1'
+export const BUY_MD5 = ContractType.FXPCAT20_BUY
+export const SELL_MD5 = ContractType.FXPCAT20_SELL
 
 // Define the structure of the API response
 interface OrderbookResponse {

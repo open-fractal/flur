@@ -50,12 +50,13 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
-import { BuyCAT20 } from '@/lib/scrypt/contracts/orderbook'
-import { SellUtil } from '@/lib/scrypt/contracts/orderbook/contracts/sellUtil'
+import { FXPCat20Buy, FXPBuyGuard } from '@/lib/scrypt/contracts/dist'
+import { SellUtil } from '@/lib/scrypt/contracts/dist/contracts/token/sellUtil'
 import { createGuardContract, hydrateTokens } from './use-transfer'
 import { OrderbookEntry } from './use-token-orderbook'
 import { getGuardContractInfo } from './use-transfer'
 import { unlockTaprootContractInput } from './use-take-sell'
+import { FXP_SERVICE_FEE, FXP_SERVICE_FEE_P2TR } from '@/lib/constants'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -66,8 +67,11 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const CAT20BuyArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/buyCAT20.json')
-BuyCAT20.loadArtifact(CAT20BuyArtifact)
+const FXPCAT20BuyArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Buy.json')
+FXPCat20Buy.loadArtifact(FXPCAT20BuyArtifact)
+
+const FXPBuyGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPBuyGuard.json')
+FXPBuyGuard.loadArtifact(FXPBuyGuardArtifact)
 
 const DEFAULTS = {
 	verify: false
@@ -79,7 +83,7 @@ export async function createTakeBuyContract(
 	price: bigint
 ) {
 	const pkh = new btc.Script(seller_locking_script).getPublicKeyHash().toString('hex')
-	return TaprootSmartContract.create(new BuyCAT20(tokenP2TR, hash160(pkh), price))
+	return TaprootSmartContract.create(new FXPCat20Buy(tokenP2TR, hash160(pkh), price))
 }
 
 export async function createGuardAndBuyContract(
@@ -100,7 +104,7 @@ export async function createGuardAndBuyContract(
 		: await wallet.getXOnlyPublicKey()
 
 	const sellContract = TaprootSmartContract.create(
-		new BuyCAT20(tokenP2TR, hash160(walletXOnlyPublicKey), price)
+		new FXPCat20Buy(tokenP2TR, hash160(walletXOnlyPublicKey), price)
 	)
 
 	const guardState = GuardProto.createEmptyState()
@@ -261,7 +265,14 @@ export async function takeToken(
 		}
 	}
 
-	// add contract sats to change output sats
+	// Service Fee
+	catTx.addContractOutput(FXP_SERVICE_FEE_P2TR, Number(FXP_SERVICE_FEE))
+
+	// FXPBuyGuard - only if the order is complete
+	if (remainingSats == 0n) {
+		const fxpBuyGuard = TaprootSmartContract.create(new FXPBuyGuard())
+		catTx.addContractOutput(fxpBuyGuard.lockingScriptHex)
+	}
 
 	catTx.tx
 		.addOutput(
@@ -280,6 +291,8 @@ export async function takeToken(
 		vsize * feeRate -
 		Postage.TOKEN_POSTAGE -
 		Postage.TOKEN_POSTAGE -
+		Postage.TOKEN_POSTAGE -
+		Number(FXP_SERVICE_FEE) -
 		Postage.GUARD_POSTAGE -
 		Number(remainingSats)
 
@@ -292,13 +305,15 @@ export async function takeToken(
 		}
 
 		catTx.tx.from(newFeeUtxo)
-		vsize = 3474
+		vsize = 3705
 		satoshiChangeAmount =
 			catTx.tx.inputAmount -
 			vsize * feeRate -
 			Postage.TOKEN_POSTAGE -
 			Postage.TOKEN_POSTAGE -
 			Postage.GUARD_POSTAGE -
+			Postage.TOKEN_POSTAGE -
+			Number(FXP_SERVICE_FEE) -
 			Number(remainingSats)
 		if (satoshiChangeAmount <= CHANGE_MIN_POSTAGE) {
 			console.error('Insufficient satoshis balance!')
@@ -460,6 +475,7 @@ export async function takeToken(
 				hash160(xOnlyPubKey),
 				toByteString('4a01000000000000'),
 				0n,
+				true,
 				false,
 				toByteString(''),
 				toByteString(''),
@@ -473,7 +489,7 @@ export async function takeToken(
 					fromUTXO: getDummyUTXO(),
 					verify: false,
 					exec: false
-				} as MethodCallOptions<BuyCAT20>
+				} as MethodCallOptions<FXPCat20Buy>
 			)
 			unlockTaprootContractInput(
 				sellCall,
@@ -491,7 +507,10 @@ export async function takeToken(
 	await sign(sigs)
 
 	console.log('actual reveal', catTx.tx.vsize, 'estimated vsize', vsize)
-	debugger
+
+	if (Math.abs(Number(catTx.tx.vsize - vsize)) > 10) {
+		debugger
+	}
 
 	return {
 		revealTx: catTx.tx,

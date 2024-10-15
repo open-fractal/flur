@@ -1,5 +1,6 @@
 export enum MinterType {
 	OPEN_MINTER_V1 = '21cbd2e538f2b6cc40ee180e174f1e25',
 	OPEN_MINTER_V2 = 'a6c2e92d74a23c07bb6220b676c6cb9b',
+	FXP_OPEN_MINTER = 'a46488a8d8bf23a0248b2d331eca9e66',
 	UNKOWN_MINTER = 'unkown_minter'
 }
