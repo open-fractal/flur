@@ -113,7 +113,10 @@ const fetchOpenMinterState = async function(
 	const info = metadata.info as OpenMinterTokenInfo
 	const scaledInfo = scaleConfig(info)
 	if (txId === metadata.revealTxid) {
-		if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
+		if (
+			metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2 ||
+			metadata.info.minterMd5 === MinterType.FXP_OPEN_MINTER
+		) {
 			return {
 				isPremined: false,
 				remainingSupplyCount: (scaledInfo.max - scaledInfo.premine) / scaledInfo.limit,
@@ -147,6 +150,14 @@ const fetchOpenMinterState = async function(
 				if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
 					const preState: OpenMinterV2State = {
 						tokenScript: witnesses[REMAININGSUPPLY_WITNESS_INDEX - 2].toString('hex'),
+						isPremined: true,
+						remainingSupplyCount: byteString2Int(witnesses[6 + vout].toString('hex'))
+					}
+
+					return preState
+				} else if (metadata.info.minterMd5 == MinterType.FXP_OPEN_MINTER) {
+					const preState: OpenMinterV2State = {
+						tokenScript: tokenP2TR,
 						isPremined: true,
 						remainingSupplyCount: byteString2Int(witnesses[6 + vout].toString('hex'))
 					}

@@ -65,7 +65,7 @@ const DEFAULTS = {
 
 export function unlockTaprootContractInput(
 	methodCall: any,
-	contractInfo: any,
+	contractInfo: TaprootSmartContract,
 	tx: btc.Transaction,
 	preTx: btc.Transaction,
 	inputIndex: number,

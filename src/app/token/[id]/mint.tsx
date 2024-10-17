@@ -12,7 +12,10 @@ import { useWallet, getBitcoinUtxoCount } from '@/lib/unisat'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { SplitUTXOs } from '@/components/split-utxos'
 import useSWR from 'swr'
-
+import { MinterType } from '@/lib/scrypt/common'
+import { useFXPClaims } from '@/hooks/use-fxp-claims'
+import { useFXPMint } from '@/hooks/use-fxp-mint'
+import { useTokenMintCount } from '@/hooks/use-token-mint-count'
 interface MintProps {
 	token: TokenData
 	utxoCount: number | undefined
@@ -21,8 +24,14 @@ interface MintProps {
 
 const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => {
 	const { isMinting, handleMint } = useMint(token.tokenId)
+	const { mintCount: tokenMintCount } = useTokenMintCount(token.tokenId)
 	const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)
 	const { address } = useWallet()
+
+	const isFXP = MinterType.FXP_OPEN_MINTER === token.info.minterMd5
+
+	const { claimCount } = useFXPClaims()
+	const { handleMint: handleFXPMint } = useFXPMint(token.tokenId)
 
 	// SWR hook for wallet UTXO count
 	const { data: walletUtxoCount } = useSWR(
@@ -35,8 +44,8 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 
 	// Safely parse numeric values
 	const maxSupply = safeParseInt(token.info?.max)
-	const mintCount = token?.supply / Math.pow(10, token.decimals)
-	const currentSupply = mintCount
+	const mintCount = isFXP ? tokenMintCount : token?.supply / Math.pow(10, token.decimals)
+	const currentSupply = mintCount as number
 	const mintProgress = maxSupply > 0 ? ((currentSupply / maxSupply) * 100).toFixed(2) : '0.00'
 	const isMintable = currentSupply < maxSupply && !!utxoCount && utxoCount > 0
 
@@ -49,16 +58,50 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 					</div>
 					<Progress value={parseFloat(mintProgress)} className="w-full" />
 				</div>
-				<div>
-					<p className="text-sm font-medium">Supply</p>
-					<p className="text-sm font-medium mb-1 text-muted-foreground">
-						{currentSupply.toLocaleString()}/{maxSupply.toLocaleString()}
-					</p>
-				</div>
-				<div>
-					<p className="text-sm font-medium">Limit Per Mint</p>
-					<p className="text-sm font-medium mb-1 text-muted-foreground">{token.info?.limit}</p>
-				</div>
+				{token.info.minterMd5 !== MinterType.FXP_OPEN_MINTER && (
+					<div>
+						<p className="text-sm font-medium">Supply</p>
+						<p className="text-sm font-medium mb-1 text-muted-foreground">
+							{currentSupply.toLocaleString()}/{maxSupply.toLocaleString()}
+						</p>
+					</div>
+				)}
+				{MinterType.FXP_OPEN_MINTER === token.info.minterMd5 ? (
+					<>
+						<div>
+							<p className="text-sm font-medium">Mints</p>
+							<p className="text-sm font-medium mb-1 text-muted-foreground">
+								{mintCount?.toLocaleString()}/{maxSupply.toLocaleString()}
+							</p>
+						</div>
+						<div>
+							<p className="text-sm font-medium flex items-center gap-2">
+								Your Available Claims
+								<HoverCard>
+									<HoverCardTrigger>
+										<InfoIcon className="h-4 w-4 text-muted-foreground cursor-pointer" />
+									</HoverCardTrigger>
+									<HoverCardContent className="w-80">
+										<div className="space-y-2">
+											<h4 className="text-sm font-semibold">Available Claims</h4>
+											<p className="text-sm">
+												This represents the number of tokens you are eligible to claim from this FXP
+												Open Minter contract. Each claim allows you to mint a specific random amount
+												of tokens as defined by the contract.
+											</p>
+										</div>
+									</HoverCardContent>
+								</HoverCard>
+							</p>
+							<p className="text-sm font-medium mb-1 text-muted-foreground">{claimCount}</p>
+						</div>
+					</>
+				) : (
+					<div>
+						<p className="text-sm font-medium">Limit Per Mint</p>
+						<p className="text-sm font-medium mb-1 text-muted-foreground">{token.info?.limit}</p>
+					</div>
+				)}
 				<div>
 					<p className="text-sm font-medium flex items-center gap-2">
 						Mint UTXOs
@@ -142,7 +185,11 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 				)}
 
 				<Button
-					onClick={() => handleMint(utxoCount)}
+					onClick={() =>
+						MinterType.FXP_OPEN_MINTER === token.info.minterMd5
+							? handleFXPMint(utxoCount)
+							: handleMint(utxoCount)
+					}
 					disabled={isMinting || !isMintable || utxoCount === 0}
 					className="w-full"
 				>
