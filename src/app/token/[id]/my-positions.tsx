@@ -134,6 +134,7 @@ export function MyPositions(props: { token: TokenData }) {
 				</TableHeader>
 				<TableBody>
 					{userOrders.map((order, index) => {
+						// @ts-ignore
 						const side = order.md5 === SELL_MD5 ? 'SELL' : 'BUY'
 						const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
 						const amount = parseInt(order.tokenAmount) / Math.pow(10, token.decimals)

@@ -23,23 +23,25 @@ import {
 	NavigationMenu,
 	NavigationMenuItem,
 	NavigationMenuLink,
-	NavigationMenuList,
-} from "@/components/ui/navigation-menu"
-import { cn } from "@/lib/utils"
-
+	NavigationMenuList
+} from '@/components/ui/navigation-menu'
+import { cn } from '@/lib/utils'
+import { useFXPClaims } from '@/hooks/use-fxp-claims'
+import { FXP_TOKEN_ID } from '@/lib/constants'
 const truncateAddress = (address: string) => {
 	return `${address.slice(0, 4)}...${address.slice(-4)}`
 }
 
 const customNavigationMenuTriggerStyle = () => {
 	return cn(
-		"group inline-flex h-8 w-auto items-center justify-center m-3 px-0 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-		"bg-transparent",
-		"hover:bg-transparent"
+		'group inline-flex h-8 w-auto items-center justify-center m-3 px-0 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+		'bg-transparent',
+		'hover:bg-transparent'
 	)
 }
 
 export const Header: React.FC = () => {
+	const { claimCount } = useFXPClaims()
 	const [searchInput, setSearchInput] = useState('')
 	const {
 		address,
@@ -125,8 +127,8 @@ export const Header: React.FC = () => {
 		return false
 	}
 
-	const activeItemStyle = "text-white border-b-2 border-white"
-	const inactiveItemStyle = "text-gray-400 hover:text-white"
+	const activeItemStyle = 'text-white border-b-2 border-white'
+	const inactiveItemStyle = 'text-gray-400 hover:text-white'
 
 	return (
 		<>
@@ -140,33 +142,39 @@ export const Header: React.FC = () => {
 						<NavigationMenuList className="flex">
 							<NavigationMenuItem>
 								<Link href="/" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Mint
 									</NavigationMenuLink>
 								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
 								<Link href="/create" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/create') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/create') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Deploy
 									</NavigationMenuLink>
 								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
 								<Link href="/docs" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/docs') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/docs') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Docs
 									</NavigationMenuLink>
 								</Link>
@@ -188,21 +196,26 @@ export const Header: React.FC = () => {
 						</div>
 					</form>
 					{isWalletConnected ? (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="outline">
-									{truncateAddress(address)}
-									<span className="ml-2">({formatBalance(balance)} FB)</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent>
-								<DropdownMenuItem onClick={copyAddress}>
-									<Copy className="mr-2 h-4 w-4" />
-									Copy Address
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<>
+							<Link href={`/token/${FXP_TOKEN_ID}`}>
+								<Button variant="outline">FXP Claims: {claimCount}</Button>
+							</Link>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline">
+										{truncateAddress(address)}
+										<span className="ml-2">({formatBalance(balance)} FB)</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									<DropdownMenuItem onClick={copyAddress}>
+										<Copy className="mr-2 h-4 w-4" />
+										Copy Address
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</>
 					) : (
 						<Button onClick={connectWallet} className="transition-ease-in-out">
 							Connect Wallet
@@ -249,12 +262,12 @@ export const Header: React.FC = () => {
 								<NavigationMenuList className="flex-col items-start space-y-2">
 									<NavigationMenuItem className="w-full">
 										<Link href="/" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>
@@ -264,12 +277,12 @@ export const Header: React.FC = () => {
 									</NavigationMenuItem>
 									<NavigationMenuItem className="w-full">
 										<Link href="/create" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/create') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>
@@ -279,12 +292,12 @@ export const Header: React.FC = () => {
 									</NavigationMenuItem>
 									<NavigationMenuItem className="w-full">
 										<Link href="/docs" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/docs') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>

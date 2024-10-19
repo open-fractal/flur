@@ -51,6 +51,7 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 
 	// Add a function to determine the color based on the order type
 	const getTradeColor = (md5: string) => {
+		// @ts-ignore
 		return md5 === SELL_MD5 ? 'text-green-500' : 'text-red-500'
 	}
 

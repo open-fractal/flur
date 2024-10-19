@@ -1,20 +1,12 @@
 'use client'
 
-import React, { useState, useMemo, Suspense } from 'react'
+import React from 'react'
 import { TokenData } from '@/hooks/use-token'
 import { formatNumber } from '@/lib/utils'
 import { CopyableTokenId } from '@/components/CopyableTokenId'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-import { useWallet } from '@/lib/unisat'
-import { useBalance } from '@/hooks/use-balance'
-import dynamic from 'next/dynamic'
-
-// Dynamically import the TransferToken component with SSR disabled
-const TransferToken = dynamic(
-	() => import('@/app/token/[id]/transfer-token').then(mod => mod.TransferToken),
-	{ ssr: false }
-)
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 interface TokenHeaderProps {
 	tokenData: TokenData
@@ -37,13 +29,7 @@ const renderStat = (label: string, value: string | number, copyable?: boolean) =
 )
 
 export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
-	const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false)
-	const { isWalletConnected } = useWallet()
-	const { tokenBalance, isLoading } = useBalance(tokenData)
-
-	const canTransfer = useMemo(() => {
-		return isWalletConnected && !isLoading && parseFloat(tokenBalance) > 0
-	}, [isWalletConnected, isLoading, tokenBalance])
+	const pathname = usePathname()
 
 	if (!tokenData) return null
 
@@ -57,29 +43,47 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 		{ label: 'Premine', value: premine }
 	]
 
+	const tabs = [
+		{ value: 'mint', label: 'Mint', href: `/token/${tokenData.tokenId}/mint` },
+		{ value: 'market', label: 'Market', href: `/token/${tokenData.tokenId}/market` },
+		{ value: 'transfer', label: 'Transfer', href: `/token/${tokenData.tokenId}/transfer` }
+	]
+
+	const currentTab = tabs.find(tab => pathname?.includes(tab.value))?.value || 'market'
+
+	console.log(currentTab)
+
 	return (
 		<div className="bg-black text-white border-b">
-			<div className="px-8 py-4 ">
-				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-					<div className="flex justify-start items-star gap-4">
+			<div className="px-8 pt-4">
+				<div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0 sm:space-x-4 items-start">
+					<div className="flex flex-col items-start gap-0">
 						<h1 className="text-xl font-bold whitespace-nowrap">
 							{tokenData.name}
 							<span className="ml-2 text-sm text-gray-400 whitespace-nowrap">
 								{tokenData.symbol}
 							</span>
 						</h1>
-						{canTransfer && (
-							<Suspense fallback={<Button variant="outline">Loading...</Button>}>
-								<Dialog open={isBalanceModalOpen} onOpenChange={setIsBalanceModalOpen}>
-									<DialogTrigger asChild>
-										<Button variant="outline">Transfer Tokens</Button>
-									</DialogTrigger>
-									<DialogContent className="p-0 w-[400px]">
-										<TransferToken token={tokenData} />
-									</DialogContent>
-								</Dialog>
-							</Suspense>
-						)}
+						<div className="mt-1">
+							<nav className="h-8 flex space-x-4 justify-end">
+								{tabs.map(tab => (
+									<div key={tab.value} className="relative flex h-full justify-center items-center">
+										<Link
+											href={tab.href}
+											className={cn(
+												'px-1 py-1 text-sm font-medium',
+												currentTab === tab.value ? 'text-white' : 'text-gray-400 hover:text-white'
+											)}
+										>
+											{tab.label}
+										</Link>
+										{currentTab === tab.value && (
+											<div className="absolute bottom-0 left-0 w-full h-0.5 bg-white" />
+										)}
+									</div>
+								))}
+							</nav>
+						</div>
 					</div>
 					<div className="flex gap-6 max-w-100vh overflow-x-auto">
 						{stats.map(stat => renderStat(stat.label, stat.value, stat.copyable))}

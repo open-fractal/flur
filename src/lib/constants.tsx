@@ -6,7 +6,7 @@ export const MEMPOOL_URL =
 export const FXP_SERVICE_FEE = 1000000n
 export const FXP_SERVICE_FEE_P2TR =
 	'512067fe8e4767ab1a9056b1e7c6166d690e641d3f40e188241f35f803b1f84546c2'
-
+export const FXP_TOKEN_ID = '29ef0a93a283fe4812a7de97daeddd1764b406b5f6d91c14d0d80aaffce120fb_0'
 export enum ContractType {
 	FXPCAT20_SELL = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Sell.json').md5,
 	FXPCAT20_BUY = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPCat20Buy.json').md5,
