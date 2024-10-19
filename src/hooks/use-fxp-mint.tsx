@@ -662,7 +662,7 @@ async function openMint(
 		{
 			fromUTXO: getDummyUTXO(),
 			verify: false,
-			exec: true
+			exec: false
 		} as MethodCallOptions<OpenMinter>
 	)
 

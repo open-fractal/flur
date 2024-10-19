@@ -117,7 +117,8 @@ export async function createTakeSellContract(
 			token.utxo.script,
 			seller_locking_script,
 			hash160(script.getPublicKeyHash()),
-			price
+			price,
+			false
 		)
 	)
 
@@ -304,7 +305,7 @@ export async function takeToken(
 
 	const { inputTokens, tokenTxs } = await hydrateTokens(tokens, metadata, cachedTxs)
 
-	const vsize = 3580
+	const vsize = 3620
 
 	const satoshiChangeAmount =
 		catTx.tx.inputAmount -

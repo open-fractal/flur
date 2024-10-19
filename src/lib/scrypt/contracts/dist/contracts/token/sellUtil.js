@@ -44,6 +44,38 @@ class SellUtil extends scrypt_ts_1.SmartContractLib {
         }
         return amountBytes + (0, scrypt_ts_1.toByteString)('00000000');
     }
+    static int32ToSatoshiBytesScaled(amount, scale) {
+        (0, scrypt_ts_1.assert)(amount > 0n);
+        let amountBytes = scale
+            ? SellUtil.scale2ByteString(amount)
+            : (0, scrypt_ts_1.int2ByteString)(amount);
+        const amountBytesLen = (0, scrypt_ts_1.len)(amountBytes);
+        if (amountBytesLen == 1n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('00000000000000');
+        }
+        else if (amountBytesLen == 2n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('000000000000');
+        }
+        else if (amountBytesLen == 3n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('0000000000');
+        }
+        else if (amountBytesLen == 4n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('00000000');
+        }
+        else if (amountBytesLen == 5n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('000000');
+        }
+        else if (amountBytesLen == 6n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('0000');
+        }
+        else if (amountBytesLen == 7n) {
+            amountBytes += (0, scrypt_ts_1.toByteString)('00');
+        }
+        return amountBytes;
+    }
+    static scale2ByteString(amount) {
+        return (0, scrypt_ts_1.toByteString)('00') + (0, scrypt_ts_1.int2ByteString)(amount);
+    }
 }
 exports.SellUtil = SellUtil;
 __decorate([
@@ -64,4 +96,16 @@ __decorate([
     __metadata("design:paramtypes", [BigInt]),
     __metadata("design:returntype", String)
 ], SellUtil, "int32ToSatoshiBytes", null);
+__decorate([
+    (0, scrypt_ts_1.method)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [BigInt, Boolean]),
+    __metadata("design:returntype", String)
+], SellUtil, "int32ToSatoshiBytesScaled", null);
+__decorate([
+    (0, scrypt_ts_1.method)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [BigInt]),
+    __metadata("design:returntype", String)
+], SellUtil, "scale2ByteString", null);
 //# sourceMappingURL=sellUtil.js.map

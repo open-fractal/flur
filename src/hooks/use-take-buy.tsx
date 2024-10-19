@@ -83,7 +83,7 @@ export async function createTakeBuyContract(
 	price: bigint
 ) {
 	const pkh = new btc.Script(seller_locking_script).getPublicKeyHash().toString('hex')
-	return TaprootSmartContract.create(new FXPCat20Buy(tokenP2TR, hash160(pkh), price))
+	return TaprootSmartContract.create(new FXPCat20Buy(tokenP2TR, hash160(pkh), price, false))
 }
 
 export async function createGuardAndBuyContract(
@@ -104,7 +104,7 @@ export async function createGuardAndBuyContract(
 		: await wallet.getXOnlyPublicKey()
 
 	const sellContract = TaprootSmartContract.create(
-		new FXPCat20Buy(tokenP2TR, hash160(walletXOnlyPublicKey), price)
+		new FXPCat20Buy(tokenP2TR, hash160(walletXOnlyPublicKey), price, false)
 	)
 
 	const guardState = GuardProto.createEmptyState()
@@ -305,7 +305,7 @@ export async function takeToken(
 		}
 
 		catTx.tx.from(newFeeUtxo)
-		vsize = 3705
+		vsize = 4312
 		satoshiChangeAmount =
 			catTx.tx.inputAmount -
 			vsize * feeRate -
@@ -469,7 +469,8 @@ export async function takeToken(
 			const { shPreimage, prevoutsCtx, spentScripts } = ctxList[sellInputIndex]
 			const sellCall = await buyContract.contract.methods.take(
 				catTx.state.stateHashList,
-				BigInt(buyContractUtxo.satoshis),
+				amount,
+				// BigInt(buyContractUtxo.satoshis),
 				amount,
 				changeTokenInputAmount,
 				hash160(xOnlyPubKey),

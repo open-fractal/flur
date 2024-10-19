@@ -4,7 +4,8 @@ contract FXPCat20Buy {
   bytes cat20Script;
   bytes buyerAddress;
   int price;
-  public function take(bytes[5] curTxoStateHashes, int preRemainingSatoshis, int toBuyerAmount, int toSellerAmount, Ripemd160 toSellerAddress, bytes tokenSatoshiBytes, int tokenInputIndex, bool fxpReward, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, bytes[6] spentAmountsCtx, ChangeInfo changeInfo) {
+  bool scalePrice;
+  public function take(bytes[5] curTxoStateHashes, int preRemainingAmount, int toBuyerAmount, int toSellerAmount, Ripemd160 toSellerAddress, bytes tokenSatoshiBytes, int tokenInputIndex, bool fxpReward, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, bytes[6] spentAmountsCtx, ChangeInfo changeInfo) {
     if(cancel) {
         require(hash160(pubKeyPrefix + ownerPubKey) == this.buyerAddress);
         require(checkSig(ownerSig, ownerPubKey));
@@ -15,9 +16,10 @@ contract FXPCat20Buy {
         require(spentScriptsCtx[(tokenInputIndex)] == this.cat20Script);
         SellUtil.checkSpentAmountsCtx(spentAmountsCtx, shPreimage.hashSpentAmounts);
         require(toSellerAmount >= 0);
-        require(spentAmountsCtx[(prevoutsCtx.inputIndexVal)] == SellUtil.int32ToSatoshiBytes(preRemainingSatoshis));
+        int preRemainingSatoshis = OpMul.mul(this.price, preRemainingAmount);
+        require(spentAmountsCtx[(prevoutsCtx.inputIndexVal)] == SellUtil.int32ToSatoshiBytesScaled(preRemainingSatoshis, this.scalePrice));
         int costSatoshis = OpMul.mul(this.price, toBuyerAmount);
-        require(preRemainingSatoshis >= costSatoshis);
+        require(preRemainingAmount >= toBuyerAmount);
         bytes curStateHashes = hash160(CAT20Proto.stateHash({this.buyerAddress, toBuyerAmount}));
         bytes toBuyerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
         bytes toSellerTokenOutput = b'';
@@ -25,11 +27,11 @@ contract FXPCat20Buy {
           curStateHashes += hash160(CAT20Proto.stateHash({toSellerAddress, toSellerAmount}));
           toSellerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
         }
-        int remainingSatoshis = preRemainingSatoshis - costSatoshis;
+        int remainingSatoshis = OpMul.mul(this.price, preRemainingAmount - toBuyerAmount);
         bytes remainingOutput = b'';
         if(remainingSatoshis > 0) {
           bytes selfSpentScript = spentScriptsCtx[(prevoutsCtx.inputIndexVal)];
-          remainingOutput = TxUtil.buildOutput(selfSpentScript, SellUtil.int32ToSatoshiBytes(remainingSatoshis));
+          remainingOutput = TxUtil.buildOutput(selfSpentScript, SellUtil.int32ToSatoshiBytesScaled(remainingSatoshis, this.scalePrice));
         }
         int curStateCnt = toSellerAmount == 0 ? 1 : 2;
         bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);

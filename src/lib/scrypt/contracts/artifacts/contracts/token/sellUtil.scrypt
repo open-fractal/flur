@@ -27,4 +27,28 @@ library SellUtil {
       }
     return amountBytes + b'00000000';
   }
+  static function int32ToSatoshiBytesScaled(int amount, bool scale) : bytes {
+    require(amount > 0);
+    bytes amountBytes = scale ? SellUtil.scale2ByteString(amount) : pack(amount);
+    int amountBytesLen = len(amountBytes);
+    if(amountBytesLen == 1) {
+        amountBytes += b'00000000000000';
+      } else if(amountBytesLen == 2) {
+        amountBytes += b'000000000000';
+      } else if(amountBytesLen == 3) {
+        amountBytes += b'0000000000';
+      } else if(amountBytesLen == 4) {
+        amountBytes += b'00000000';
+      } else if(amountBytesLen == 5) {
+        amountBytes += b'000000';
+      } else if(amountBytesLen == 6) {
+        amountBytes += b'0000';
+      } else if(amountBytesLen == 7) {
+        amountBytes += b'00';
+      }
+    return amountBytes;
+  }
+  static function scale2ByteString(int amount) : bytes {
+    return b'00' + pack(amount);
+  }
 }

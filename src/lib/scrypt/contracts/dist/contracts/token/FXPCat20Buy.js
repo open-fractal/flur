@@ -18,13 +18,14 @@ const cat20Proto_1 = require("./cat20Proto");
 const sellUtil_1 = require("./sellUtil");
 const scrypt_ts_lib_btc_1 = require("scrypt-ts-lib-btc");
 class FXPCat20Buy extends scrypt_ts_1.SmartContract {
-    constructor(cat20Script, buyerAddress, price) {
+    constructor(cat20Script, buyerAddress, price, scalePrice) {
         super(...arguments);
         this.cat20Script = cat20Script;
         this.buyerAddress = buyerAddress;
         this.price = price;
+        this.scalePrice = scalePrice;
     }
-    take(curTxoStateHashes, preRemainingSatoshis, toBuyerAmount, toSellerAmount, toSellerAddress, tokenSatoshiBytes, tokenInputIndex, 
+    take(curTxoStateHashes, preRemainingAmount, toBuyerAmount, toSellerAmount, toSellerAddress, tokenSatoshiBytes, tokenInputIndex, 
     //
     fxpReward, 
     // sig data
@@ -45,10 +46,11 @@ class FXPCat20Buy extends scrypt_ts_1.SmartContract {
             (0, scrypt_ts_1.assert)(spentScriptsCtx[Number(tokenInputIndex)] == this.cat20Script, 'should spend the cat20Script');
             sellUtil_1.SellUtil.checkSpentAmountsCtx(spentAmountsCtx, shPreimage.hashSpentAmounts);
             (0, scrypt_ts_1.assert)(toSellerAmount >= 0n, 'Invalid to seller amount');
+            const preRemainingSatoshis = scrypt_ts_lib_btc_1.OpMul.mul(this.price, preRemainingAmount);
             (0, scrypt_ts_1.assert)(spentAmountsCtx[Number(prevoutsCtx.inputIndexVal)] ==
-                sellUtil_1.SellUtil.int32ToSatoshiBytes(preRemainingSatoshis), 'Invalid preRemainingSatoshis');
+                sellUtil_1.SellUtil.int32ToSatoshiBytesScaled(preRemainingSatoshis, this.scalePrice), 'Invalid preRemainingSatoshis');
             const costSatoshis = scrypt_ts_lib_btc_1.OpMul.mul(this.price, toBuyerAmount);
-            (0, scrypt_ts_1.assert)(preRemainingSatoshis >= costSatoshis, 'Insufficient satoshis balance');
+            (0, scrypt_ts_1.assert)(preRemainingAmount >= toBuyerAmount, 'Insufficient satoshis balance');
             // to buyer
             let curStateHashes = (0, scrypt_ts_1.hash160)(cat20Proto_1.CAT20Proto.stateHash({
                 amount: toBuyerAmount,
@@ -65,11 +67,11 @@ class FXPCat20Buy extends scrypt_ts_1.SmartContract {
                 toSellerTokenOutput = txUtil_1.TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
             }
             // remaining buyer utxo satoshi
-            const remainingSatoshis = preRemainingSatoshis - costSatoshis;
+            const remainingSatoshis = scrypt_ts_lib_btc_1.OpMul.mul(this.price, preRemainingAmount - toBuyerAmount);
             let remainingOutput = (0, scrypt_ts_1.toByteString)('');
             if (remainingSatoshis > 0n) {
                 const selfSpentScript = spentScriptsCtx[Number(prevoutsCtx.inputIndexVal)];
-                remainingOutput = txUtil_1.TxUtil.buildOutput(selfSpentScript, sellUtil_1.SellUtil.int32ToSatoshiBytes(remainingSatoshis));
+                remainingOutput = txUtil_1.TxUtil.buildOutput(selfSpentScript, sellUtil_1.SellUtil.int32ToSatoshiBytesScaled(remainingSatoshis, this.scalePrice));
             }
             //
             const curStateCnt = toSellerAmount == 0n ? 1n : 2n;
@@ -106,6 +108,10 @@ __decorate([
     (0, scrypt_ts_1.prop)(),
     __metadata("design:type", BigInt)
 ], FXPCat20Buy.prototype, "price", void 0);
+__decorate([
+    (0, scrypt_ts_1.prop)(),
+    __metadata("design:type", Boolean)
+], FXPCat20Buy.prototype, "scalePrice", void 0);
 __decorate([
     (0, scrypt_ts_1.method)(),
     __metadata("design:type", Function),

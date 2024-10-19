@@ -272,7 +272,8 @@ export async function createGuardAndSellContract(
 			tokenP2TR,
 			btc.Script.fromAddress(walletAddress).toHex(),
 			hash160(walletXOnlyPublicKey),
-			price
+			price,
+			false
 		)
 	)
 

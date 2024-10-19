@@ -32,44 +32,30 @@ var __exportStar =
 // 		return mod && mod.__esModule ? mod : { default: mod }
 // 	}
 Object.defineProperty(exports, '__esModule', { value: true })
-// const burnGuard_1 = require('./contracts/token/burnGuard')
-// const closedMinter_1 = require('./contracts/token/closedMinter')
-// const openMinter_1 = require('./contracts/token/openMinter')
-// const cat20_1 = require('./contracts/token/cat20')
-// const transferGuard_1 = require('./contracts/token/transferGuard')
-// const openMinterV2_1 = require('./contracts/token/openMinterV2')
-// const cat20Sell_1 = require('./contracts/token/cat20Sell')
-// const buyCAT20_1 = require('./contracts/token/buyCAT20')
-// const FXPCat20Buy_1 = require('./contracts/token/FXPCat20Buy')
-// const FXPCat20Sell_1 = require('./contracts/token/FXPCat20Sell')
-// const FXPOpenMinter_1 = require('./contracts/token/FXPOpenMinter')
-// const FXPBuyGuard_1 = require('./contracts/token/FXPBuyGuard')
-// const FXPSellGuard_1 = require('./contracts/token/FXPSellGuard')
-// const closedMinter_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/closedMinter.json')
-// )
-// const openMinter_json_1 = __importDefault(require('../artifacts/contracts/token/openMinter.json'))
-// const openMinterV2_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/openMinterV2.json')
-// )
-// const cat20_json_1 = __importDefault(require('../artifacts/contracts/token/cat20.json'))
-// const burnGuard_json_1 = __importDefault(require('../artifacts/contracts/token/burnGuard.json'))
-// const transferGuard_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/transferGuard.json')
-// )
-// const cat20Sell_json_1 = __importDefault(require('../artifacts/contracts/token/cat20Sell.json'))
-// const buyCAT20_json_1 = __importDefault(require('../artifacts/contracts/token/buyCAT20.json'))
-// const FXPCat20Buy_json_1 = __importDefault(require('../artifacts/contracts/token/FXPCat20Buy.json'))
-// const FXPCat20Sell_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/FXPCat20Sell.json')
-// )
-// const FXPOpenMinter_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/FXPOpenMinter.json')
-// )
-// const FXPBuyGuard_json_1 = __importDefault(require('../artifacts/contracts/token/FXPBuyGuard.json'))
-// const FXPSellGuard_json_1 = __importDefault(
-// 	require('../artifacts/contracts/token/FXPSellGuard.json')
-// )
+// const burnGuard_1 = require("./contracts/token/burnGuard");
+// const closedMinter_1 = require("./contracts/token/closedMinter");
+// const openMinter_1 = require("./contracts/token/openMinter");
+// const cat20_1 = require("./contracts/token/cat20");
+// const transferGuard_1 = require("./contracts/token/transferGuard");
+// const openMinterV2_1 = require("./contracts/token/openMinterV2");
+// const cat20Sell_1 = require("./contracts/token/cat20Sell");
+// const buyCAT20_1 = require("./contracts/token/buyCAT20");
+// const FXPCat20Buy_1 = require("./contracts/token/FXPCat20Buy");
+// const FXPOpenMinter_1 = require("./contracts/token/FXPOpenMinter");
+// const FXPBuyGuard_1 = require("./contracts/token/FXPBuyGuard");
+// const FXPSellGuard_1 = require("./contracts/token/FXPSellGuard");
+// const closedMinter_json_1 = __importDefault(require("../artifacts/contracts/token/closedMinter.json"));
+// const openMinter_json_1 = __importDefault(require("../artifacts/contracts/token/openMinter.json"));
+// const openMinterV2_json_1 = __importDefault(require("../artifacts/contracts/token/openMinterV2.json"));
+// const cat20_json_1 = __importDefault(require("../artifacts/contracts/token/cat20.json"));
+// const burnGuard_json_1 = __importDefault(require("../artifacts/contracts/token/burnGuard.json"));
+// const transferGuard_json_1 = __importDefault(require("../artifacts/contracts/token/transferGuard.json"));
+// const cat20Sell_json_1 = __importDefault(require("../artifacts/contracts/token/cat20Sell.json"));
+// const buyCAT20_json_1 = __importDefault(require("../artifacts/contracts/token/buyCAT20.json"));
+// const FXPCat20Buy_json_1 = __importDefault(require("../artifacts/contracts/token/FXPCat20Buy.json"));
+// const FXPOpenMinter_json_1 = __importDefault(require("../artifacts/contracts/token/FXPOpenMinter.json"));
+// const FXPBuyGuard_json_1 = __importDefault(require("../artifacts/contracts/token/FXPBuyGuard.json"));
+// const FXPSellGuard_json_1 = __importDefault(require("../artifacts/contracts/token/FXPSellGuard.json"));
 // (() => {
 //     closedMinter_1.ClosedMinter.loadArtifact(closedMinter_json_1.default);
 //     openMinter_1.OpenMinter.loadArtifact(openMinter_json_1.default);
@@ -82,7 +68,7 @@ Object.defineProperty(exports, '__esModule', { value: true })
 //     FXPBuyGuard_1.FXPBuyGuard.loadArtifact(FXPBuyGuard_json_1.default);
 //     FXPSellGuard_1.FXPSellGuard.loadArtifact(FXPSellGuard_json_1.default);
 //     FXPCat20Buy_1.FXPCat20Buy.loadArtifact(FXPCat20Buy_json_1.default);
-//     FXPCat20Sell_1.FXPCat20Sell.loadArtifact(FXPCat20Sell_json_1.default);
+//     // FXPCat20Sell.loadArtifact(fxpCat20Sell)
 //     FXPOpenMinter_1.FXPOpenMinter.loadArtifact(FXPOpenMinter_json_1.default);
 // })();
 __exportStar(require('./contracts/token/closedMinter'), exports)
@@ -110,7 +96,6 @@ __exportStar(require('./contracts/token/cat20Sell'), exports)
 __exportStar(require('./contracts/token/buyCAT20'), exports)
 __exportStar(require('./contracts/token/FXPCat20Buy'), exports)
 __exportStar(require('./contracts/token/FXPCat20Sell'), exports)
-__exportStar(require('./contracts/token/FXPGuard'), exports)
 __exportStar(require('./contracts/token/FXPOpenMinter'), exports)
 __exportStar(require('./contracts/token/FXPBuyGuard'), exports)
 __exportStar(require('./contracts/token/FXPSellGuard'), exports)

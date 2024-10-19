@@ -23,7 +23,6 @@ export * from './contracts/token/cat20Sell';
 export * from './contracts/token/buyCAT20';
 export * from './contracts/token/FXPCat20Buy';
 export * from './contracts/token/FXPCat20Sell';
-export * from './contracts/token/FXPGuard';
 export * from './contracts/token/FXPOpenMinter';
 export * from './contracts/token/FXPBuyGuard';
 export * from './contracts/token/FXPSellGuard';

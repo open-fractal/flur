@@ -17,7 +17,7 @@ export declare class FXPOpenMinter extends SmartContract {
     constructor(genesisOutpoint: ByteString, maxCount: int32, premine: int32, premineCount: int32, limit: int32, premineAddr: ByteString);
     static getFXPAmount(tx: XrayedTxIdPreimg1): int32;
     static getFXPAmountHash(tx: XrayedTxIdPreimg1): ByteString;
-    mint(curTxoStateHashes: TxoStateHashes, tokenMint: CAT20State, nextMinterCounts: FixedArray<int32, typeof MAX_NEXT_MINTERS>, guardPreTx: XrayedTxIdPreimg1, guardPreState: CAT20State, guardPreTxStatesInfo: PreTxStatesInfo, guardAmountHashSuffix: ByteString, guardTakerPubkey: PubKey, minterSatoshis: ByteString, tokenSatoshis: ByteString, preState: OpenMinterV2State, preTxStatesInfo: PreTxStatesInfo, backtraceInfo: BacktraceInfo, shPreimage: SHPreimage, prevoutsCtx: PrevoutsCtx, spentScriptsCtx: SpentScriptsCtx, changeInfo: ChangeInfo): void;
+    mint(curTxoStateHashes: TxoStateHashes, tokenMint: CAT20State, tokenAmount: int32, nextMinterCounts: FixedArray<int32, typeof MAX_NEXT_MINTERS>, guardPreTx: XrayedTxIdPreimg1, guardPreState: CAT20State, guardPreTxStatesInfo: PreTxStatesInfo, guardAmountHashSuffix: ByteString, guardTakerPubkey: PubKey, minterSatoshis: ByteString, tokenSatoshis: ByteString, preState: OpenMinterV2State, preTxStatesInfo: PreTxStatesInfo, backtraceInfo: BacktraceInfo, shPreimage: SHPreimage, prevoutsCtx: PrevoutsCtx, spentScriptsCtx: SpentScriptsCtx, changeInfo: ChangeInfo): void;
 }
 export {};
 //# sourceMappingURL=FXPOpenMinter.d.ts.map

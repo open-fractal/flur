@@ -12,12 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FXPOpenMinter = void 0;
 const scrypt_ts_1 = require("scrypt-ts");
 const txUtil_1 = require("../utils/txUtil");
-const sigHashUtils_1 = require("../utils/sigHashUtils");
 const backtrace_1 = require("../utils/backtrace");
 const stateUtils_1 = require("../utils/stateUtils");
 const cat20Proto_1 = require("./cat20Proto");
 const openMinterV2Proto_1 = require("./openMinterV2Proto");
 const txProof_1 = require("../utils/txProof");
+const scrypt_ts_lib_btc_1 = require("scrypt-ts-lib-btc");
 const MAX_NEXT_MINTERS = 2;
 class FXPOpenMinter extends scrypt_ts_1.SmartContract {
     constructor(genesisOutpoint, maxCount, premine, premineCount, limit, premineAddr) {
@@ -35,26 +35,32 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
     }
     static getFXPAmount(tx) {
         const hash = FXPOpenMinter.getFXPAmountHash(tx);
-        let magnitude = (0, scrypt_ts_1.byteString2Int)(hash[0] + hash[1]);
-        if (magnitude < 0n) {
-            magnitude = -magnitude;
+        let rand = (0, scrypt_ts_1.byteString2Int)(hash[0] + hash[1]); // -127n through 127n
+        if (rand < 0n) {
+            rand = -rand;
         }
-        return magnitude;
+        const res = (rand + 1n) * 100n;
+        if (res == 6900n) {
+            return 42000n;
+        }
+        return (rand + 1n) * 100n;
     }
     static getFXPAmountHash(tx) {
+        const txid = txProof_1.TxProof.getTxIdFromPreimg1(tx);
         const hash = (0, scrypt_ts_1.sha256)(tx.outputScriptList[0] +
             tx.outputScriptList[1] +
             tx.outputScriptList[2] +
             tx.outputScriptList[3] +
             tx.outputScriptList[4] +
-            tx.outputScriptList[5]);
+            tx.outputScriptList[5] +
+            txid);
         return hash;
     }
     mint(
     //
     curTxoStateHashes, 
     // contract logic args
-    tokenMint, nextMinterCounts, 
+    tokenMint, tokenAmount, nextMinterCounts, 
     // FXP Guard
     guardPreTx, guardPreState, guardPreTxStatesInfo, guardAmountHashSuffix, guardTakerPubkey, 
     // satoshis locked in minter utxo
@@ -71,12 +77,30 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
     // change output info
     changeInfo) {
         // check preimage
-        (0, scrypt_ts_1.assert)(this.checkSig(sigHashUtils_1.SigHashUtils.checkSHPreimage(shPreimage), sigHashUtils_1.SigHashUtils.Gx), 'preimage check error');
+        // assert(
+        //     this.checkSig(
+        //         SigHashUtils.checkSHPreimage(shPreimage),
+        //         SigHashUtils.Gx
+        //     ),
+        //     'preimage check error'
+        // )
         // check ctx
-        sigHashUtils_1.SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
-        sigHashUtils_1.SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
-        // verify state
-        stateUtils_1.StateUtils.verifyPreStateHash(preTxStatesInfo, openMinterV2Proto_1.OpenMinterV2Proto.stateHash(preState), backtraceInfo.preTx.outputScriptList[txUtil_1.STATE_OUTPUT_INDEX], prevoutsCtx.outputIndexVal);
+        // SigHashUtils.checkPrevoutsCtx(
+        //     prevoutsCtx,
+        //     shPreimage.hashPrevouts,
+        //     shPreimage.inputIndex
+        // )
+        // SigHashUtils.checkSpentScriptsCtx(
+        //     spentScriptsCtx,
+        //     shPreimage.hashSpentScripts
+        // )
+        // // verify state
+        // StateUtils.verifyPreStateHash(
+        //     preTxStatesInfo,
+        //     OpenMinterV2Proto.stateHash(preState),
+        //     backtraceInfo.preTx.outputScriptList[STATE_OUTPUT_INDEX],
+        //     prevoutsCtx.outputIndexVal
+        // )
         // check preTx script eq this locking script
         const preScript = spentScriptsCtx[Number(prevoutsCtx.inputIndexVal)];
         // back to genesis
@@ -144,9 +168,25 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
         // not first unlock mint
         mintCount += 1n;
         (0, scrypt_ts_1.assert)(mintCount == preState.remainingSupplyCount);
+        const isLottery = tokenAmount == 420n;
+        (0, scrypt_ts_1.assert)(tokenAmount <= 128n || isLottery, // 2^7 = 128
+        'token amount must be less than 128');
+        (0, scrypt_ts_1.assert)(scrypt_ts_lib_btc_1.OpMul.mul(tokenAmount, 100n) == tokenMint.amount, 'token amount mismatch');
         const amountHash = FXPOpenMinter.getFXPAmountHash(guardPreTx);
-        const posAmountHash = (0, scrypt_ts_1.int2ByteString)(tokenMint.amount) + guardAmountHashSuffix;
-        const negAmountHash = (0, scrypt_ts_1.int2ByteString)(-tokenMint.amount) + guardAmountHashSuffix;
+        const amount = isLottery ? 69n - 1n : tokenAmount - 1n;
+        const posAmountHash = (amount === 0n ? (0, scrypt_ts_1.toByteString)('00') : (0, scrypt_ts_1.int2ByteString)(amount)) +
+            guardAmountHashSuffix;
+        const negAmountHash = (amount === 0n ? (0, scrypt_ts_1.toByteString)('80') : (0, scrypt_ts_1.int2ByteString)(-amount)) +
+            guardAmountHashSuffix;
+        if (isLottery) {
+            console.log({
+                amount,
+                amountHash,
+                posAmountHash,
+                negAmountHash,
+                tokneAmount: tokenMint.amount,
+            });
+        }
         (0, scrypt_ts_1.assert)(amountHash == posAmountHash || amountHash == negAmountHash, 'FXP amount mismatch');
         const stateOutput = stateUtils_1.StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
         const changeOutput = txUtil_1.TxUtil.getChangeOutput(changeInfo);
@@ -182,7 +222,7 @@ __decorate([
 __decorate([
     (0, scrypt_ts_1.method)(),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object, String, String, String, String, Object, Object, Object, Object, Object, Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, BigInt, Object, Object, Object, Object, String, String, String, String, Object, Object, Object, Object, Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], FXPOpenMinter.prototype, "mint", null);
 __decorate([

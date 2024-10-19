@@ -18,12 +18,13 @@ const cat20Proto_1 = require("./cat20Proto");
 const sellUtil_1 = require("./sellUtil");
 const scrypt_ts_lib_btc_1 = require("scrypt-ts-lib-btc");
 class FXPCat20Sell extends scrypt_ts_1.SmartContract {
-    constructor(cat20Script, recvOutput, sellerAddress, price) {
+    constructor(cat20Script, recvOutput, sellerAddress, price, scalePrice) {
         super(...arguments);
         this.cat20Script = cat20Script;
         this.recvOutput = recvOutput;
         this.sellerAddress = sellerAddress;
         this.price = price;
+        this.scalePrice = scalePrice;
     }
     take(curTxoStateHashes, tokenInputIndex, toBuyUserAmount, sellChange, buyUserAddress, tokenSatoshiBytes, fxpReward, 
     // sig data
@@ -65,7 +66,7 @@ class FXPCat20Sell extends scrypt_ts_1.SmartContract {
             const satoshiToSeller = scrypt_ts_lib_btc_1.OpMul.mul(this.price, toBuyUserAmount);
             const toSellerOutput = txUtil_1.TxUtil.buildOutput(this.recvOutput, 
             // token 1 decimals = 1 satoshi
-            sellUtil_1.SellUtil.int32ToSatoshiBytes(satoshiToSeller));
+            sellUtil_1.SellUtil.int32ToSatoshiBytesScaled(satoshiToSeller, this.scalePrice));
             //
             const curStateCnt = sellChange == 0n ? 1n : 2n;
             const stateOutput = stateUtils_1.StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
@@ -106,6 +107,10 @@ __decorate([
     (0, scrypt_ts_1.prop)(),
     __metadata("design:type", BigInt)
 ], FXPCat20Sell.prototype, "price", void 0);
+__decorate([
+    (0, scrypt_ts_1.prop)(),
+    __metadata("design:type", Boolean)
+], FXPCat20Sell.prototype, "scalePrice", void 0);
 __decorate([
     (0, scrypt_ts_1.method)(),
     __metadata("design:type", Function),

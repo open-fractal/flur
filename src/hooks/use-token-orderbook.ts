@@ -83,8 +83,13 @@ export function useTokenOrderbook(token: TokenData) {
 		{ refreshInterval: 5000 } // Refresh every 5 seconds
 	)
 
+	// @ts-ignore
 	const sellOrders = orderbookData?.data?.utxos.filter(order => order.md5 === SELL_MD5) || []
+	// @ts-ignore
 	const buyOrders = orderbookData?.data?.utxos.filter(order => order.md5 === BUY_MD5) || []
+
+	console.log('sellOrders', sellOrders)
+	console.log('buyOrders', buyOrders)
 
 	// Calculate total amount and best price for sell orders
 	const { totalSellAmount, bestSellPrice } = sellOrders.reduce(

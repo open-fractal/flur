@@ -53,12 +53,12 @@ export async function createBuyContract(
 
 	const orderbookLockingScript = getOrderbookScript({
 		args,
-		md5: '5453660eb0df468a6c2190a5cd7bc167'
+		md5: FXPCAT20BuyArtifact.md5
 	})
 	const { p2tr: orderbookP2TR } = script2P2TR(Buffer.from(orderbookLockingScript, 'hex'))
 
 	const buyContract = TaprootSmartContract.create(
-		new FXPCat20Buy(args[0] as ByteString, args[1] as ByteString, args[2] as bigint)
+		new FXPCat20Buy(args[0] as ByteString, args[1] as ByteString, args[2] as bigint, false)
 	)
 
 	const catTx = CatTx.create()

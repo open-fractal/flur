@@ -5,6 +5,7 @@ contract FXPCat20Sell {
   bytes recvOutput;
   bytes sellerAddress;
   int price;
+  bool scalePrice;
   public function take(bytes[5] curTxoStateHashes, int tokenInputIndex, int toBuyUserAmount, int sellChange, Ripemd160 buyUserAddress, bytes tokenSatoshiBytes, bool fxpReward, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, ChangeInfo changeInfo) {
     if(cancel) {
         require(hash160(pubKeyPrefix + ownerPubKey) == this.sellerAddress);
@@ -24,7 +25,7 @@ contract FXPCat20Sell {
           changeToSellTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
         }
         int satoshiToSeller = OpMul.mul(this.price, toBuyUserAmount);
-        bytes toSellerOutput = TxUtil.buildOutput(this.recvOutput, SellUtil.int32ToSatoshiBytes(satoshiToSeller));
+        bytes toSellerOutput = TxUtil.buildOutput(this.recvOutput, SellUtil.int32ToSatoshiBytesScaled(satoshiToSeller, this.scalePrice));
         int curStateCnt = sellChange == 0 ? 1 : 2;
         bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
         bytes serviceFeeP2TR = b'512067fe8e4767ab1a9056b1e7c6166d690e641d3f40e188241f35f803b1f84546c2';
