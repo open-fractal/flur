@@ -37,7 +37,7 @@ interface PositionFormProps {
 
 export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
-	const { isTransferring, handleSell, totalAmount } = useSellCat20(token) // Add this line
+	const { isTransferring, handleSell } = useSellCat20(token) // Add this line
 	const { handleBuy } = useBuyCat20(token) // Add this line
 	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token) // Add this line
 	const { handleTakeBuy } = useTakeBuyCat20(token) // Add this line
