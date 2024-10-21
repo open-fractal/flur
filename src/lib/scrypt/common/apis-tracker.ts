@@ -112,7 +112,6 @@ const fetchOpenMinterState = async function(
 	const tokenP2TR = toP2tr(metadata.tokenAddr)
 	const info = metadata.info as OpenMinterTokenInfo
 	const scaledInfo = scaleConfig(info)
-	debugger
 	if (txId === metadata.revealTxid) {
 		if (
 			// @ts-ignore

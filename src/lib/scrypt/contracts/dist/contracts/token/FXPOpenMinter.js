@@ -106,13 +106,13 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
 		changeInfo
 	) {
 		// check preimage
-		// ;(0, scrypt_ts_1.assert)(
-		// 	this.checkSig(
-		// 		sigHashUtils_1.SigHashUtils.checkSHPreimage(shPreimage),
-		// 		sigHashUtils_1.SigHashUtils.Gx
-		// 	),
-		// 	'preimage check error'
-		// )
+		;(0, scrypt_ts_1.assert)(
+			this.checkSig(
+				sigHashUtils_1.SigHashUtils.checkSHPreimage(shPreimage),
+				sigHashUtils_1.SigHashUtils.Gx
+			),
+			'preimage check error'
+		)
 		// check ctx
 		sigHashUtils_1.SigHashUtils.checkPrevoutsCtx(
 			prevoutsCtx,
