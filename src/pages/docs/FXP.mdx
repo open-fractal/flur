@@ -1,10 +1,10 @@
-# Flur Experience Points (FXP) Documentation
+# Flur Experience Points (FXP)
 
-Welcome to the **Flur Experience Points (FXP)** documentation page! This page will guide you through everything you need to know about FXP, an innovative token that uses **Trade to Mint** technology to distribute rewards through completed trades on Flur or via the Flur smart contract.
+This page will guide you through everything you need to know about FXP, an innovative token that uses **Trade to Mint** technology to distribute rewards through completed trades on Flur or via the Flur smart contract.
 
 ## What is FXP?
 
-**Flur Experience Points (FXP)** is a unique token designed to incentivize trading activity. FXP stands out from traditional tokens by using a **Trade to Mint** mechanism. This means that tokens are only minted (released) as a reward when a trade is fully completed. The process is simple: you must engage in a full trade (either a buy or sell order) to unlock a mint.
+**Flur Experience Points (FXP)** is a unique token designed to incentivize trading activity. FXP stands out from traditional tokens by using a **Trade to Mint** mechanism. This means that tokens are only minted (released) as a reward when a trade is fully completed. The process is simple: you must create an order on Flur or via the `FXPCat20Buy` or `FXPCat20Sell` smart contracts and complete the trade. Upon completion, the maker of the order is awareded a claim that can be redeemed for FXP.
 
 ---
 
@@ -16,18 +16,17 @@ The core feature of FXP is its **Trade to Mint** design:
 
 - **Only way to mint FXP**: A mint is unlocked only after a full trade is completed on Flur or via the Flur smart contract.
 - **Open order book trades**: The trade must be a fully executed order (no partial orders).
-- **Claimable Mint**: Once a trade is complete, a mint is available for both the buyer and seller to claim. It doesn’t matter which party initiates the claim; both participants will receive the reward once the transaction is mined on-chain.
-
+- **Claimable Mint**: Once a trade is complete, a mint is available for the order maker to claim. Only the order maker can claim the mint.
 ### 2. Mint Reward Distribution
 
-- **Both buyer and seller rewarded**: Upon the completion of a trade, both the buyer and the seller are rewarded equally. For instance, if the mint reward is **10 FXP**, both the buyer and seller will receive **10 FXP each**.
+- Upon the completion of a trade, the order maker is rewarded with a claim that can be redeemed for FXP.
   
 ### 3. Randomized Minting System
 
 The number of tokens released per mint is randomly determined by the blockchain’s output hash, and can vary widely:
 
-- **Random Mint Reward**: Each mint releases a random number of FXP, anywhere from **1 to 129 tokens**.
-- **Special Reward**: There is a special mint of **420 tokens** if the output hash hits **number 69** during the minting process.
+- **Random Mint Reward**: Each mint releases a random number of FXP, anywhere from **1 to 128 tokens**.
+- **Jackpot Mint Reward**: There is a special jackpot mint of **420 tokens** if the output hash hits **number 69** during the minting process.
 
 ### 4. Full Orders Only
 
@@ -43,70 +42,8 @@ Here’s a quick summary of the key details for **Flur Experience Points (FXP)**
 |----------------------------|------------------------------------------------------------------------|
 | **Token Name**              | Flur Experience Points (FXP)                                           |
 | **Technology**              | Trade to Mint (token is minted as a reward for completing trades)      |
-| **Total Number of Mints**   | 21,000,000 mints available                                             |
-| **Total Token Supply**      | Random/Unknown (estimated around **2+ billion tokens** in total)        |
-| **Token Release per Mint**  | Random, anywhere from **1 to 129 FXP** per mint                        |
-| **Special Mint**            | **420 FXP** if you hit hash **69** during mint output                  |
-| **Mint Distribution**       | Buyer and seller receive equal FXP rewards after a mint is claimed      |
-
----
-
-## How to Mint FXP
-
-### 1. Complete a Full Trade
-
-To unlock a mint, you must complete a **full buy or sell order** on Flur’s open order book. Remember, only **fully executed orders** unlock mints, and partial orders do not qualify.
-
-### 2. Claim Your Mint
-
-Once a mint is unlocked, your wallet will have a **claimable mint** or a **mint claim available**. Either the buyer or seller can initiate the mint claim. Once the transaction is on-chain and confirmed, both the buyer and seller receive their FXP reward.
-
-### 3. Receive Tokens
-
-The number of FXP tokens you receive will be randomly determined by the blockchain output hash and will range from **1 to 129 tokens**. There’s also a chance of receiving a special mint of **420 tokens** if your mint hits output hash **69**.
-
----
-
-## Example Scenarios
-
-### Scenario 1: Standard Mint
-
-- A user completes a buy order on Flur’s open order book.
-- The mint output hash generates a reward of **20 FXP**.
-- Both the buyer and seller receive **20 FXP** each.
-
-### Scenario 2: Special Mint
-
-- A user completes a sell order on Flur.
-- The mint output hash hits **69**.
-- Both the buyer and seller receive a special reward of **420 FXP** each.
-
----
-
-## Frequently Asked Questions (FAQs)
-
-### 1. What is Trade to Mint?
-
-Trade to Mint is a new minting mechanism where tokens are only minted as a reward when a full trade is completed. This means that no FXP is pre-mined or released in any way other than through trading activity.
-
-### 2. How do I unlock a mint?
-
-You unlock a mint by completing a full buy or sell order on Flur or through the Flur smart contract. Once the trade is completed, both the buyer and seller can claim their FXP rewards.
-
-### 3. What happens if I only partially fill an order?
-
-Partial orders do not unlock mints. You must complete the entire order (whether buying or selling) for a mint to be unlocked.
-
-### 4. How many tokens can I receive per mint?
-
-The number of tokens is randomly generated and can be anywhere from **1 to 129 FXP**. There is also a special reward of **420 FXP** if the mint output hash hits **69**.
-
-### 5. How is the total supply determined?
-
-The total supply is unknown and will be determined by the number of mints and the random mint rewards. It is estimated that around **2+ billion tokens** will be minted based on the total number of mints (21 million) and the average tokens per mint.
-
----
-
-## Conclusion
-
-**Flur Experience Points (FXP)** is an exciting, innovative way to reward traders with real, claimable tokens. By participating in trades on Flur, you not only engage in a decentralized trading experience but also unlock FXP rewards. Each trade creates an opportunity for a random token reward, with a chance for even greater bonuses through the blockchain’s randomized output. Start trading today to begin minting FXP!
+| **Total Number of Mints**   | 69,000,000 mints available                                             |
+| **Total Token Supply**      | Random/Unknown (estimated around **4.2+ billion tokens** in total)        |
+| **Token Release per Mint**  | Random, anywhere from **1 to 128 FXP** per mint                        |
+| **Lottery Mint**            | **420 FXP** if you hit hash **69** during mint output                  |
+| **Mint Distribution**       | Only the order maker can claim the mint                                |
