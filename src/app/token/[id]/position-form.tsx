@@ -19,11 +19,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 
-// Update the FormSchema to allow for number type for price and amount
-const FormSchema = z.object({
-	price: z.coerce.number().min(0, { message: 'Price must be a positive number' }),
-	amount: z.coerce.number().min(0, { message: 'Amount must be a positive number' })
-})
+// Update the FormSchema to include the total value check
+const FormSchema = z
+	.object({
+		price: z.coerce.number().min(0, { message: 'Price must be a positive number' }),
+		amount: z.coerce.number().min(0, { message: 'Amount must be a positive number' })
+	})
+	.refine(data => data.price * data.amount <= 21.47483647, {
+		message: 'Total value (amount * price) cannot exceed 21.47483647',
+		path: ['amount'] // This will show the error on the amount field
+	})
 
 interface PositionFormProps {
 	token: TokenData
@@ -226,6 +231,16 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 		}
 	}
 
+	// Update the function to return an object with value and isTooHigh
+	const calculateTotalValue = (price: number, amount: number) => {
+		const total = price * amount
+		const isTooHigh = total > 21.47483647
+		return {
+			value: isTooHigh ? 'Too High' : total.toFixed(8),
+			isTooHigh
+		}
+	}
+
 	return (
 		<div className="w-full max-w-4xl text-white p-4 border-t">
 			{isOrderbookLoading && <p>Loading orderbook...</p>}
@@ -270,11 +285,21 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 								<span>Available</span>
 								<span>{fbBalance} FB</span>
 							</div>
-							<div className="flex justify-between text-xs text-gray-400">
-								<span>Max Buy</span>
-								<span>-- {token.symbol}</span>
-							</div>
 							{buyError && <div className="text-red-500 text-sm">{buyError}</div>}
+							<div className="flex justify-between text-xs">
+								<span className="text-gray-400">Total Value (FB)</span>
+								{(() => {
+									const { value, isTooHigh } = calculateTotalValue(
+										buyForm.watch('price'),
+										buyForm.watch('amount')
+									)
+									return (
+										<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
+											{value}
+										</span>
+									)
+								})()}
+							</div>
 							<Button
 								type="submit"
 								className="w-full bg-green-500 hover:bg-green-600"
@@ -331,13 +356,21 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 									{tokenBalance} {tokenSymbol}
 								</span>
 							</div>
-							<div className="flex justify-between text-xs text-gray-400">
-								<span>Total Amount</span>
-								<span>
-									{totalAmount.toString()} {tokenSymbol}
-								</span>
-							</div>
 							{sellError && <div className="text-red-500 text-sm">{sellError}</div>}
+							<div className="flex justify-between text-xs">
+								<span className="text-gray-400">Total Value (FB)</span>
+								{(() => {
+									const { value, isTooHigh } = calculateTotalValue(
+										sellForm.watch('price'),
+										sellForm.watch('amount')
+									)
+									return (
+										<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
+											{value}
+										</span>
+									)
+								})()}
+							</div>
 							<Button
 								type="submit"
 								className="w-full bg-red-500 hover:bg-red-600"
