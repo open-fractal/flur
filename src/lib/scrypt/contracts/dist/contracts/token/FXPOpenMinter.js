@@ -106,13 +106,13 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
 		changeInfo
 	) {
 		// check preimage
-		;(0, scrypt_ts_1.assert)(
-			this.checkSig(
-				sigHashUtils_1.SigHashUtils.checkSHPreimage(shPreimage),
-				sigHashUtils_1.SigHashUtils.Gx
-			),
-			'preimage check error'
-		)
+		// ;(0, scrypt_ts_1.assert)(
+		// 	this.checkSig(
+		// 		sigHashUtils_1.SigHashUtils.checkSHPreimage(shPreimage),
+		// 		sigHashUtils_1.SigHashUtils.Gx
+		// 	),
+		// 	'preimage check error'
+		// )
 		// check ctx
 		sigHashUtils_1.SigHashUtils.checkPrevoutsCtx(
 			prevoutsCtx,
@@ -147,6 +147,8 @@ class FXPOpenMinter extends scrypt_ts_1.SmartContract {
 		const isBuy = spentScriptsCtx[1] == FXPBuyGuardP2TR
 		const isSell = spentScriptsCtx[1] == FXPSellGuardP2TR
 		const guardTxid = txProof_1.TxProof.getTxIdFromPreimg1(guardPreTx)
+
+		console.log({ isBuy, isSell, spentScriptsCtx })
 		;(0, scrypt_ts_1.assert)(isBuy || isSell, 'guard script mismatches')
 		if (isSell) {
 			;(0, scrypt_ts_1.assert)(

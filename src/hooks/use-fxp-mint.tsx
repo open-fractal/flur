@@ -159,10 +159,19 @@ const getOrderGuard = (
 	const preTxHeader = txToTxHeader(tradeTx)
 	const preTx = txToTxHeaderPartial(preTxHeader)
 
-	const guardOutput = Buffer.from(tradeTx.outputs[4].script.toBuffer()).toString('hex')
+	const guardOutput =
+		tradeTx.outputs.length === 5
+			? Buffer.from(tradeTx.outputs[3].script.toBuffer()).toString('hex')
+			: Buffer.from(tradeTx.outputs[4].script.toBuffer()).toString('hex')
+	const noChangeFillBuyGuardOutput = Buffer.from(tradeTx.outputs[3].script.toBuffer()).toString(
+		'hex'
+	)
 	const makerAddr = hash160(order.ownerPubKey)
 
-	if (guardOutput === buyGuard.lockingScriptHex) {
+	if (
+		guardOutput === buyGuard.lockingScriptHex ||
+		noChangeFillBuyGuardOutput === buyGuard.lockingScriptHex
+	) {
 		guard = buyGuard
 		// makerAddr = hash160(order.ownerPubKey)
 		// takerAddr = hash160(order.takerPubKey)
@@ -363,12 +372,20 @@ async function openMint(
 	const tradeRawtx = await getRawTransaction(tradeTxid)
 	const tradeTx = new btc.Transaction(tradeRawtx)
 	const orderTokenUtxo = await getTokenUtxo(tradeTxid, 1)
-	const orderGuardUtxo = {
-		txId: tradeTxid,
-		outputIndex: 4,
-		satoshis: tradeTx.outputs[4].satoshis,
-		script: tradeTx.outputs[4].script
-	}
+	const orderGuardUtxo =
+		tradeTx.outputs.length === 5
+			? {
+					txId: tradeTxid,
+					outputIndex: 3,
+					satoshis: tradeTx.outputs[3].satoshis,
+					script: tradeTx.outputs[3].script
+			  }
+			: {
+					txId: tradeTxid,
+					outputIndex: 4,
+					satoshis: tradeTx.outputs[4].satoshis,
+					script: tradeTx.outputs[4].script
+			  }
 
 	if (!orderTokenUtxo) {
 		throw new Error('Token UTXO not found')
@@ -665,7 +682,7 @@ async function openMint(
 		{
 			fromUTXO: getDummyUTXO(),
 			verify: false,
-			exec: false
+			exec: true
 		} as MethodCallOptions<OpenMinter>
 	)
 

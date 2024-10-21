@@ -179,8 +179,6 @@ async function unlockGuard(
 	outputArray[satoshiChangeOutputIndex] = changeInfo.script
 	tokenOutputIndexArray[satoshiChangeOutputIndex] = false
 
-	debugger
-
 	const transferGuardCall = await transferGuard.methods.transfer(
 		newState.stateHashList,
 		outputArray,
@@ -666,8 +664,6 @@ export async function sendToken(
 		}
 		contracts.push(changeTokenContract)
 	}
-
-	debugger
 
 	return {
 		commitTx,
