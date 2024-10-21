@@ -69,7 +69,7 @@ OpenMinter.loadArtifact(OpenMinterArtifact)
 const OpenMinterV2Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinterV2.json')
 OpenMinterV2.loadArtifact(OpenMinterV2Artifact)
 
-const FXPOpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/fXPOpenMinter.json')
+const FXPOpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPOpenMinter.json')
 FXPOpenMinter.loadArtifact(FXPOpenMinterArtifact)
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
@@ -81,10 +81,10 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
-const FXPBuyGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/fXPBuyGuard.json')
+const FXPBuyGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPBuyGuard.json')
 FXPBuyGuard.loadArtifact(FXPBuyGuardArtifact)
 
-const FXPSellGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/fXPSellGuard.json')
+const FXPSellGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPSellGuard.json')
 FXPSellGuard.loadArtifact(FXPSellGuardArtifact)
 
 function selectUtxos(utxos: UTXO[], targetAmount: number): UTXO[] {
