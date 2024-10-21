@@ -13,6 +13,7 @@ type Props = {
 export const revalidate = 120 // 2 minutes
 
 // Function to fetch token details
+// @ts-ignore
 export async function fetchTokenDetails(token_id: string) {
 	try {
 		const url = `${API_URL}/api/tokens/${token_id}`

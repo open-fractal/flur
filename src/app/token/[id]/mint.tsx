@@ -28,6 +28,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 	const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)
 	const { address } = useWallet()
 
+	// @ts-ignore
 	const isFXP = MinterType.FXP_OPEN_MINTER === token.info.minterMd5
 
 	const { claimCount } = useFXPClaims()
@@ -58,6 +59,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 					</div>
 					<Progress value={parseFloat(mintProgress)} className="w-full" />
 				</div>
+				{/* @ts-ignore */}
 				{token.info.minterMd5 !== MinterType.FXP_OPEN_MINTER && (
 					<div>
 						<p className="text-sm font-medium">Supply</p>
@@ -66,6 +68,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 						</p>
 					</div>
 				)}
+				{/* @ts-ignore */}
 				{MinterType.FXP_OPEN_MINTER === token.info.minterMd5 ? (
 					<>
 						<div>
@@ -186,6 +189,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 
 				<Button
 					onClick={() =>
+						// @ts-ignore
 						MinterType.FXP_OPEN_MINTER === token.info.minterMd5
 							? handleFXPMint(utxoCount)
 							: handleMint(utxoCount)

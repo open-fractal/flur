@@ -1,6 +1,13 @@
+const OpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinter.json')
+const OpenMinterV2Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/openMinterV2.json')
+const FXPOpenMinterArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/FXPOpenMinter.json')
+
 export enum MinterType {
-	OPEN_MINTER_V1 = '21cbd2e538f2b6cc40ee180e174f1e25',
-	OPEN_MINTER_V2 = 'a6c2e92d74a23c07bb6220b676c6cb9b',
-	FXP_OPEN_MINTER = 'a46488a8d8bf23a0248b2d331eca9e66',
+	// @ts-ignore
+	OPEN_MINTER_V1 = OpenMinterArtifact.md5,
+	// @ts-ignore
+	OPEN_MINTER_V2 = OpenMinterV2Artifact.md5,
+	// @ts-ignore
+	FXP_OPEN_MINTER = FXPOpenMinterArtifact.md5,
 	UNKOWN_MINTER = 'unkown_minter'
 }

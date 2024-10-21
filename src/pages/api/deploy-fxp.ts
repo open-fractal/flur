@@ -387,7 +387,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 			max: BigInt(payload.params.max),
 			decimals: 2,
 			premine: 0n,
-			minterMd5: MinterType.FXP_OPEN_MINTER
+			minterMd5: MinterType.FXP_OPEN_MINTER as string
 		}
 
 		const response = await deploy(params, payload.feeRate, payload.utxos, wallet)

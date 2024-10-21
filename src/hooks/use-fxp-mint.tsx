@@ -81,6 +81,12 @@ TransferGuard.loadArtifact(TransferGuardArtifact)
 const CAT20Artifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/cat20.json')
 CAT20.loadArtifact(CAT20Artifact)
 
+const FXPBuyGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/fXPBuyGuard.json')
+FXPBuyGuard.loadArtifact(FXPBuyGuardArtifact)
+
+const FXPSellGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/fXPSellGuard.json')
+FXPSellGuard.loadArtifact(FXPSellGuardArtifact)
+
 function selectUtxos(utxos: UTXO[], targetAmount: number): UTXO[] {
 	const sortedUtxos = utxos.sort((a, b) => b.satoshis - a.satoshis)
 	const selectedUtxos: UTXO[] = []
@@ -124,8 +130,10 @@ export function pickOpenMinterStateFeild<T>(
 }
 
 export function getRemainSupply(state: OpenMinterState | OpenMinterV2State, minterMd5: string) {
+	// @ts-ignore
 	if (minterMd5 === MinterType.OPEN_MINTER_V1) {
 		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupply')
+		// @ts-ignore
 	} else if (minterMd5 === MinterType.OPEN_MINTER_V2 || minterMd5 === MinterType.FXP_OPEN_MINTER) {
 		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupplyCount')
 	}
@@ -139,7 +147,6 @@ const getOrderGuard = (
 			guard: TaprootSmartContract
 			preTx: XrayedTxIdPreimg1
 			makerState: CAT20State
-			takerState: CAT20State
 			takerPubKey: string
 	  }
 	| undefined => {
@@ -147,34 +154,33 @@ const getOrderGuard = (
 	const sellGuard = TaprootSmartContract.create(new FXPSellGuard())
 
 	let guard: TaprootSmartContract | undefined
-	let makerAddr: string | undefined
-	let takerAddr: string | undefined
 	let takerPubKey = order.takerPubKey
 
 	const preTxHeader = txToTxHeader(tradeTx)
 	const preTx = txToTxHeaderPartial(preTxHeader)
 
 	const guardOutput = Buffer.from(tradeTx.outputs[4].script.toBuffer()).toString('hex')
+	const makerAddr = hash160(order.ownerPubKey)
 
 	if (guardOutput === buyGuard.lockingScriptHex) {
 		guard = buyGuard
-		makerAddr = hash160(order.ownerPubKey)
-		takerAddr = hash160(order.takerPubKey)
+		// makerAddr = hash160(order.ownerPubKey)
+		// takerAddr = hash160(order.takerPubKey)
 	} else if (guardOutput === sellGuard.lockingScriptHex) {
-		makerAddr = hash160(order.takerPubKey)
-		takerAddr = hash160(order.ownerPubKey)
+		// makerAddr = hash160(order.takerPubKey)
+		// takerAddr = hash160(order.ownerPubKey)
 		guard = sellGuard
 		takerPubKey = order.ownerPubKey
 	}
 
-	if (!guard || !makerAddr || !takerAddr) {
+	if (!guard) {
 		return undefined
 	}
 
 	const makerState = CAT20Proto.create(FXPOpenMinter.getFXPAmount(preTx), makerAddr)
-	const takerState = CAT20Proto.create(FXPOpenMinter.getFXPAmount(preTx), takerAddr)
+	// const takerState = CAT20Proto.create(FXPOpenMinter.getFXPAmount(preTx), takerAddr)
 
-	return { guard, preTx, makerState, takerState, takerPubKey }
+	return { guard, preTx, makerState, takerPubKey }
 }
 
 const calcVsize = async (
@@ -246,6 +252,7 @@ const calcVsize = async (
 	const minterCall = await minter.methods.mint(
 		newState.stateHashList,
 		tokenMint,
+		tokenMint.amount / 100n,
 		splitAmountList,
 		preTx,
 		tradeToken.state.data,
@@ -305,7 +312,9 @@ export function createOpenMinterState(
 	)
 
 	if (
+		// @ts-ignore
 		metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2 ||
+		// @ts-ignore
 		metadata.info.minterMd5 == MinterType.FXP_OPEN_MINTER
 	) {
 		splitAmountList = OpenMinterV2Proto.getSplitAmountList(
@@ -397,10 +406,10 @@ async function openMint(
 		throw new Error('Invalid guard')
 	}
 
-	const { guard, preTx, makerState, takerState, takerPubKey } = res
+	const { guard, preTx, makerState, takerPubKey } = res
 
 	newState.updateDataList(minterStates.length, CAT20Proto.toByteString(makerState))
-	newState.updateDataList(minterStates.length + 1, CAT20Proto.toByteString(takerState))
+	// newState.updateDataList(minterStates.length + 1, CAT20Proto.toByteString(takerState))
 
 	let premineAddress =
 		!preState.isPremined && scaledInfo.premine > 0n
@@ -461,7 +470,7 @@ async function openMint(
 	// Maker
 	catTx.addStateContractOutput(tokenP2TR, CAT20Proto.toByteString(makerState))
 	// Taker
-	catTx.addStateContractOutput(tokenP2TR, CAT20Proto.toByteString(takerState))
+	// catTx.addStateContractOutput(tokenP2TR, CAT20Proto.toByteString(takerState))
 
 	catTx.tx
 		.addOutput(
@@ -493,19 +502,12 @@ async function openMint(
 		}
 	}
 
-	revealTx
-		.addOutput(
-			new btc.Transaction.Output({
-				satoshis: Postage.TOKEN_POSTAGE,
-				script: tokenP2TR
-			})
-		)
-		.addOutput(
-			new btc.Transaction.Output({
-				satoshis: Postage.TOKEN_POSTAGE,
-				script: tokenP2TR
-			})
-		)
+	revealTx.addOutput(
+		new btc.Transaction.Output({
+			satoshis: Postage.TOKEN_POSTAGE,
+			script: tokenP2TR
+		})
+	)
 
 	revealTx
 		.addOutput(
@@ -641,6 +643,7 @@ async function openMint(
 	const minterCall = await minter.methods.mint(
 		newState.stateHashList,
 		makerState,
+		makerState.amount / 100n,
 		splitAmountList,
 		preTx,
 		orderToken.state.data,
@@ -813,6 +816,7 @@ export function useFXPMint(tokenId: string) {
 				}
 			} else {
 				amount = amount || scaledInfo.limit
+				// @ts-ignore
 				if (token.info.minterMd5 === MinterType.OPEN_MINTER_V1) {
 					if (
 						// @ts-ignore
@@ -831,7 +835,9 @@ export function useFXPMint(tokenId: string) {
 							? getRemainSupply(minter.state.data, token.info.minterMd5)
 							: amount
 				} else if (
+					// @ts-ignore
 					(token.info.minterMd5 == MinterType.OPEN_MINTER_V2 ||
+						// @ts-ignore
 						token.info.minterMd5 === MinterType.FXP_OPEN_MINTER) &&
 					amount != scaledInfo.limit
 				) {
