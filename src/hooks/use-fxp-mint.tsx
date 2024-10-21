@@ -702,7 +702,10 @@ export function useFXPMint(tokenId: string) {
 
 	// const { utxoCount } = useMinterUtxoCount(tokenId)
 
-	const handleMint = async (utxoCount?: number) => {
+	const handleMint = async (
+		utxoCount?: number,
+		onSuccess: (amount: number, txid: string) => void
+	) => {
 		// Check if Unisat wallet is connected
 		if (!window.unisat || !(await window.unisat.getAccounts()).length) {
 			toast({
@@ -877,7 +880,8 @@ export function useFXPMint(tokenId: string) {
 			await wallet.signFeeInput(revealTx)
 
 			const txid = await broadcast(revealTx.uncheckedSerialize())
-			console.log('txid', txid)
+			// const txid = ''
+			// console.log('txid', txid)
 
 			if (txid instanceof Error) {
 				// @ts-ignore
@@ -906,6 +910,7 @@ export function useFXPMint(tokenId: string) {
 				})
 			} else {
 				// Show success toast with explorer link using shadcn Button
+				onSuccess(Number(amount), txid)
 				toast({
 					title: 'Transaction Broadcasted!',
 					description:

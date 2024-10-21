@@ -16,6 +16,8 @@ import { MinterType } from '@/lib/scrypt/common'
 import { useFXPClaims } from '@/hooks/use-fxp-claims'
 import { useFXPMint } from '@/hooks/use-fxp-mint'
 import { useTokenMintCount } from '@/hooks/use-token-mint-count'
+import { FxpRewardsModal } from '@/components/fxp-rewards-modal'
+
 interface MintProps {
 	token: TokenData
 	utxoCount: number | undefined
@@ -27,6 +29,9 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 	const { mintCount: tokenMintCount } = useTokenMintCount(token.tokenId)
 	const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false)
 	const { address } = useWallet()
+	const [isFxpRewardsModalOpen, setIsFxpRewardsModalOpen] = useState(false)
+	const [fxpRewardsAmount, setFxpRewardsAmount] = useState(0)
+	const [fxpRewardsTxId, setFxpRewardsTxId] = useState('')
 
 	// @ts-ignore
 	const isFXP = MinterType.FXP_OPEN_MINTER === token.info.minterMd5
@@ -71,6 +76,12 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 				{/* @ts-ignore */}
 				{MinterType.FXP_OPEN_MINTER === token.info.minterMd5 ? (
 					<>
+						<FxpRewardsModal
+							open={isFxpRewardsModalOpen}
+							onChange={setIsFxpRewardsModalOpen}
+							amount={fxpRewardsAmount}
+							txid={fxpRewardsTxId}
+						/>
 						<div>
 							<p className="text-sm font-medium">Mints</p>
 							<p className="text-sm font-medium mb-1 text-muted-foreground">
@@ -191,7 +202,11 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 					onClick={() =>
 						// @ts-ignore
 						MinterType.FXP_OPEN_MINTER === token.info.minterMd5
-							? handleFXPMint(utxoCount)
+							? handleFXPMint(utxoCount, (amount, txid) => {
+									setFxpRewardsAmount(amount)
+									setFxpRewardsTxId(txid)
+									setIsFxpRewardsModalOpen(true)
+							  })
 							: handleMint(utxoCount)
 					}
 					disabled={isMinting || !isMintable || utxoCount === 0}
