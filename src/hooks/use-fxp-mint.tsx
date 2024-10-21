@@ -640,6 +640,8 @@ async function openMint(
 
 	const xpAmountHash = FXPOpenMinter.getFXPAmountHash(preTx)
 
+	debugger
+
 	const minterCall = await minter.methods.mint(
 		newState.stateHashList,
 		makerState,
@@ -665,7 +667,7 @@ async function openMint(
 		{
 			fromUTXO: getDummyUTXO(),
 			verify: false,
-			exec: false
+			exec: true
 		} as MethodCallOptions<OpenMinter>
 	)
 
@@ -847,6 +849,7 @@ export function useFXPMint(tokenId: string) {
 			}
 
 			console.log('minting', token.info.name, token.tokenId)
+			debugger
 			const { revealTx } = await openMint(
 				wallet,
 				payload.feeRate,

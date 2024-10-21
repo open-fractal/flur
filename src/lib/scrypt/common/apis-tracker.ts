@@ -112,6 +112,7 @@ const fetchOpenMinterState = async function(
 	const tokenP2TR = toP2tr(metadata.tokenAddr)
 	const info = metadata.info as OpenMinterTokenInfo
 	const scaledInfo = scaleConfig(info)
+	debugger
 	if (txId === metadata.revealTxid) {
 		if (
 			// @ts-ignore
@@ -163,7 +164,7 @@ const fetchOpenMinterState = async function(
 					const preState: OpenMinterV2State = {
 						tokenScript: tokenP2TR,
 						isPremined: true,
-						remainingSupplyCount: byteString2Int(witnesses[6 + vout].toString('hex'))
+						remainingSupplyCount: byteString2Int(witnesses[7 + vout].toString('hex'))
 					}
 
 					return preState
