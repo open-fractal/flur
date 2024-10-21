@@ -354,7 +354,7 @@ async function openMint(
 	newMinter: number /* number of new minter utxo */,
 	minterContract: OpenMinterContract,
 	mintAmount: bigint
-): Promise<{ revealTx: btc.Transaction }> {
+): Promise<{ revealTx: btc.Transaction; amount: bigint }> {
 	metadata.timestamp = Date.now()
 
 	const {
@@ -693,7 +693,7 @@ async function openMint(
 	]
 	revealTx.inputs[minterInputIndex].witnesses = witnesses
 
-	return { revealTx }
+	return { revealTx, amount: makerState.amount / 100n }
 }
 
 export function useFXPMint(tokenId: string) {
@@ -703,7 +703,7 @@ export function useFXPMint(tokenId: string) {
 	// const { utxoCount } = useMinterUtxoCount(tokenId)
 
 	const handleMint = async (
-		utxoCount?: number,
+		utxoCount: number,
 		onSuccess: (amount: number, txid: string) => void
 	) => {
 		// Check if Unisat wallet is connected

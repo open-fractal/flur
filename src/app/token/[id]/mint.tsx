@@ -202,7 +202,9 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 					onClick={() =>
 						// @ts-ignore
 						MinterType.FXP_OPEN_MINTER === token.info.minterMd5
-							? handleFXPMint(utxoCount, (amount, txid) => {
+							? // @ts-ignore
+							  handleFXPMint(utxoCount, (amount, txid) => {
+									debugger
 									setFxpRewardsAmount(amount)
 									setFxpRewardsTxId(txid)
 									setIsFxpRewardsModalOpen(true)
