@@ -305,7 +305,11 @@ export async function takeToken(
 
 	const { inputTokens, tokenTxs } = await hydrateTokens(tokens, metadata, cachedTxs)
 
-	const vsize = 3620
+	let vsize = 3620
+
+	if (changeTokenInputAmount > 0n) {
+		vsize = 3657
+	}
 
 	const satoshiChangeAmount =
 		catTx.tx.inputAmount -

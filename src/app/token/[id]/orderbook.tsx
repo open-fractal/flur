@@ -161,7 +161,7 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 								Amount({token.symbol})
 							</TableHead>
 							<TableHead className="text-right text-[10px] text-gray-400 font-normal h-6">
-								Total
+								Total ({token.symbol})
 							</TableHead>
 						</TableRow>
 					</TableHeader>
