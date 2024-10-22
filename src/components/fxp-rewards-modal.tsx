@@ -57,15 +57,15 @@ export function FxpRewardsModal({ open, onChange, amount, txid }: FxpRewardsModa
 						{isJackpot ? '🎉 Jackpot Hit! 🎉' : 'FXP Rewards Earned!'}
 					</DialogTitle>
 					<DialogDescription className="text-center text-gray-400">
-						Thank you for using Flur.gg. Your Flur Rewards Tokens are in the mempool and will appear
-						in your balance shortly.
+						Your Flur Experience Points (FXP) are in the mempool and will appear
+						in your balance shortly. Thank you for using Flur!
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col items-center justify-center py-8">
 					<div className="text-6xl font-bold text-green-500 mb-2">
 						<CountUp end={tokensEarned} duration={isJackpot ? 4 : 2} />
 					</div>
-					<div className="text-xl text-gray-400">FXP Earned</div>
+					<div className="text-xl text-gray-400">FXP Minted</div>
 					{isJackpot && (
 						<div className="mt-4 flex flex-col items-center">
 							<div className="text-2xl font-bold text-yellow-400 animate-pulse">
