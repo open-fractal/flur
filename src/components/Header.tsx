@@ -219,12 +219,12 @@ export const Header: React.FC = () => {
 								<div className="space-y-2">
 									<h4 className="text-sm font-semibold">FXP Claims</h4>
 									<p className="text-sm">
-Users are able to claim or mint Flur Experience Points (FXP) after completing a successful trade on Flur.  									</p>
-									<a 
-										href="https://alpha.flur.gg/docs/FXP" 
+									Flur Experience Points (FXP) can be claimed or minted by users that complete trades. </p>
+									<a
+										href="https://alpha.flur.gg/docs/FXP"
 										target="_blank" 
 										rel="noopener noreferrer" 
-										className="text-sm text-blue-500 hover:text-blue-600 transition-colors"
+										className="text-sm text-blue-500 hover:text-blue-600 mt-4 transition-colors"
 									>
 										Learn More
 									</a>
