@@ -28,12 +28,6 @@ import {
 import { cn } from '@/lib/utils'
 import { useFXPClaims } from '@/hooks/use-fxp-claims'
 import { FXP_TOKEN_ID } from '@/lib/constants'
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 
 const truncateAddress = (address: string) => {
