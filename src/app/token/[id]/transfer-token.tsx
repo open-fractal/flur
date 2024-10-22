@@ -10,7 +10,6 @@ import {
 	FormItem,
 	FormLabel,
 	FormControl,
-	FormDescription,
 	FormMessage
 } from '@/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -67,7 +66,7 @@ export function TransferToken({ token }: TransferTokenProps) {
 
 	return (
 		<div className="p-6">
-			<h2 className="text-lg font-semibold mb-4">Transfer Tokens</h2>
+			<h2 className="text-lg font-semibold mb-4">Transfer {token.symbol} Tokens</h2>
 			<p className="text-muted-foreground text-sm mb-4">
 				Balance:{' '}
 				<span className="font-bold">
@@ -95,7 +94,6 @@ export function TransferToken({ token }: TransferTokenProps) {
 										placeholder={`Enter ${token.symbol} amount`}
 									/>
 								</FormControl>
-								<FormDescription>Enter the amount to transfer</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
@@ -107,9 +105,8 @@ export function TransferToken({ token }: TransferTokenProps) {
 							<FormItem>
 								<FormLabel>Recipient Address</FormLabel>
 								<FormControl>
-									<Input type="text" {...field} placeholder="Enter recipient address" />
+									<Input type="text" {...field} placeholder="Enter a valid taproot address" />
 								</FormControl>
-								<FormDescription>Enter a valid taproot address</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
