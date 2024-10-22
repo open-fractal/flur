@@ -37,7 +37,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 	const isFXP = MinterType.FXP_OPEN_MINTER === token.info.minterMd5
 
 	const { claimCount } = useFXPClaims()
-	const { handleMint: handleFXPMint } = useFXPMint(token.tokenId)
+	const { handleMint: handleFXPMint, isMinting: isFXPMinting } = useFXPMint(token.tokenId)
 
 	// SWR hook for wallet UTXO count
 	const { data: walletUtxoCount } = useSWR(
@@ -204,14 +204,13 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 						MinterType.FXP_OPEN_MINTER === token.info.minterMd5
 							? // @ts-ignore
 							  handleFXPMint(utxoCount, (amount, txid) => {
-									debugger
 									setFxpRewardsAmount(amount)
 									setFxpRewardsTxId(txid)
 									setIsFxpRewardsModalOpen(true)
 							  })
 							: handleMint(utxoCount)
 					}
-					disabled={isMinting || !isMintable || utxoCount === 0}
+					disabled={isFXPMinting || isMinting || !isMintable || utxoCount === 0}
 					className="w-full"
 				>
 					{isMinting

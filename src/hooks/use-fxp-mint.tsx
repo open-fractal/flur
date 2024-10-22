@@ -368,6 +368,11 @@ async function openMint(
 		`${API_URL}/api/orderbook/address/${address}/fxp-claim`
 	)
 	const order = orderData.data.utxos[0]
+
+	if (!order) {
+		throw new Error('No claim utxos found')
+	}
+
 	const tradeTxid = order.spendTxid
 	const tradeRawtx = await getRawTransaction(tradeTxid)
 	const tradeTx = new btc.Transaction(tradeRawtx)
@@ -867,7 +872,7 @@ export function useFXPMint(tokenId: string) {
 			}
 
 			console.log('minting', token.info.name, token.tokenId)
-			const { revealTx } = await openMint(
+			const { revealTx, amount: mintAmount } = await openMint(
 				wallet,
 				payload.feeRate,
 				payload.utxos,
@@ -910,7 +915,7 @@ export function useFXPMint(tokenId: string) {
 				})
 			} else {
 				// Show success toast with explorer link using shadcn Button
-				onSuccess(Number(amount), txid)
+				onSuccess(Number(mintAmount), txid)
 				toast({
 					title: 'Transaction Broadcasted!',
 					description:
