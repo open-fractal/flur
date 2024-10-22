@@ -7,8 +7,6 @@ import { getFeeRate, broadcast } from '@/lib/utils'
 import { hash160 } from 'scrypt-ts'
 import { XrayedTxIdPreimg1 } from '@/lib/scrypt/contracts/dist/contracts/utils/txProof'
 
-const PAGE_SIZE = 1000
-
 import { toByteString, UTXO, MethodCallOptions, int2ByteString } from 'scrypt-ts'
 import {
 	getRawTransaction,
@@ -737,11 +735,6 @@ export function useFXPMint(tokenId: string) {
 
 		const { getTokenMetadata } = await import('@/lib/scrypt/common')
 
-		// Implement getRandomInt function in vanilla JavaScript
-		function getRandomInt(max: number) {
-			return Math.floor(Math.random() * Math.floor(max))
-		}
-
 		try {
 			const [feeRate, utxos, tokenData] = await Promise.all([
 				getFeeRate(),
@@ -749,17 +742,9 @@ export function useFXPMint(tokenId: string) {
 				getTokenMetadata(tokenId)
 			])
 
-			// Calculate offset using vanilla JavaScript
-			const offset = Math.max(0, getRandomInt(utxoCount !== undefined ? utxoCount - 1 : 0))
-
-			// Ensure offset is a multiple of 32
-			const adjustedOffset = Math.floor(offset / PAGE_SIZE) * PAGE_SIZE
-
 			const {
 				data: { data: rawMinters }
-			} = await axios.get(
-				`${API_URL}/api/minters/${tokenId}/utxos?limit=${PAGE_SIZE}&offset=${adjustedOffset}`
-			)
+			} = await axios.get(`${API_URL}/api/minters/${tokenId}/utxos`)
 
 			const randomIndex = Math.floor(Math.random() * rawMinters.utxos.length)
 			const rawMinter = rawMinters.utxos[randomIndex]
