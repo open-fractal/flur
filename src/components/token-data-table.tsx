@@ -439,7 +439,7 @@ export function TokenDataTable({}) {
 
 	return (
 		<div className="w-full">
-			<div className="container flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
+			<div className="px-4 flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
 				<div className="flex items-center space-x-4 w-full">
 					<Select value={filterValue} onValueChange={setFilterValue}>
 						<SelectTrigger className="w-[180px]">
