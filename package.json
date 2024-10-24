@@ -68,6 +68,7 @@
     "react-countup": "^6.5.3",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
+    "react-infinite-scroll-component": "^6.1.0",
     "react-table": "^7.8.0",
     "resize-observer-polyfill": "^1.5.1",
     "scrypt-ts": "^1.4.0",
