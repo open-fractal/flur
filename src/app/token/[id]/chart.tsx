@@ -116,9 +116,9 @@ export const Chart: FC<{
 		}
 	}, [height, width, chartData, token.symbol, isLoading, isError, decimalPlaces, selectedTimeframe])
 
-	if (isLoading) {
-		return <div>Loading chart data...</div>
-	}
+	// if (isLoading) {
+	// 	return <div></div>
+	// }
 
 	if (isError) {
 		return <div>Error loading chart data. Please try again later.</div>

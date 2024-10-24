@@ -21,7 +21,7 @@ interface TradeProps {
 	showMarket: boolean
 }
 
-const Trade: React.FC<TradeProps> = ({ token, showMarket }) => {
+const Trade: React.FC<TradeProps> = ({ token }) => {
 	const { width, height, ref } = useComponentSize()
 	// Add state for the selected order
 	const [selectedOrder, setSelectedOrder] = useState<SelectedOrder>(null)
