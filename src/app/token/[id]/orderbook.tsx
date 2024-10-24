@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/table'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenOrderbook } from '@/hooks/use-token-orderbook'
-import { Skeleton } from '@/components/ui/skeleton'
 
 type Order = {
 	price: number
@@ -30,81 +29,12 @@ type OrderbookProps = {
 	onOrderSelect: (price: number, amount: number, isBuy: boolean) => void
 }
 
-const OrderbookSkeleton = () => (
-	<div className="h-full flex flex-col bg-black text-white w-[250px]">
-		<div className="px-4 py-2">
-			<div className="text-sm font-semibold flex justify-between items-center">
-				<Skeleton className="h-4 w-20" />
-				<Skeleton className="h-4 w-12" />
-			</div>
-		</div>
-		<div className="flex-grow flex flex-col overflow-hidden">
-			<Table>
-				<TableHeader className="sticky top-0 bg-black z-10">
-					<TableRow className="hover:bg-transparent border-b">
-						<TableHead className="text-left h-6">
-							<Skeleton className="h-3 w-16" />
-						</TableHead>
-						<TableHead className="text-right h-6">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableHead>
-						<TableHead className="text-right h-6">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableHead>
-					</TableRow>
-				</TableHeader>
-			</Table>
-			<div className="flex-grow overflow-auto flex flex-col justify-end">
-				{[...Array(8)].map((_, i) => (
-					<TableRow key={`skeleton-sell-${i}`} className="hover:bg-transparent">
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16" />
-						</TableCell>
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableCell>
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableCell>
-					</TableRow>
-				))}
-			</div>
-			<TableRow className="hover:bg-transparent border-t border-b">
-				<div className="w-full py-2">
-					<Skeleton className="h-6 w-32 mx-auto" />
-				</div>
-			</TableRow>
-			<div className="flex-grow overflow-auto">
-				{[...Array(8)].map((_, i) => (
-					<TableRow key={`skeleton-buy-${i}`} className="hover:bg-transparent">
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16" />
-						</TableCell>
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableCell>
-						<TableCell className="py-0">
-							<Skeleton className="h-3 w-16 ml-auto" />
-						</TableCell>
-					</TableRow>
-				))}
-			</div>
-		</div>
-		<div className="flex justify-between items-center px-4 py-2 border-t">
-			<Skeleton className="h-3 w-16" />
-			<Skeleton className="h-2 w-24" />
-			<Skeleton className="h-3 w-16" />
-		</div>
-	</div>
-)
-
 export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	const {
-		sellOrders: rawSellOrders,
-		buyOrders: rawBuyOrders,
+		sellOrders: rawSellOrders = [],
+		buyOrders: rawBuyOrders = [],
 		bestSellPrice,
 		bestBuyPrice,
-		isLoading,
 		isError
 	} = useTokenOrderbook(token)
 
@@ -198,10 +128,6 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	const maxBuyAmount = getMaxAmount(buyOrders)
 
 	const currentPrice = ((bestSellPrice || bestBuyPrice || 0) * Math.pow(10, token.decimals)) / 1e8
-
-	if (isLoading) {
-		return <OrderbookSkeleton />
-	}
 
 	if (isError) {
 		return <div className="h-full flex items-center justify-center">Error loading orderbook</div>

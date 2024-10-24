@@ -13,6 +13,7 @@ import { TokenData } from '@/hooks/use-token'
 import { useTokenOrderbookHistory } from '@/hooks/use-token-orderbook-history'
 import { EXPLORER_URL } from '@/lib/constants'
 import { SELL_MD5 } from '@/hooks/use-token-orderbook'
+import { Loader2 } from 'lucide-react'
 
 type TradeHistoryProps = {
 	token: TokenData
@@ -68,7 +69,11 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 	}
 
 	if (isLoading) {
-		return <div className="text-white">Loading trade history...</div>
+		return (
+			<div className="flex items-center justify-center h-[509px] text-white">
+				<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+			</div>
+		)
 	}
 
 	if (isError) {
