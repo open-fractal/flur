@@ -26,19 +26,6 @@ const Trade: React.FC<TradeProps> = ({ token, showMarket }) => {
 	// Add state for the selected order
 	const [selectedOrder, setSelectedOrder] = useState<SelectedOrder>(null)
 
-	if (!showMarket) {
-		return (
-			<div className="W-full h-full flex flex-grow">
-				<div className="flex-grow flex flex-col items-center justify-center">
-					<div className="flex flex-col justify-center items-center">
-						<h2 className="text-2xl font-bold mb-4">Mint Ended</h2>
-						<p className="text-muted-foreground">Check back later!</p>
-					</div>
-				</div>
-			</div>
-		)
-	}
-
 	return (
 		<div className="W-full h-full flex flex-grow">
 			<div className="flex-grow flex flex-col">
