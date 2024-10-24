@@ -197,50 +197,56 @@ export const Header: React.FC = () => {
 							<Search className="h-4 w-4 text-muted-foreground" />
 						</div>
 					</form>
-					{isWalletConnected && (
-						<HoverCard>
-							<HoverCardTrigger asChild>
-								<div className="flex items-center">
-									<Link href={`/token/${FXP_TOKEN_ID}`}>
-										<Button variant="outline" className="flex items-center gap-2">
-											FXP Claims: {claimCount}
-											<InfoIcon className="h-4 w-4 text-muted-foreground" />
-										</Button>
-									</Link>
-								</div>
-							</HoverCardTrigger>
-							<HoverCardContent className="w-80">
-								<div className="space-y-2">
-									<h4 className="text-sm font-semibold">FXP Claims</h4>
-									<p className="text-sm">
-									Flur Experience Points (FXP) can be claimed or minted by users that complete trades. </p>
-									<a
-										href="https://alpha.flur.gg/docs/FXP"
-										target="_blank" 
-										rel="noopener noreferrer" 
-										className="text-sm text-blue-500 hover:text-blue-600 mt-4 transition-colors"
-									>
-										Learn More
-									</a>
-								</div>
-							</HoverCardContent>
-						</HoverCard>
+					{isWalletConnected ? (
+						<>
+							<HoverCard>
+								<HoverCardTrigger asChild>
+									<div className="flex items-center">
+										<Link href={`/token/${FXP_TOKEN_ID}`}>
+											<Button variant="outline" className="flex items-center gap-2">
+												FXP Claims: {claimCount}
+												<InfoIcon className="h-4 w-4 text-muted-foreground" />
+											</Button>
+										</Link>
+									</div>
+								</HoverCardTrigger>
+								<HoverCardContent className="w-80">
+									<div className="space-y-2">
+										<h4 className="text-sm font-semibold">FXP Claims</h4>
+										<p className="text-sm">
+											Flur Experience Points (FXP) can be claimed or minted by users that complete
+											trades.
+										</p>
+										<a
+											href="https://alpha.flur.gg/docs/FXP"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm text-blue-500 hover:text-blue-600 mt-4 transition-colors"
+										>
+											Learn More
+										</a>
+									</div>
+								</HoverCardContent>
+							</HoverCard>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline">
+										{truncateAddress(address)}
+										<span className="ml-2">({formatBalance(balance)} FB)</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									<DropdownMenuItem onClick={copyAddress}>
+										<Copy className="mr-2 h-4 w-4" />
+										Copy Address
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</>
+					) : (
+						<Button onClick={connectWallet}>Connect Wallet</Button>
 					)}
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="outline">
-								{truncateAddress(address)}
-								<span className="ml-2">({formatBalance(balance)} FB)</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent>
-							<DropdownMenuItem onClick={copyAddress}>
-								<Copy className="mr-2 h-4 w-4" />
-								Copy Address
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
 					<div className="flex items-center gap-4">
 						<a
 							href="https://github.com/open-fractal/flur"
