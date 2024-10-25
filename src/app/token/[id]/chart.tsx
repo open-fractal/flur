@@ -32,7 +32,7 @@ export const Chart: FC<{
 }> = (props): ReactElement => {
 	const { width, height, token } = props
 	const chartContainerRef = useRef<HTMLDivElement>(null)
-	const [selectedTimeframe, setSelectedTimeframe] = useState('12h') // Changed default to '12h'
+	const [selectedTimeframe, setSelectedTimeframe] = useState('1h') // Changed default to '1h'
 	const { chartData, isLoading, isError } = useTokenChart(token, selectedTimeframe)
 
 	// Calculate the appropriate decimal places based on the latest price
