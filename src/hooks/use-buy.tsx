@@ -133,12 +133,6 @@ export async function sendToken(
 
 	const { catTx, orderbook } = commitResult
 
-	const commitTxId = await broadcast(catTx.tx.uncheckedSerialize())
-
-	if (commitTxId instanceof Error) {
-		throw new Error('Failed to broadcast commit transaction')
-	}
-
 	const newFeeUtxo = {
 		txId: catTx.tx.id,
 		outputIndex: catTx.tx.outputs.length - 1,
@@ -299,19 +293,19 @@ export function useBuyCat20(token: TokenData) {
 				throw new Error('Failed to create PSBT')
 			}
 
-			const { commitTxId, revealTx } = response
+			const { commitTx, revealTx } = response
 
-			// const commitTxId = await broadcast(commitTx.uncheckedSerialize())
+			const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 
-			// if (commitTxId instanceof Error) {
-			// 	toast({
-			// 		title: 'Failed to Broadcast',
-			// 		// @ts-ignore
-			// 		description: commitTxId.response.data,
-			// 		variant: 'destructive'
-			// 	})
-			// 	return
-			// }
+			if (commitTxId instanceof Error) {
+				toast({
+					title: 'Failed to Broadcast',
+					// @ts-ignore
+					description: commitTxId.response.data,
+					variant: 'destructive'
+				})
+				return
+			}
 
 			const revealTxid = await broadcast(revealTx.uncheckedSerialize())
 
