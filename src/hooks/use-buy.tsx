@@ -111,7 +111,6 @@ export async function sendToken(
 ): Promise<{
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
-	commitTxId: string
 } | null> {
 	const minterP2TR = toP2tr(metadata.minterAddr)
 
@@ -164,7 +163,6 @@ export async function sendToken(
 	await wallet.signFeeInput(revealTx)
 
 	return {
-		commitTxId,
 		commitTx: catTx.tx,
 		revealTx
 	}
