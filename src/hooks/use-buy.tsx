@@ -111,7 +111,7 @@ export async function sendToken(
 ): Promise<{
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
-	commitTxid: string
+	commitTxId: string
 } | null> {
 	const minterP2TR = toP2tr(metadata.minterAddr)
 
@@ -170,7 +170,7 @@ export async function sendToken(
 	await wallet.signFeeInput(revealTx)
 
 	return {
-		commitTxid,
+		commitTxId,
 		commitTx: catTx.tx,
 		revealTx
 	}
@@ -299,7 +299,7 @@ export function useBuyCat20(token: TokenData) {
 				throw new Error('Failed to create PSBT')
 			}
 
-			const { commitTxid: commitTxId, revealTx } = response
+			const { commitTxId, revealTx } = response
 
 			// const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 
