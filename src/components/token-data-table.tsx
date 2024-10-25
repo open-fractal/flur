@@ -468,9 +468,8 @@ export function TokenDataTable({}) {
 				loader={<React.Fragment />}
 				className="max-h-[calc(100vh-150px)] h-[calc(100vh-150px)] overflow-y-auto flex flex-col"
 				scrollableTarget="scrollableDiv"
-				scrollThreshold={0.7}
 			>
-				<Table className="w-full min-w-full relative w-full overflow-auto" id="scrollableDiv">
+				<Table className="w-full min-w-full" containerId="scrollableDiv">
 					<TableHeader className="sticky top-0 bg-black z-10">
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>
