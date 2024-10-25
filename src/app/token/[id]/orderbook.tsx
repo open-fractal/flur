@@ -16,12 +16,15 @@ type Order = {
 	price: number
 	amount: number
 	total: number
+	originalAmount: number
 }
 
 type GroupedOrder = {
 	price: number
 	amount: number
 	total: number
+	largestSingleAmount: number
+	originalOrders: Order[]
 }
 
 type OrderbookProps = {
@@ -62,24 +65,34 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 			const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
 			const amount = parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
 
+			// Add originalAmount to track individual order amounts
 			return {
 				price,
 				amount,
-				total: amount // Set total as amount initially
+				total: amount,
+				originalAmount: amount // Store the original ungrouped amount
 			}
 		})
 	}
 
 	const groupAndSortOrders = (orders: Order[], isSellOrder: boolean): GroupedOrder[] => {
 		const groupedOrders = orders.reduce((acc, order) => {
-			const key = order.price.toFixed(8) // Group by price with 8 decimal places
+			const key = order.price.toFixed(8)
 			if (!acc[key]) {
-				acc[key] = { ...order }
+				acc[key] = {
+					...order,
+					// Store the largest individual order amount
+					largestSingleAmount: order.originalAmount,
+					originalOrders: [order]
+				}
 			} else {
 				acc[key].amount += order.amount
+				// Update largest single order amount if current order is larger
+				acc[key].largestSingleAmount = Math.max(acc[key].largestSingleAmount, order.originalAmount)
+				acc[key].originalOrders.push(order)
 			}
 			return acc
-		}, {} as Record<string, GroupedOrder>)
+		}, {} as Record<string, GroupedOrder & { largestSingleAmount: number; originalOrders: Order[] }>)
 
 		const sortedOrders = Object.values(groupedOrders).sort((a, b) =>
 			isSellOrder ? b.price - a.price : a.price - b.price
@@ -134,7 +147,8 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	}
 
 	const handleOrderClick = (order: GroupedOrder, isBuy: boolean) => {
-		onOrderSelect(order.price, order.amount, isBuy)
+		// Use the largest single order amount instead of the grouped amount
+		onOrderSelect(order.price, order.largestSingleAmount, isBuy)
 	}
 
 	return (

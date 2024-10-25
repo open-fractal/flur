@@ -171,8 +171,8 @@ export function TokenBalances() {
 
 function TokenBalancesSkeleton() {
 	return (
-		<div className="w-full border border-gray-200">
-			<div className="py-3 px-4 border-b border-gray-200">
+		<div className="w-full">
+			<div className="py-3 px-4">
 				<Skeleton className="h-7 w-[200px]" />
 				<Skeleton className="h-4 w-[250px] mt-1" />
 			</div>

@@ -35,12 +35,99 @@ interface PositionFormProps {
 	selectedOrder: { price: number; isBuy: boolean; amount: number } | null
 }
 
+// Update the helper function to handle decimals
+const calculateMaxAmount = (
+	price: number,
+	balance: number,
+	decimals: number,
+	maxTotal: number = 21.47483647
+) => {
+	// First check how much they could buy/sell based on their balance
+	const maxFromBalance = balance
+	// Then check how much they could trade before hitting the max total value
+	const maxFromTotal = maxTotal / price
+	// Get the minimum of the two values
+	const maxAmount = Math.min(maxFromBalance, maxFromTotal)
+	// Round to the correct number of decimals
+	const factor = Math.pow(10, decimals)
+	return Math.floor(maxAmount * factor) / factor
+}
+
+// Update the formatSignificantDigits function with error handling
+const formatSignificantDigits = (value: number | string): string => {
+	// Handle invalid inputs
+	if (value === null || value === undefined) return '0'
+
+	// Convert string to number if needed
+	const numValue = typeof value === 'string' ? parseFloat(value) : value
+
+	// Handle NaN and invalid numbers
+	if (isNaN(numValue)) return '0'
+
+	// Handle zero case
+	if (numValue === 0) return '0'
+
+	try {
+		// Convert to string in exponential notation to analyze significant digits
+		const exp = numValue.toExponential()
+		const exponent = exp.split('e').map(Number)[1]
+
+		// For very small numbers (< 0.000001), use scientific notation
+		if (numValue < 0.000001) {
+			return numValue.toExponential(4)
+		}
+
+		// For numbers < 1, show necessary decimal places up to 8
+		if (numValue < 1) {
+			const decimalPlaces = Math.min(8, Math.abs(exponent) + 2)
+			return numValue.toFixed(decimalPlaces).replace(/\.?0+$/, '')
+		}
+
+		// For numbers >= 1, show up to 8 significant digits
+		return Number(numValue.toPrecision(8)).toString()
+	} catch (error) {
+		console.error('Error formatting number:', error)
+		// Return a safe fallback value
+		return numValue.toString()
+	}
+}
+
+// Update the calculateTotalCost function
+const calculateTotalCost = (
+	price: number,
+	amount: number,
+	hasServiceFee: boolean,
+	tokenSymbol: string,
+	isBuyForm: boolean // Add this parameter
+) => {
+	const serviceFee = hasServiceFee ? 0.01 : 0
+	const totalValue = price * amount
+	const totalCost = totalValue + serviceFee
+	const isTooHigh = totalCost > 21.47483647
+
+	// For buy form, show total in FB
+	if (isBuyForm) {
+		return {
+			value: isTooHigh ? 'Too High' : `${formatSignificantDigits(totalCost)} FB`,
+			isTooHigh
+		}
+	}
+
+	// For sell form, show amount in token symbol
+	return {
+		value: hasServiceFee
+			? `${formatSignificantDigits(amount)} ${tokenSymbol} / ${serviceFee} FB`
+			: `${formatSignificantDigits(amount)} ${tokenSymbol}`,
+		isTooHigh
+	}
+}
+
 export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
-	const { isTransferring, handleSell } = useSellCat20(token) // Add this line
-	const { handleBuy } = useBuyCat20(token) // Add this line
-	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token) // Add this line
-	const { handleTakeBuy } = useTakeBuyCat20(token) // Add this line
+	const { isTransferring, handleSell } = useSellCat20(token)
+	const { handleBuy } = useBuyCat20(token)
+	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token)
+	const { handleTakeBuy } = useTakeBuyCat20(token)
 
 	const {
 		sellOrders,
@@ -49,11 +136,33 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 		isError: isOrderbookError
 	} = useTokenOrderbook(token)
 
-	// Update default values for both forms
+	// Add state to track if the price has been manually changed
+	const [isBuyPriceManual, setIsBuyPriceManual] = React.useState(false)
+	const [isSellPriceManual, setIsSellPriceManual] = React.useState(false)
+
+	// Get best prices from orderbook
+	const getBestPrices = () => {
+		// For buy form, use the highest buy order price (to place just above it)
+		const defaultBuyPrice =
+			buyOrders.length > 0
+				? (parseFloat(buyOrders[0].price) * Math.pow(10, token.decimals)) / 1e8
+				: 1
+		// For sell form, use the lowest sell order price (to place just below it)
+		const defaultSellPrice =
+			sellOrders.length > 0
+				? (parseFloat(sellOrders[0].price) * Math.pow(10, token.decimals)) / 1e8
+				: 1
+
+		return { defaultSellPrice, defaultBuyPrice }
+	}
+
+	// Initialize forms with exact orderbook prices
+	const { defaultSellPrice, defaultBuyPrice } = getBestPrices()
+
 	const buyForm = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
 		defaultValues: {
-			price: 1, // Default price set to 1
+			price: defaultBuyPrice,
 			amount: 0
 		}
 	})
@@ -61,80 +170,48 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 	const sellForm = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
 		defaultValues: {
-			price: 1, // Default price set to 1
+			price: defaultSellPrice,
 			amount: 0
 		}
 	})
+
+	// Update prices when orderbook changes
+	useEffect(() => {
+		const { defaultSellPrice, defaultBuyPrice } = getBestPrices()
+
+		// Only update if there's no selected order and the current value is different
+		if (!selectedOrder) {
+			const currentBuyPrice = buyForm.getValues('price')
+			const currentSellPrice = sellForm.getValues('price')
+
+			if (!isBuyPriceManual && currentBuyPrice !== defaultBuyPrice) {
+				buyForm.setValue('price', defaultBuyPrice)
+			}
+			if (!isSellPriceManual && currentSellPrice !== defaultSellPrice) {
+				sellForm.setValue('price', defaultSellPrice)
+			}
+		}
+	}, [sellOrders, buyOrders, isBuyPriceManual, isSellPriceManual])
+
+	// Update the handleBuyPriceChange function to handle empty input
+	const handleBuyPriceChange = (value: string) => {
+		setIsBuyPriceManual(true)
+		const parsedValue = parseFloat(value)
+		buyForm.setValue('price', isNaN(parsedValue) ? 0 : parsedValue)
+	}
+
+	// Update the handleSellPriceChange function to handle empty input
+	const handleSellPriceChange = (value: string) => {
+		setIsSellPriceManual(true)
+		const parsedValue = parseFloat(value)
+		sellForm.setValue('price', isNaN(parsedValue) ? 0 : parsedValue)
+	}
 
 	// Add state for sliders
 	const [buySliderValue, setBuySliderValue] = React.useState(0)
 	const [sellSliderValue, setSellSliderValue] = React.useState(0)
 
-	// Effect to update buy amount based on slider
-	useEffect(() => {
-		const price = buyForm.getValues('price')
-		if (price > 0) {
-			const maxBuyAmount = parseFloat(fbBalance) / price
-			const amount = Number(((maxBuyAmount * buySliderValue) / 100).toFixed(8))
-			buyForm.setValue('amount', amount)
-		}
-	}, [buySliderValue, buyForm, fbBalance])
-
-	// Effect to update sell amount based on slider
-	useEffect(() => {
-		const amount = Number(((parseFloat(tokenBalance) * sellSliderValue) / 100).toFixed(8))
-		sellForm.setValue('amount', amount)
-	}, [sellSliderValue, sellForm, tokenBalance])
-
-	const { toast } = useToast()
-
-	const [isSelling, setIsSelling] = React.useState(false)
-	const [sellError, setSellError] = React.useState<string | null>(null)
-
-	const [isBuying, setIsBuying] = React.useState(false)
-	const [buyError, setBuyError] = React.useState<string | null>(null)
-
-	// Update the form when selectedOrder changes
-	useEffect(() => {
-		if (selectedOrder) {
-			const { price, isBuy, amount } = selectedOrder
-			if (isBuy) {
-				// Updating sell form for buy orders (user is selling to meet the buy order)
-				sellForm.reset({
-					price: price,
-					amount: amount
-				})
-				// Calculate and set the slider value
-				const sliderValue = Math.min((amount / parseFloat(tokenBalance)) * 100, 100)
-				setSellSliderValue(sliderValue)
-
-				// Reset buy form
-				buyForm.reset({
-					price: 1,
-					amount: 0
-				})
-				setBuySliderValue(0)
-			} else {
-				// Updating buy form for sell orders (user is buying to meet the sell order)
-				buyForm.reset({
-					price: price,
-					amount: amount
-				})
-				// Calculate and set the slider value
-				const maxBuyAmount = parseFloat(fbBalance) / price
-				const sliderValue = Math.min((amount / maxBuyAmount) * 100, 100)
-				setBuySliderValue(sliderValue)
-
-				// Reset sell form
-				sellForm.reset({
-					price: 1,
-					amount: 0
-				})
-				setSellSliderValue(0)
-			}
-		}
-	}, [selectedOrder, buyForm, sellForm, fbBalance, tokenBalance])
-
+	// Move matchingSellOrder and matchingBuyOrder declarations up here
 	const matchingSellOrder = (() => {
 		const buyPrice = buyForm.watch('price')
 		const buyAmount = buyForm.watch('amount')
@@ -156,6 +233,90 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 				parseInt(order.tokenAmount) / Math.pow(10, token.decimals) >= sellAmount
 		)
 	})()
+
+	// Update the buy amount slider effect
+	useEffect(() => {
+		const price = buyForm.getValues('price')
+		if (price > 0) {
+			// Calculate max possible amount based on FB balance and max total value
+			let maxBuyAmount = calculateMaxAmount(price, parseFloat(fbBalance), token.decimals)
+
+			if (matchingSellOrder) {
+				const orderAmount = parseInt(matchingSellOrder.tokenAmount) / Math.pow(10, token.decimals)
+				maxBuyAmount = Math.min(maxBuyAmount, orderAmount)
+			}
+
+			const amount = Number(((maxBuyAmount * buySliderValue) / 100).toFixed(token.decimals))
+			buyForm.setValue('amount', amount)
+		}
+	}, [buySliderValue, buyForm, fbBalance, matchingSellOrder, token.decimals])
+
+	// Update the sell amount slider effect
+	useEffect(() => {
+		const price = sellForm.getValues('price')
+		if (price > 0) {
+			// Calculate max possible amount based on token balance and max total value
+			let maxSellAmount = calculateMaxAmount(price, parseFloat(tokenBalance), token.decimals)
+
+			if (matchingBuyOrder) {
+				const orderAmount = parseInt(matchingBuyOrder.tokenAmount) / Math.pow(10, token.decimals)
+				maxSellAmount = Math.min(maxSellAmount, orderAmount)
+			}
+
+			const amount = Number(((maxSellAmount * sellSliderValue) / 100).toFixed(token.decimals))
+			sellForm.setValue('amount', amount)
+		}
+	}, [sellSliderValue, sellForm, tokenBalance, matchingBuyOrder, token.decimals])
+
+	const { toast } = useToast()
+
+	const [isSelling, setIsSelling] = React.useState(false)
+	const [sellError, setSellError] = React.useState<string | null>(null)
+
+	const [isBuying, setIsBuying] = React.useState(false)
+	const [buyError, setBuyError] = React.useState<string | null>(null)
+
+	// Update the form when selectedOrder changes
+	useEffect(() => {
+		if (selectedOrder) {
+			const { price, isBuy, amount } = selectedOrder
+			if (isBuy) {
+				// Updating sell form for buy orders
+				sellForm.reset({
+					price: price,
+					amount: amount
+				})
+				// Calculate slider value based on the minimum of order amount and token balance
+				const maxAmount = Math.min(amount, parseFloat(tokenBalance))
+				const sliderValue = Math.min((amount / maxAmount) * 100, 100)
+				setSellSliderValue(sliderValue)
+
+				// Reset buy form
+				buyForm.reset({
+					price: 1,
+					amount: 0
+				})
+				setBuySliderValue(0)
+			} else {
+				// Updating buy form for sell orders
+				buyForm.reset({
+					price: price,
+					amount: amount
+				})
+				// Calculate slider value based on the minimum of order amount and possible buy amount
+				const maxBuyAmount = Math.min(amount, parseFloat(fbBalance) / price)
+				const sliderValue = Math.min((amount / maxBuyAmount) * 100, 100)
+				setBuySliderValue(sliderValue)
+
+				// Reset sell form
+				sellForm.reset({
+					price: 1,
+					amount: 0
+				})
+				setSellSliderValue(0)
+			}
+		}
+	}, [selectedOrder, buyForm, sellForm, fbBalance, tokenBalance])
 
 	async function onBuySubmit(data: z.infer<typeof FormSchema>) {
 		setIsBuying(true)
@@ -231,16 +392,6 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 		}
 	}
 
-	// Update the function to return an object with value and isTooHigh
-	const calculateTotalValue = (price: number, amount: number) => {
-		const total = price * amount
-		const isTooHigh = total > 21.47483647
-		return {
-			value: isTooHigh ? 'Too High' : total.toFixed(8),
-			isTooHigh
-		}
-	}
-
 	return (
 		<div className="w-full max-w-4xl text-white p-4 border-t">
 			{isOrderbookLoading && <p>Loading orderbook...</p>}
@@ -257,7 +408,13 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 									<FormItem className="space-y-1">
 										<FormLabel>Buy Price (FB)</FormLabel>
 										<FormControl>
-											<Input placeholder="0.00" {...field} />
+											<Input
+												type="number"
+												placeholder="0.00"
+												step={1 / Math.pow(10, token.decimals)} // Set step based on token decimals
+												{...field}
+												onChange={e => handleBuyPriceChange(e.target.value)}
+											/>
 										</FormControl>
 									</FormItem>
 								)}
@@ -271,6 +428,10 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 										<FormControl>
 											<Input placeholder="0.00" {...field} />
 										</FormControl>
+										<div className="flex justify-end gap-1 text-xs">
+											<span className="text-muted-foreground">Balance: </span>
+											<span className="font-medium text-white">{fbBalance} FB</span>
+										</div>
 									</FormItem>
 								)}
 							/>
@@ -281,25 +442,31 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 								step={1}
 								className="my-6"
 							/>
-							<div className="flex justify-between text-xs text-gray-400">
-								<span>Available</span>
-								<span>{fbBalance} FB</span>
+							{/* Show either service fee for take orders or network fee for make orders */}
+							<div className="space-y-1">
+								<div className="flex justify-between text-xs text-gray-400">
+									<span>Service Fee</span>
+									<span>{matchingSellOrder ? '0.01 FB' : 'Free'}</span>
+								</div>
+								<div className="flex justify-between text-xs">
+									<span className="text-gray-400">Total Cost</span>
+									{(() => {
+										const { value, isTooHigh } = calculateTotalCost(
+											buyForm.watch('price'),
+											buyForm.watch('amount'),
+											!!matchingSellOrder,
+											tokenSymbol,
+											true // indicate this is buy form
+										)
+										return (
+											<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
+												{value}
+											</span>
+										)
+									})()}
+								</div>
 							</div>
 							{buyError && <div className="text-red-500 text-sm">{buyError}</div>}
-							<div className="flex justify-between text-xs">
-								<span className="text-gray-400">Total Value (FB)</span>
-								{(() => {
-									const { value, isTooHigh } = calculateTotalValue(
-										buyForm.watch('price'),
-										buyForm.watch('amount')
-									)
-									return (
-										<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
-											{value}
-										</span>
-									)
-								})()}
-							</div>
 							<Button
 								type="submit"
 								className="w-full bg-green-500 hover:bg-green-600"
@@ -326,7 +493,13 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 									<FormItem className="space-y-1">
 										<FormLabel>Sell Price (FB)</FormLabel>
 										<FormControl>
-											<Input placeholder="0.00" {...field} />
+											<Input
+												type="number"
+												placeholder="0.00"
+												step={1 / Math.pow(10, token.decimals)} // Set step based on token decimals
+												{...field}
+												onChange={e => handleSellPriceChange(e.target.value)}
+											/>
 										</FormControl>
 									</FormItem>
 								)}
@@ -340,6 +513,12 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 										<FormControl>
 											<Input placeholder="0.00" {...field} />
 										</FormControl>
+										<div className="flex justify-end gap-1 text-xs">
+											<span className="text-muted-foreground">Balance: </span>
+											<span className="font-medium text-white">
+												{tokenBalance} {tokenSymbol}
+											</span>
+										</div>
 									</FormItem>
 								)}
 							/>
@@ -350,27 +529,31 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 								step={1}
 								className="my-6"
 							/>
-							<div className="flex justify-between text-xs text-gray-400">
-								<span>Available</span>
-								<span>
-									{tokenBalance} {tokenSymbol}
-								</span>
+							{/* Show either service fee for take orders or network fee for make orders */}
+							<div className="space-y-1">
+								<div className="flex justify-between text-xs text-gray-400">
+									<span>Service Fee</span>
+									<span>{matchingBuyOrder ? '0.01 FB' : 'Free'}</span>
+								</div>
+								<div className="flex justify-between text-xs">
+									<span className="text-gray-400">Total Cost</span>
+									{(() => {
+										const { value, isTooHigh } = calculateTotalCost(
+											sellForm.watch('price'),
+											sellForm.watch('amount'),
+											!!matchingBuyOrder,
+											tokenSymbol,
+											false // indicate this is sell form
+										)
+										return (
+											<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
+												{value}
+											</span>
+										)
+									})()}
+								</div>
 							</div>
 							{sellError && <div className="text-red-500 text-sm">{sellError}</div>}
-							<div className="flex justify-between text-xs">
-								<span className="text-gray-400">Total Value (FB)</span>
-								{(() => {
-									const { value, isTooHigh } = calculateTotalValue(
-										sellForm.watch('price'),
-										sellForm.watch('amount')
-									)
-									return (
-										<span className={isTooHigh ? 'text-red-500 font-bold' : 'text-gray-400'}>
-											{value}
-										</span>
-									)
-								})()}
-							</div>
 							<Button
 								type="submit"
 								className="w-full bg-red-500 hover:bg-red-600"
