@@ -217,7 +217,8 @@ export async function takeToken(
 		feeRate,
 		tokens,
 		tokenP2TR,
-		changeAddress
+		changeAddress,
+		{ networkFee: false }
 	)
 
 	if (!guard || guard === null) {

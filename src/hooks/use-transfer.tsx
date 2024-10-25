@@ -233,7 +233,12 @@ export async function createGuardContract(
 	feeRate: number,
 	tokens: TokenContract[],
 	tokenP2TR: string,
-	changeAddress: btc.Address
+	changeAddress: btc.Address,
+	options: {
+		networkFee: boolean
+	} = {
+		networkFee: true
+	}
 ) {
 	const guardInfo = getGuardContractInfo()
 
@@ -257,7 +262,7 @@ export async function createGuardContract(
 		? parseInt(process.env.NEXT_PUBLIC_FEE_SATS)
 		: undefined
 
-	if (feeAddress && feeSats) {
+	if (options.networkFee && feeAddress && feeSats) {
 		const { toP2tr } = await import('@/lib/scrypt/common/utils')
 		const feeScript = toP2tr(feeAddress)
 
