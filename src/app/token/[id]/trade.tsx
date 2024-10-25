@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { TokenData } from '@/hooks/use-token'
 import { Orderbook } from './orderbook'
 import { TradeHistory } from './trade-history'
@@ -9,26 +9,22 @@ import { MyPositions } from './my-positions'
 import { Chart } from './chart'
 import useComponentSize from '@/hooks/use-componet-size'
 
+// Update this type for the selected order
+type SelectedOrder = {
+	price: number
+	amount: number
+	isBuy: boolean
+} | null
+
 interface TradeProps {
 	token: TokenData
 	showMarket: boolean
 }
 
-const Trade: React.FC<TradeProps> = ({ token, showMarket }) => {
+const Trade: React.FC<TradeProps> = ({ token }) => {
 	const { width, height, ref } = useComponentSize()
-
-	if (!showMarket) {
-		return (
-			<div className="W-full h-full flex flex-grow">
-				<div className="flex-grow flex flex-col items-center justify-center">
-					<div className="flex flex-col justify-center items-center">
-						<h2 className="text-2xl font-bold mb-4">Mint Ended</h2>
-						<p className="text-muted-foreground">Check back later!</p>
-					</div>
-				</div>
-			</div>
-		)
-	}
+	// Add state for the selected order
+	const [selectedOrder, setSelectedOrder] = useState<SelectedOrder>(null)
 
 	return (
 		<div className="W-full h-full flex flex-grow">
@@ -40,12 +36,15 @@ const Trade: React.FC<TradeProps> = ({ token, showMarket }) => {
 					<MyPositions token={token} />
 				</div>
 			</div>
-			<div className="flex flex-col border-l">
+			<div className="flex flex-col border-l w-[500px]">
 				<div className="flex flex-grow">
-					<Orderbook token={token} />
+					<Orderbook
+						token={token}
+						onOrderSelect={(price, amount, isBuy) => setSelectedOrder({ price, amount, isBuy })}
+					/>
 					<TradeHistory token={token} />
 				</div>
-				<PositionForm token={token} />
+				<PositionForm token={token} selectedOrder={selectedOrder} />
 			</div>
 		</div>
 	)

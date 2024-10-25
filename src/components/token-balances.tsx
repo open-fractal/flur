@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
 	Table,
@@ -15,15 +14,8 @@ import {
 } from '@/components/ui/table'
 import { useWallet } from '@/lib/unisat'
 import { API_URL } from '@/lib/constants'
-import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
-
-// Dynamically import TransferToken component
-const TransferToken = lazy(() =>
-	import('@/app/token/[id]/transfer-token').then(mod => ({ default: mod.TransferToken }))
-)
+import { Wallet } from 'lucide-react'
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -44,17 +36,25 @@ interface TokenInfo {
 	decimals: number
 }
 
-const truncateTokenId = (tokenId: string | undefined) => {
-	if (!tokenId) return 'Unknown'
-	return `${tokenId.slice(0, 4)}...${tokenId.slice(-4)}`
-}
-
 export function TokenBalances() {
 	const router = useRouter()
-	const { address } = useWallet()
+	const { address, setIsWalletConnected, setAddress, updateBalance } = useWallet()
 	const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
-	const [isOpen, setIsOpen] = useState(false)
-	const [selectedToken, setSelectedToken] = useState<string | null>(null)
+
+	const connectWallet = async () => {
+		if (typeof window.unisat !== 'undefined') {
+			try {
+				const accounts = await window.unisat.requestAccounts()
+				setIsWalletConnected(true)
+				setAddress(accounts[0])
+				updateBalance()
+			} catch (error) {
+				console.error('Error connecting wallet:', error)
+			}
+		} else {
+			alert('Unisat wallet not detected. Please install the extension.')
+		}
+	}
 
 	const { data: balanceResponse, error: balanceError } = useSWR<BalanceResponse>(
 		address ? `${API_URL}/api/addresses/${address}/balances` : null,
@@ -85,7 +85,26 @@ export function TokenBalances() {
 		setTokenInfo(newTokenInfo)
 	}
 
-	if (!address) return null
+	if (!address) {
+		return (
+			<div className="w-full">
+				<div className="py-3 px-4">
+					<div className="flex justify-between items-center">
+						<h2 className="text-lg font-semibold">Token Balances</h2>
+					</div>
+				</div>
+				<div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+					<Wallet className="w-12 h-12 mb-4 text-muted-foreground" />
+					<p className="text-muted-foreground mb-4">
+						Connect your wallet to view your token balances
+					</p>
+					<Button onClick={connectWallet} variant="default">
+						Connect Wallet
+					</Button>
+				</div>
+			</div>
+		)
+	}
 	if (balanceError) return <p>Error loading token balances: {balanceError.message}</p>
 	if (!balanceResponse) return <TokenBalancesSkeleton />
 	if (!balanceResponse.data) return <p>Invalid response format from the server.</p>
@@ -108,109 +127,56 @@ export function TokenBalances() {
 	}
 
 	return (
-		<Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
-			<Card className={`w-full mt-8 ${isOpen ? 'mb-8' : 'mb-4'} rounded-md`}>
-				<CardHeader className="py-3">
-					<div className="flex justify-between items-center">
-						<CardTitle>Token Balances ({tokenCount})</CardTitle>
-						<Collapsible.Trigger asChild>
-							<button className="p-2 hover:bg-muted rounded transition-colors">
-								{isOpen ? (
-									<ChevronUp size={24} className="text-primary" />
-								) : (
-									<ChevronDown size={24} className="text-primary" />
-								)}
-							</button>
-						</Collapsible.Trigger>
-					</div>
-				</CardHeader>
-				<Collapsible.Content>
-					<CardContent>
-						<p className="text-sm text-muted-foreground mb-4">
-							Tracker Block Height: {balanceResponse?.data.trackerBlockHeight || 'Unknown'}
-						</p>
-						{tokenCount === 0 ? (
-							<p>No token balances found.</p>
-						) : (
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Token ID</TableHead>
-										<TableHead>Symbol</TableHead>
-										<TableHead className="text-right">Balance</TableHead>
-										<TableHead className="w-[90px]"></TableHead> {/* Adjusted width */}
+		<div className="w-full">
+			<div className="py-3 px-4">
+				<div className="flex justify-between items-center">
+					<h2 className="text-lg font-semibold">Token Balances ({tokenCount})</h2>
+				</div>
+			</div>
+			<div className="">
+				{tokenCount === 0 ? (
+					<p>No token balances found.</p>
+				) : (
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Symbol</TableHead>
+								<TableHead className="text-right">Balance</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{balances.map(balance => {
+								const token = tokenInfo.get(balance.tokenId)
+								const formattedBalance = token
+									? formatBalance(balance.confirmed, token.decimals)
+									: balance.confirmed
+								return (
+									<TableRow
+										key={balance.tokenId}
+										className="cursor-pointer hover:bg-muted/50 duration-200"
+										onClick={() => handleRowClick(balance.tokenId)}
+									>
+										<TableCell>{token?.symbol || 'Loading...'}</TableCell>
+										<TableCell className="text-right">{formattedBalance}</TableCell>
 									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{balances.map(balance => {
-										const token = tokenInfo.get(balance.tokenId)
-										const formattedBalance = token
-											? formatBalance(balance.confirmed, token.decimals)
-											: balance.confirmed
-										return (
-											<TableRow
-												key={balance.tokenId}
-												className="cursor-pointer hover:bg-muted/50 duration-200"
-											>
-												<TableCell
-													className="font-mono"
-													onClick={() => handleRowClick(balance.tokenId)}
-												>
-													{truncateTokenId(balance.tokenId)}
-												</TableCell>
-												<TableCell onClick={() => handleRowClick(balance.tokenId)}>
-													{token?.symbol || 'Loading...'}
-												</TableCell>
-												<TableCell
-													className="text-right"
-													onClick={() => handleRowClick(balance.tokenId)}
-												>
-													{formattedBalance}
-												</TableCell>
-												<TableCell className="w-[90px]">
-													<Suspense
-														fallback={
-															<Button variant="outline" size="sm" className="w-full">
-																Loading...
-															</Button>
-														}
-													>
-														<Dialog
-															open={selectedToken === balance.tokenId}
-															onOpenChange={open => setSelectedToken(open ? balance.tokenId : null)}
-														>
-															<DialogTrigger asChild>
-																<Button variant="outline" size="sm" className="w-full">
-																	Transfer
-																</Button>
-															</DialogTrigger>
-															<DialogContent className="p-0 w-[400px]">
-																{token && <TransferToken token={token} />}
-															</DialogContent>
-														</Dialog>
-													</Suspense>
-												</TableCell>
-											</TableRow>
-										)
-									})}
-								</TableBody>
-							</Table>
-						)}
-					</CardContent>
-				</Collapsible.Content>
-			</Card>
-		</Collapsible.Root>
+								)
+							})}
+						</TableBody>
+					</Table>
+				)}
+			</div>
+		</div>
 	)
 }
 
 function TokenBalancesSkeleton() {
 	return (
-		<Card className="w-full">
-			<CardHeader>
+		<div className="w-full">
+			<div className="py-3 px-4">
 				<Skeleton className="h-7 w-[200px]" />
 				<Skeleton className="h-4 w-[250px] mt-1" />
-			</CardHeader>
-			<CardContent>
+			</div>
+			<div className="px-4 py-2">
 				<div className="space-y-2">
 					<div className="flex justify-between">
 						<Skeleton className="h-4 w-[100px]" />
@@ -228,7 +194,7 @@ function TokenBalancesSkeleton() {
 						<Skeleton className="h-4 w-[100px]" />
 					</div>
 				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	)
 }

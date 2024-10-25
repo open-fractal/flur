@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "errors": [],
+  "scryptfile": "contracts/token/FXPSellGuard.scrypt",
+  "sourceMapFile": "contracts/token/FXPSellGuard.scrypt.map",
+  "ctxMethods": []
+}

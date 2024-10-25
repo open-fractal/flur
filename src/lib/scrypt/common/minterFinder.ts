@@ -1,10 +1,14 @@
-import { OpenMinter, OpenMinterV2 } from '@/lib/scrypt/contracts/dist'
+import { OpenMinter, OpenMinterV2, FXPOpenMinter } from '@/lib/scrypt/contracts/dist'
 import { MinterType } from './minter'
 
 export const ArtifactsMD5 = new Map<string, MinterType>()
 
 export function isOpenMinter(md5: string) {
-	return md5 === OpenMinter.getArtifact().md5 || md5 === OpenMinterV2.getArtifact().md5
+	return (
+		md5 === OpenMinter.getArtifact().md5 ||
+		md5 === OpenMinterV2.getArtifact().md5 ||
+		md5 === FXPOpenMinter.getArtifact().md5
+	)
 }
 
 export function getMinterType(md5: string): MinterType {

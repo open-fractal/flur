@@ -106,8 +106,10 @@ export function pickOpenMinterStateFeild<T>(
 }
 
 export function getRemainSupply(state: OpenMinterState | OpenMinterV2State, minterMd5: string) {
+	// @ts-ignore
 	if (minterMd5 === MinterType.OPEN_MINTER_V1) {
 		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupply')
+		// @ts-ignore
 	} else if (minterMd5 === MinterType.OPEN_MINTER_V2) {
 		return pickOpenMinterStateFeild<bigint>(state, 'remainingSupplyCount')
 	}
@@ -193,6 +195,7 @@ export function createOpenMinterState(
 		newMinter
 	)
 
+	// @ts-ignore
 	if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
 		splitAmountList = OpenMinterV2Proto.getSplitAmountList(
 			remainingSupply,
@@ -588,6 +591,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 			}
 		} else {
 			amount = amount || scaledInfo.limit
+			// @ts-ignore
 			if (token.info.minterMd5 === MinterType.OPEN_MINTER_V1) {
 				if (
 					// @ts-ignore
@@ -605,6 +609,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 					getRemainSupply(minter.state.data, token.info.minterMd5)
 						? getRemainSupply(minter.state.data, token.info.minterMd5)
 						: amount
+				// @ts-ignore
 			} else if (token.info.minterMd5 == MinterType.OPEN_MINTER_V2 && amount != scaledInfo.limit) {
 				console.warn(`can only mint at the exactly amount of ${scaledInfo.limit} at once`)
 				amount = scaledInfo.limit

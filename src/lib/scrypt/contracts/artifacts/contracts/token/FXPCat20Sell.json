@@ -1,0 +1,402 @@
+{
+    "version": 9,
+    "compilerVersion": "1.19.4+commit.cfee948",
+    "contract": "FXPCat20Sell",
+    "md5": "e1573fdc5c4ff2dbd1bdb945662ad79b",
+    "structs": [
+        {
+            "name": "SHPreimage",
+            "params": [
+                {
+                    "name": "txVer",
+                    "type": "bytes"
+                },
+                {
+                    "name": "nLockTime",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashPrevouts",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashSpentAmounts",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashSpentScripts",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashSequences",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashOutputs",
+                    "type": "bytes"
+                },
+                {
+                    "name": "spendType",
+                    "type": "bytes"
+                },
+                {
+                    "name": "inputIndex",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hashTapLeaf",
+                    "type": "bytes"
+                },
+                {
+                    "name": "keyVer",
+                    "type": "bytes"
+                },
+                {
+                    "name": "codeSeparator",
+                    "type": "bytes"
+                },
+                {
+                    "name": "_e",
+                    "type": "bytes"
+                },
+                {
+                    "name": "eLastByte",
+                    "type": "int"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "PrevoutsCtx",
+            "params": [
+                {
+                    "name": "prevouts",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "inputIndexVal",
+                    "type": "int"
+                },
+                {
+                    "name": "outputIndexVal",
+                    "type": "int"
+                },
+                {
+                    "name": "spentTxhash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputIndex",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "CAT20State",
+            "params": [
+                {
+                    "name": "ownerAddr",
+                    "type": "bytes"
+                },
+                {
+                    "name": "amount",
+                    "type": "int"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "PreTxStatesInfo",
+            "params": [
+                {
+                    "name": "statesHashRoot",
+                    "type": "bytes"
+                },
+                {
+                    "name": "txoStateHashes",
+                    "type": "bytes[5]"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "XrayedTxIdPreimg1",
+            "params": [
+                {
+                    "name": "version",
+                    "type": "bytes"
+                },
+                {
+                    "name": "inputCount",
+                    "type": "bytes"
+                },
+                {
+                    "name": "inputs",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "outputCountVal",
+                    "type": "int"
+                },
+                {
+                    "name": "outputCount",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputSatoshisList",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "outputScriptList",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "nLocktime",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "XrayedTxIdPreimg2",
+            "params": [
+                {
+                    "name": "prevList",
+                    "type": "bytes[4]"
+                },
+                {
+                    "name": "outputCountVal",
+                    "type": "int"
+                },
+                {
+                    "name": "outputCount",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputSatoshisList",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "outputScriptList",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "nLocktime",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "XrayedTxIdPreimg3",
+            "params": [
+                {
+                    "name": "prev",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputCountVal",
+                    "type": "int"
+                },
+                {
+                    "name": "outputCount",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputSatoshisList",
+                    "type": "bytes[4]"
+                },
+                {
+                    "name": "outputScriptList",
+                    "type": "bytes[4]"
+                },
+                {
+                    "name": "nLocktime",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "TxInput",
+            "params": [
+                {
+                    "name": "txhash",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputIndex",
+                    "type": "bytes"
+                },
+                {
+                    "name": "outputIndexVal",
+                    "type": "int"
+                },
+                {
+                    "name": "sequence",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        },
+        {
+            "name": "ChangeInfo",
+            "params": [
+                {
+                    "name": "script",
+                    "type": "bytes"
+                },
+                {
+                    "name": "satoshis",
+                    "type": "bytes"
+                }
+            ],
+            "genericTypes": []
+        }
+    ],
+    "library": [
+        {
+            "name": "OpMul",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "SigHashUtils",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "CAT20Proto",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "SellUtil",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "StateUtils",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "TxProof",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        },
+        {
+            "name": "TxUtil",
+            "params": [],
+            "properties": [],
+            "genericTypes": []
+        }
+    ],
+    "alias": [],
+    "abi": [
+        {
+            "type": "function",
+            "name": "take",
+            "index": 0,
+            "params": [
+                {
+                    "name": "curTxoStateHashes",
+                    "type": "bytes[5]"
+                },
+                {
+                    "name": "tokenInputIndex",
+                    "type": "int"
+                },
+                {
+                    "name": "toBuyUserAmount",
+                    "type": "int"
+                },
+                {
+                    "name": "sellChange",
+                    "type": "int"
+                },
+                {
+                    "name": "buyUserAddress",
+                    "type": "Ripemd160"
+                },
+                {
+                    "name": "tokenSatoshiBytes",
+                    "type": "bytes"
+                },
+                {
+                    "name": "fxpReward",
+                    "type": "bool"
+                },
+                {
+                    "name": "cancel",
+                    "type": "bool"
+                },
+                {
+                    "name": "pubKeyPrefix",
+                    "type": "bytes"
+                },
+                {
+                    "name": "ownerPubKey",
+                    "type": "PubKey"
+                },
+                {
+                    "name": "ownerSig",
+                    "type": "Sig"
+                },
+                {
+                    "name": "shPreimage",
+                    "type": "SHPreimage"
+                },
+                {
+                    "name": "prevoutsCtx",
+                    "type": "PrevoutsCtx"
+                },
+                {
+                    "name": "spentScriptsCtx",
+                    "type": "bytes[6]"
+                },
+                {
+                    "name": "changeInfo",
+                    "type": "ChangeInfo"
+                }
+            ]
+        },
+        {
+            "type": "constructor",
+            "params": [
+                {
+                    "name": "cat20Script",
+                    "type": "bytes"
+                },
+                {
+                    "name": "recvOutput",
+                    "type": "bytes"
+                },
+                {
+                    "name": "sellerAddress",
+                    "type": "bytes"
+                },
+                {
+                    "name": "price",
+                    "type": "int"
+                },
+                {
+                    "name": "scalePrice",
+                    "type": "bool"
+                }
+            ]
+        }
+    ],
+    "stateProps": [],
+    "buildType": "debug",
+    "file": "../FXPCat20Sell.scrypt",
+    "hex": "0800000000000000002079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f817984c807bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c7bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179879be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f8179842f40a48df4b2a70c8b4924bf2654661ed3d95fd66a313eb87237597c628e4a031f40a48df4b2a70c8b4924bf2654661ed3d95fd66a313eb87237597c628e4a0310000<cat20Script><recvOutput><sellerAddress><price><scalePrice>012c7963012b79012b797ea9537988012979012b79ad670128790128790128790128790128790128790128790128790128790128790128790128790128790128790113795e797e5d797e5c797e5b797e5a797e59797e58797e57797e56797e55797e54797e53797ea8011579787ea85279017f9f695279009c6301006752796878557952797e8801187955797e54798b7e6b6d6d6d6d6d6d6d6d6c775879ad011a79011a79011a79011a79011a79011a79011a79011a79011a79011a79013079012b795b795b795b795b795b795b790056766b796c756e7e777755766b796c756e7e777754766b796c756e7e777753766b796c756e7e777752766b796c756e7e777751766b796c756e7e7b756b6d6d6d6c77a852798855796e760087630100776876030000007e527987777777695479537978760087630100776876030000007e527987777777695b795b795b795b795b795b79565c797600a26976569f69948c766b796c756b6d6d6d6c547954797e886d6d6d6d6d6d607960796079607960796079012a795679567956795679567956790056766b796c756e827752797e7e777755766b796c756e827752797e7e777754766b796c756e827752797e7e777753766b796c756e827752797e7e777752766b796c756e827752797e7e777751766b796c756e827752797e7e7b756b6d6d6d6c77a878886d6d6d75600133797600a26976569f6994766b796c7555798801307900a269012f7901327978827701149d6e7ea97777a9557901307978827d770122a1696e7e53797e7777770001337900a06301130118797600a26976569f6994766b796c75a953797801367978827701149d6e7ea97777a97e547a7572537a537975587901337978827d770122a1696e7e53797e6b6d6d6c776854790135797600a269780087637500687604000000409f63007c67040000004094517c687604000000209f63007c67040000002094517c687604000000109f63007c67040000001094517c687604000000089f63007c67040000000894517c687604000000049f63007c67040000000494517c687604000000029f63007c67040000000294517c687604000000019f63007c67040000000194517c687604000080009f63007c67040000800094517c6876030000409f63007c670300004094517c6876030000209f63007c670300002094517c6876030000109f63007c670300001094517c6876030000089f63007c670300000894517c6876030000049f63007c670300000494517c6876030000029f63007c670300000294517c6876030000019f63007c670300000194517c6876030080009f63007c670300800094517c68760200409f63007c6702004094517c68760200209f63007c6702002094517c68760200109f63007c6702001094517c68760200089f63007c6702000894517c68760200049f63007c6702000494517c68760200029f63007c6702000294517c68760200019f63007c6702000194517c68760280009f63007c6702800094517c687601409f63007c67014094517c687601209f63007c67012094517c6876609f63007c676094517c6876589f63007c675894517c6876549f63007c675494517c6876529f63007c675294517c68011f797c63766700687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c687c7693825587637500687b637669767b93677c688255879169777757797856797800a0697663780100787e7767786876827d77519c637807000000000000007e7b757c6776529c6378060000000000007e7b757c6776539c63780500000000007e7b757c6776549c637804000000007e7b757c6776559c6378030000007e7b757c6776569c63780200007e7b757c6776579c637801007e7b757c6868686868686875777778827d770122a1696e7e53797e777777013579009c6351675268557978013f79013f79013f79013f79013f7956795679557894000052799f637600a97e77685152799f637600a97e77685252799f637600a97e77685352799f637600a97e77685452799f637600a97e776877777ea9557955795579557955795579007657766b796c75a97e7d7756766b796c75a97e7d7755766b796c75a97e7d7754766b796c75a97e7d7753766b796c75a97e7d77a95279876b6d6d6d6c776976066a1863617401787e770800000000000000007882777e787e6b6d6d6d6d6c7722512067fe8e4767ab1a9056b1e7c6166d690e641d3f40e188241f35f803b1f84546c2760340420f7600a0697676827d77519c6378030000007e7b757c6776529c63780200007e7b757c6776539c637801007e7b757c6868687804000000007e77777778827d770122a1696e7e53797e77777700013a79009c63013779670068632251204531afe938faf1565672605241a227e4484cb728bf74eadc231d341e5c310e8176024a017600a0697676827d77519c6378030000007e7b757c6776529c63780200007e7b757c6776539c637801007e7b757c6868687804000000007e77777778827d770122a1696e7e53797e6b6d6d6c77680114790114797601157987646e78827d770122a1696e7e53797e777777670068777754795a797e59797e57797e53797e52797e787ea876012f79886d6d6d6d6d6d686d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d51",
+    "sourceMapFile": ""
+}

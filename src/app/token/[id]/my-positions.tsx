@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import React, { useState, useCallback } from 'react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
 	Table,
 	TableBody,
@@ -10,130 +10,234 @@ import {
 	TableHeader,
 	TableRow
 } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 import { TokenData } from '@/hooks/use-token'
+import { useUserTokenOrderbook } from '@/hooks/use-user-token-orderbook'
+import { useUserTokenOrderbookHistory } from '@/hooks/use-user-token-orderbook-history'
+import { BUY_MD5, SELL_MD5 } from '@/hooks/use-token-orderbook'
+import { Loader2 } from 'lucide-react'
+import { useWallet } from '@/lib/unisat'
+import { useToast } from '@/hooks/use-toast'
+import { EXPLORER_URL } from '@/lib/constants'
+import { useCancelSellCat20 } from '@/hooks/use-cancel-sell' // Add this import
+import { useCancelBuyCat20 } from '@/hooks/use-cancel-buy' // Add this import
 
-type Order = {
-	createdTime: string
-	lastUpdate: string
-	side: 'BUY' | 'SELL'
-	price: number
-	filledQuantity: number
-	status: string
+// Utility function to format numbers
+function formatNumber(num: number, maxDecimals: number): string {
+	const parts = num.toFixed(maxDecimals).split('.')
+	parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+	return parts.join('.').replace(/\.?0+$/, '')
 }
-
-type Trade = {
-	time: string
-	side: 'BUY' | 'SELL'
-	price: number
-	quantity: number
-	totalWithFee: number
-}
-
-function generateDefaultData(): { orderHistoryData: Order[]; tradeHistoryData: Trade[] } {
-	const orderHistoryData: Order[] = []
-	const tradeHistoryData: Trade[] = []
-
-	for (let i = 0; i < 100; i++) {
-		const side: 'BUY' | 'SELL' = Math.random() < 0.5 ? 'BUY' : 'SELL'
-		const date = new Date()
-		date.setDate(date.getDate() - Math.floor(Math.random() * 30)) // Random date within last 30 days
-
-		// Generate Order
-		orderHistoryData.push({
-			createdTime: date.toLocaleString(),
-			lastUpdate: new Date(date.getTime() + Math.random() * 600000).toLocaleString(), // 0-10 minutes later
-			side: side,
-			price: Number((Math.random() * 2 + 0.5).toFixed(6)), // Random price between 0.5 and 2.5
-			filledQuantity: Number((Math.random() * 1000 + 100).toFixed(8)), // Random quantity between 100 and 1100
-			status: 'Filled'
-		})
-
-		// Generate Trade
-		const quantity = Number((Math.random() * 100 + 10).toFixed(4)) // Random quantity between 10 and 110
-		const price = Number((Math.random() * 2 + 0.5).toFixed(6)) // Random price between 0.5 and 2.5
-		tradeHistoryData.push({
-			time: date.toLocaleString(),
-			side: side,
-			price: price,
-			quantity: quantity,
-			totalWithFee: Number((quantity * price * 1.001).toFixed(10)) // Assuming 0.1% fee
-		})
-	}
-
-	return { orderHistoryData, tradeHistoryData }
-}
-
-const { orderHistoryData, tradeHistoryData } = generateDefaultData()
 
 export function MyPositions(props: { token: TokenData }) {
+	const { toast } = useToast()
 	const { token } = props
-	console.log(token)
-	return (
-		<Tabs defaultValue="open-orders" className="w-full h-full flex flex-col">
-			<div className="px-4 pt-4">
-				<TabsList>
-					<TabsTrigger value="open-orders">Open Orders(0)</TabsTrigger>
-					<TabsTrigger value="order-history">Order History</TabsTrigger>
-					<TabsTrigger value="trade-history">Trade History</TabsTrigger>
-				</TabsList>
+	const { isWalletConnected, xOnlyPublicKey } = useWallet()
+	const { userOrders, isLoading, isError } = useUserTokenOrderbook(token)
+	const {
+		userOrders: userOrdersHistory,
+		isLoading: isHistoryLoading,
+		isError: isHistoryError
+	} = useUserTokenOrderbookHistory(token)
+	const [activeTab, setActiveTab] = useState<'open-orders' | 'history'>('open-orders')
+	const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
+	const { handleCancelSell } = useCancelSellCat20(token) // Add this line
+	const { handleCancelBuy } = useCancelBuyCat20(token) // Add this line
+
+	const connectWallet = async () => {
+		if (typeof window.unisat !== 'undefined') {
+			try {
+				await window.unisat.requestAccounts()
+			} catch (error) {
+				console.error('Error connecting wallet:', error)
+				toast({
+					title: 'Error',
+					description: 'Failed to connect wallet. Please try again.',
+					variant: 'destructive'
+				})
+			}
+		} else {
+			toast({
+				title: 'Wallet Not Found',
+				description: 'Unisat wallet is not installed',
+				variant: 'destructive'
+			})
+		}
+	}
+
+	const cancelOrder = useCallback(
+		async (order: any) => {
+			try {
+				setCancellingOrderId(order.txid)
+				if (order.md5 === SELL_MD5) {
+					await handleCancelSell(order)
+				} else if (order.md5 === BUY_MD5) {
+					await handleCancelBuy(order)
+				} else {
+					throw new Error('Unknown order type')
+				}
+				// Refetch the orders after successful cancellation
+			} catch (error) {
+				console.error('Error cancelling order:', error)
+				toast({
+					title: 'Error',
+					description: 'Failed to cancel order. Please try again.',
+					variant: 'destructive'
+				})
+			} finally {
+				setCancellingOrderId(null)
+			}
+		},
+		[handleCancelSell, handleCancelBuy, toast]
+	)
+
+	if (!isWalletConnected) {
+		return (
+			<div className="w-full h-full flex flex-col items-center justify-center">
+				<p className="mb-4 text-lg text-gray-300">Connect your wallet to manage positions</p>
+				<Button onClick={connectWallet}>Connect Wallet</Button>
 			</div>
-			<TabsContent value="open-orders">
-				<p>No open orders</p>
-			</TabsContent>
-			<TabsContent value="order-history" className="h-full overflow-y-auto flex flex-col flex-grow">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Created Time</TableHead>
-							<TableHead>Last Update</TableHead>
-							<TableHead>Side</TableHead>
-							<TableHead>Price</TableHead>
-							<TableHead>Filled Quantity</TableHead>
-							<TableHead>Status</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{orderHistoryData.map((order, index) => (
+		)
+	}
+
+	const renderContent = () => {
+		switch (activeTab) {
+			case 'open-orders':
+				return renderOpenOrders()
+			case 'history':
+				return renderHistory()
+		}
+	}
+
+	const renderOpenOrders = () => {
+		if (isLoading || isError || userOrders.length === 0) {
+			return (
+				<div className="flex items-center justify-center h-full">
+					{isLoading && <Loader2 className="w-6 h-6 animate-spin" />}
+					{isError && <p>Error loading open orders</p>}
+					{!isLoading && !isError && userOrders.length === 0 && <p>No open orders</p>}
+				</div>
+			)
+		}
+
+		return (
+			<Table>
+				<TableHeader className="sticky top-0 bg-black z-10">
+					<TableRow>
+						<TableHead>Created Time</TableHead>
+						<TableHead>Side</TableHead>
+						<TableHead>Price</TableHead>
+						<TableHead>Amount</TableHead>
+						<TableHead>Status</TableHead>
+						<TableHead>Action</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{userOrders.map((order, index) => {
+						// @ts-ignore
+						const side = order.md5 === SELL_MD5 ? 'SELL' : 'BUY'
+						const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
+						const amount = parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
+						return (
 							<TableRow key={index}>
-								<TableCell>{order.createdTime}</TableCell>
-								<TableCell>{order.lastUpdate}</TableCell>
-								<TableCell className={order.side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
-									{order.side}
+								<TableCell>{new Date(order.createdAt).toLocaleString()}</TableCell>
+								<TableCell className={side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
+									{side}
 								</TableCell>
-								<TableCell>{order.price.toFixed(6)}</TableCell>
-								<TableCell>{order.filledQuantity.toFixed(8)}</TableCell>
-								<TableCell>{order.status}</TableCell>
+								<TableCell>{formatNumber(price, 8)}</TableCell>
+								<TableCell>{formatNumber(amount, token.decimals)}</TableCell>
+								<TableCell>{order.status || 'Open'}</TableCell>
+								<TableCell>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => cancelOrder(order)}
+										disabled={cancellingOrderId === order.txid}
+									>
+										{cancellingOrderId === order.txid ? (
+											<Loader2 className="w-4 h-4 animate-spin" />
+										) : (
+											'Cancel'
+										)}
+									</Button>
+								</TableCell>
 							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</TabsContent>
-			<TabsContent value="trade-history">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Time</TableHead>
-							<TableHead>Side</TableHead>
-							<TableHead>Price</TableHead>
-							<TableHead>Quantity</TableHead>
-							<TableHead>Total w/ Fee</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{tradeHistoryData.map((trade, index) => (
+						)
+					})}
+				</TableBody>
+			</Table>
+		)
+	}
+
+	const renderHistory = () => {
+		if (isHistoryLoading || isHistoryError || userOrdersHistory.length === 0) {
+			return (
+				<div className="flex items-center justify-center h-full">
+					{isHistoryLoading && <Loader2 className="w-6 h-6 animate-spin" />}
+					{isHistoryError && <p>Error loading order history</p>}
+					{!isHistoryLoading && !isHistoryError && userOrdersHistory.length === 0 && (
+						<p>No order history</p>
+					)}
+				</div>
+			)
+		}
+
+		return (
+			<Table>
+				<TableHeader className="sticky top-0 bg-black z-10">
+					<TableRow>
+						<TableHead>Time</TableHead>
+						<TableHead>Side</TableHead>
+						<TableHead>Price</TableHead>
+						<TableHead>Amount</TableHead>
+						<TableHead>Status</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{userOrdersHistory.map((order, index) => {
+						const side =
+							order.takerPubKey === xOnlyPublicKey && order.status !== 'canceled' ? 'BUY' : 'SELL'
+						const price = (parseFloat(order.price) * Math.pow(10, token.decimals)) / 1e8
+						const amount =
+							order.status === 'partially_filled' && order.fillAmount
+								? parseInt(order.fillAmount) / Math.pow(10, token.decimals)
+								: parseInt(order.tokenAmount) / Math.pow(10, token.decimals)
+						return (
 							<TableRow key={index}>
-								<TableCell>{trade.time}</TableCell>
-								<TableCell className={trade.side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
-									{trade.side}
+								<TableCell>
+									<a
+										href={`${EXPLORER_URL}/tx/${order.spendTxid}`}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										{new Date(order.spendCreatedAt || '').toLocaleString()}
+									</a>
 								</TableCell>
-								<TableCell>{trade.price.toFixed(6)}</TableCell>
-								<TableCell>{trade.quantity.toFixed(4)}</TableCell>
-								<TableCell>{trade.totalWithFee.toFixed(10)}</TableCell>
+								<TableCell className={side === 'BUY' ? 'text-green-500' : 'text-red-500'}>
+									{side}
+								</TableCell>
+								<TableCell>{formatNumber(price, 8)}</TableCell>
+								<TableCell>{formatNumber(amount, token.decimals)}</TableCell>
+								<TableCell>{order.status || 'Completed'}</TableCell>
 							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</TabsContent>
-		</Tabs>
+						)
+					})}
+				</TableBody>
+			</Table>
+		)
+	}
+
+	return (
+		<div className="w-full h-full flex flex-col">
+			<div className="px-4 pt-4">
+				<Tabs value={activeTab} onValueChange={value => setActiveTab(value as typeof activeTab)}>
+					<TabsList>
+						<TabsTrigger value="open-orders">Open Orders({userOrders.length})</TabsTrigger>
+						<TabsTrigger value="history">History({userOrdersHistory.length})</TabsTrigger>
+					</TabsList>
+				</Tabs>
+			</div>
+			<div className="h-full overflow-y-auto flex flex-col flex-grow">{renderContent()}</div>
+		</div>
 	)
 }

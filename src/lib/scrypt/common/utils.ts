@@ -7,7 +7,8 @@ import {
 	int32,
 	CAT20,
 	OpenMinter,
-	OpenMinterV2
+	OpenMinterV2,
+	FXPOpenMinter
 } from '@/lib/scrypt/contracts/dist'
 
 import { btc } from './btc'
@@ -180,14 +181,19 @@ export function getOpenMinterContract(
 	premine: int32,
 	limit: int32,
 	premineAddress: ByteString,
+	// @ts-ignore
 	minterMd5: string = MinterType.OPEN_MINTER_V2
 ) {
+	// @ts-ignore
 	if (minterMd5 === MinterType.OPEN_MINTER_V1) {
 		return new OpenMinter(genesisId, max, premine, limit, premineAddress)
 	}
 	const maxCount = max / limit
 	const premineCount = premine / limit
-	return new OpenMinterV2(genesisId, maxCount, premine, premineCount, limit, premineAddress)
+	// @ts-ignore
+	return minterMd5 === MinterType.FXP_OPEN_MINTER
+		? new FXPOpenMinter(genesisId, maxCount, premine, premineCount, limit, premineAddress)
+		: new OpenMinterV2(genesisId, maxCount, premine, premineCount, limit, premineAddress)
 }
 
 export function getOpenMinterContractP2TR(

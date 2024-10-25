@@ -204,6 +204,7 @@ export async function deploy(
 ): Promise<ResponseData | undefined> {
 	// let pk = btc.PrivateKey.fromBuffer(Buffer.from('abddaecf30b891e99755870fa8bcb28c223271a48f066ca2c77b4e7901e6c0a0', 'hex'))
 	const pk = btc.PrivateKey.fromRandom()
+	window.Buffer = Buffer
 	const { tweakedPrivKey } = pk.createTapTweak()
 	const taproot_private_key = btc.PrivateKey.fromBuffer(tweakedPrivKey)
 	const publicKey = taproot_private_key.toPublicKey()

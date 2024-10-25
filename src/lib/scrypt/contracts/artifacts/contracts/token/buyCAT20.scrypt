@@ -1,0 +1,42 @@
+import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";import "sellUtil.scrypt";import "../../../../../node_modules/scrypt-ts-lib-btc/artifacts/opmul.scrypt";import "cat20Proto.scrypt";import "../utils/stateUtils.scrypt";
+
+contract BuyCAT20 {
+  bytes cat20Script;
+  bytes buyerAddress;
+  int price;
+  public function take(bytes[5] curTxoStateHashes, int preRemainingSatoshis, int toBuyerAmount, int toSellerAmount, Ripemd160 toSellerAddress, bytes tokenSatoshiBytes, int tokenInputIndex, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, bytes[6] spentAmountsCtx, ChangeInfo changeInfo) {
+    if(cancel) {
+        require(hash160(pubKeyPrefix + ownerPubKey) == this.buyerAddress);
+        require(checkSig(ownerSig, ownerPubKey));
+      } else {
+        require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+        SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+        SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
+        require(spentScriptsCtx[(tokenInputIndex)] == this.cat20Script);
+        SellUtil.checkSpentAmountsCtx(spentAmountsCtx, shPreimage.hashSpentAmounts);
+        require(toSellerAmount >= 0);
+        require(spentAmountsCtx[(prevoutsCtx.inputIndexVal)] == SellUtil.int32ToSatoshiBytes(preRemainingSatoshis));
+        int costSatoshis = OpMul.mul(this.price, toBuyerAmount);
+        require(preRemainingSatoshis >= costSatoshis);
+        bytes curStateHashes = hash160(CAT20Proto.stateHash({this.buyerAddress, toBuyerAmount}));
+        bytes toBuyerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        bytes toSellerTokenOutput = b'';
+        if(toSellerAmount > 0) {
+          curStateHashes += hash160(CAT20Proto.stateHash({toSellerAddress, toSellerAmount}));
+          toSellerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        }
+        int remainingSatoshis = preRemainingSatoshis - costSatoshis;
+        bytes remainingOutput = b'';
+        if(remainingSatoshis > 0) {
+          bytes selfSpentScript = spentScriptsCtx[(prevoutsCtx.inputIndexVal)];
+          remainingOutput = TxUtil.buildOutput(selfSpentScript, SellUtil.int32ToSatoshiBytes(remainingSatoshis));
+        }
+        int curStateCnt = toSellerAmount == 0 ? 1 : 2;
+        bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
+        bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+        Sha256 hashOutputs = sha256(stateOutput + toBuyerTokenOutput + toSellerTokenOutput + remainingOutput + changeOutput);
+        require(hashOutputs == shPreimage.hashOutputs);
+      }
+    require(true);
+  }
+}

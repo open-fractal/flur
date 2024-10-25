@@ -8,7 +8,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { Copy, Github, Menu, Search, X, Twitter } from 'lucide-react'
+import { Copy, Github, Menu, Search, X, Twitter, InfoIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet } from '@/lib/unisat'
 import Link from 'next/link'
@@ -23,9 +23,12 @@ import {
 	NavigationMenu,
 	NavigationMenuItem,
 	NavigationMenuLink,
-	NavigationMenuList,
-} from "@/components/ui/navigation-menu"
-import { cn } from "@/lib/utils"
+	NavigationMenuList
+} from '@/components/ui/navigation-menu'
+import { cn } from '@/lib/utils'
+import { useFXPClaims } from '@/hooks/use-fxp-claims'
+import { FXP_TOKEN_ID } from '@/lib/constants'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 
 const truncateAddress = (address: string) => {
 	return `${address.slice(0, 4)}...${address.slice(-4)}`
@@ -33,21 +36,22 @@ const truncateAddress = (address: string) => {
 
 const customNavigationMenuTriggerStyle = () => {
 	return cn(
-		"group inline-flex h-8 w-auto items-center justify-center m-3 px-0 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-		"bg-transparent",
-		"hover:bg-transparent"
+		'group inline-flex h-8 w-auto items-center justify-center m-3 px-0 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+		'bg-transparent',
+		'hover:bg-transparent'
 	)
 }
 
 export const Header: React.FC = () => {
+	const { claimCount } = useFXPClaims()
 	const [searchInput, setSearchInput] = useState('')
 	const {
 		address,
-		setAddress,
 		isWalletConnected,
-		setIsWalletConnected,
 		balance,
-		updateBalance
+		updateBalance,
+		disconnectWallet,
+		connectWallet
 	} = useWallet()
 	const { toast } = useToast()
 	const pathname = usePathname()
@@ -59,25 +63,23 @@ export const Header: React.FC = () => {
 		setTheme('dark')
 	}, [setTheme])
 
-	const connectWallet = useCallback(async () => {
-		if (typeof window.unisat !== 'undefined') {
-			try {
-				const accounts = await window.unisat.requestAccounts()
-				setIsWalletConnected(true)
-				setAddress(accounts[0])
-				updateBalance() // Update balance after connecting
-			} catch (error) {
-				console.error('Error connecting wallet:', error)
-			}
-		} else {
-			alert('Unisat wallet not detected. Please install the extension.')
+	const handleConnectWallet = useCallback(async () => {
+		try {
+			await connectWallet()
+			await updateBalance()
+		} catch (error) {
+			console.error('Error connecting wallet:', error)
+			toast({
+				title: 'Connection Failed',
+				description: 'Failed to connect to wallet. Please try again.',
+				variant: 'destructive'
+			})
 		}
-	}, [setIsWalletConnected, setAddress, updateBalance])
+	}, [connectWallet, updateBalance, toast])
 
-	const disconnectWallet = useCallback(() => {
-		setIsWalletConnected(false)
-		setAddress('')
-	}, [setIsWalletConnected, setAddress])
+	const handleDisconnectWallet = useCallback(() => {
+		disconnectWallet() // Use the new disconnectWallet function
+	}, [disconnectWallet])
 
 	const copyAddress = () => {
 		navigator.clipboard.writeText(address).then(() => {
@@ -125,8 +127,8 @@ export const Header: React.FC = () => {
 		return false
 	}
 
-	const activeItemStyle = "text-white border-b-2 border-white"
-	const inactiveItemStyle = "text-gray-400 hover:text-white"
+	const activeItemStyle = 'text-white border-b-2 border-white'
+	const inactiveItemStyle = 'text-gray-400 hover:text-white'
 
 	return (
 		<>
@@ -140,33 +142,39 @@ export const Header: React.FC = () => {
 						<NavigationMenuList className="flex">
 							<NavigationMenuItem>
 								<Link href="/" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Mint
 									</NavigationMenuLink>
 								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
 								<Link href="/create" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/create') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/create') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Deploy
 									</NavigationMenuLink>
 								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
 								<Link href="/docs" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										isActive('/docs') ? activeItemStyle : inactiveItemStyle,
-										"whitespace-nowrap"
-									)}>
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											isActive('/docs') ? activeItemStyle : inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+									>
 										Docs
 									</NavigationMenuLink>
 								</Link>
@@ -199,25 +207,56 @@ export const Header: React.FC = () => {
 						</div>
 					</form>
 					{isWalletConnected ? (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="outline">
-									{truncateAddress(address)}
-									<span className="ml-2">({formatBalance(balance)} FB)</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent>
-								<DropdownMenuItem onClick={copyAddress}>
-									<Copy className="mr-2 h-4 w-4" />
-									Copy Address
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<>
+							<HoverCard>
+								<HoverCardTrigger asChild>
+									<div className="flex items-center">
+										<Link href={`/token/${FXP_TOKEN_ID}`}>
+											<Button variant="outline" className="flex items-center gap-2">
+												FXP Claims: {claimCount}
+												<InfoIcon className="h-4 w-4 text-muted-foreground" />
+											</Button>
+										</Link>
+									</div>
+								</HoverCardTrigger>
+								<HoverCardContent className="w-80">
+									<div className="space-y-2">
+										<h4 className="text-sm font-semibold">FXP Claims</h4>
+										<p className="text-sm">
+											Flur Experience Points (FXP) can be claimed or minted by users that complete
+											trades.
+										</p>
+										<a
+											href="https://alpha.flur.gg/docs/FXP"
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm text-blue-500 hover:text-blue-600 mt-4 transition-colors"
+										>
+											Learn More
+										</a>
+									</div>
+								</HoverCardContent>
+							</HoverCard>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button variant="outline">
+										{truncateAddress(address)}
+										<span className="ml-2">({formatBalance(balance)} FB)</span>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent>
+									<DropdownMenuItem onClick={copyAddress}>
+										<Copy className="mr-2 h-4 w-4" />
+										Copy Address
+									</DropdownMenuItem>
+									<DropdownMenuItem onClick={handleDisconnectWallet}>
+										Disconnect Wallet
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</>
 					) : (
-						<Button onClick={connectWallet} className="transition-ease-in-out">
-							Connect Wallet
-						</Button>
+						<Button onClick={handleConnectWallet}>Connect Wallet</Button>
 					)}
 					<div className="flex items-center gap-4">
 						<a
@@ -260,12 +299,12 @@ export const Header: React.FC = () => {
 								<NavigationMenuList className="flex-col items-start space-y-2">
 									<NavigationMenuItem className="w-full">
 										<Link href="/" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>
@@ -275,12 +314,12 @@ export const Header: React.FC = () => {
 									</NavigationMenuItem>
 									<NavigationMenuItem className="w-full">
 										<Link href="/create" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/create') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>
@@ -290,12 +329,12 @@ export const Header: React.FC = () => {
 									</NavigationMenuItem>
 									<NavigationMenuItem className="w-full">
 										<Link href="/docs" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													isActive('/docs') ? activeItemStyle : inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 											>
@@ -343,10 +382,10 @@ export const Header: React.FC = () => {
 										Copy Address: {truncateAddress(address)}
 									</Button>
 									<div className="text-center">Balance: {formatBalance(balance)} FB</div>
-									<Button onClick={disconnectWallet}>Disconnect Wallet</Button>
+									<Button onClick={handleDisconnectWallet}>Disconnect Wallet</Button>
 								</div>
 							) : (
-								<Button onClick={connectWallet}>Connect Wallet</Button>
+								<Button onClick={handleConnectWallet}>Connect Wallet</Button>
 							)}
 
 							<div className="flex justify-center gap-4">

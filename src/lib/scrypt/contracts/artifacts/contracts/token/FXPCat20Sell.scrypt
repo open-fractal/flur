@@ -1,0 +1,44 @@
+import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";import "cat20Proto.scrypt";import "../../../../../node_modules/scrypt-ts-lib-btc/artifacts/opmul.scrypt";import "sellUtil.scrypt";import "../utils/stateUtils.scrypt";
+
+contract FXPCat20Sell {
+  bytes cat20Script;
+  bytes recvOutput;
+  bytes sellerAddress;
+  int price;
+  bool scalePrice;
+  public function take(bytes[5] curTxoStateHashes, int tokenInputIndex, int toBuyUserAmount, int sellChange, Ripemd160 buyUserAddress, bytes tokenSatoshiBytes, bool fxpReward, bool cancel, bytes pubKeyPrefix, PubKey ownerPubKey, Sig ownerSig, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, ChangeInfo changeInfo) {
+    if(cancel) {
+        require(hash160(pubKeyPrefix + ownerPubKey) == this.sellerAddress);
+        require(checkSig(ownerSig, ownerPubKey));
+      } else {
+        require(checkSig(SigHashUtils.checkSHPreimage(shPreimage), SigHashUtils.Gx));
+        SigHashUtils.checkPrevoutsCtx(prevoutsCtx, shPreimage.hashPrevouts, shPreimage.inputIndex);
+        SigHashUtils.checkSpentScriptsCtx(spentScriptsCtx, shPreimage.hashSpentScripts);
+        require(spentScriptsCtx[(tokenInputIndex)] == this.cat20Script);
+        require(sellChange >= 0);
+        bytes curStateHashes = hash160(CAT20Proto.stateHash({buyUserAddress, toBuyUserAmount}));
+        bytes toBuyerTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        bytes changeToSellTokenOutput = b'';
+        if(sellChange > 0) {
+          Ripemd160 contractAddress = hash160(spentScriptsCtx[(prevoutsCtx.inputIndexVal)]);
+          curStateHashes += hash160(CAT20Proto.stateHash({contractAddress, sellChange}));
+          changeToSellTokenOutput = TxUtil.buildOutput(this.cat20Script, tokenSatoshiBytes);
+        }
+        int satoshiToSeller = OpMul.mul(this.price, toBuyUserAmount);
+        bytes toSellerOutput = TxUtil.buildOutput(this.recvOutput, SellUtil.int32ToSatoshiBytesScaled(satoshiToSeller, this.scalePrice));
+        int curStateCnt = sellChange == 0 ? 1 : 2;
+        bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
+        bytes serviceFeeP2TR = b'512067fe8e4767ab1a9056b1e7c6166d690e641d3f40e188241f35f803b1f84546c2';
+        bytes serviceFeeOutput = TxUtil.buildOutput(serviceFeeP2TR, SellUtil.int32ToSatoshiBytes(1000000));
+        bytes fxpSellGuardOutput = b'';
+        if(sellChange == 0 && fxpReward) {
+          bytes fxpSellGuardP2TR = b'51204531afe938faf1565672605241a227e4484cb728bf74eadc231d341e5c310e81';
+          fxpSellGuardOutput = TxUtil.buildOutput(fxpSellGuardP2TR, SellUtil.int32ToSatoshiBytes(330));
+        }
+        bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+        Sha256 hashOutputs = sha256(stateOutput + toBuyerTokenOutput + changeToSellTokenOutput + toSellerOutput + serviceFeeOutput + fxpSellGuardOutput + changeOutput);
+        require(hashOutputs == shPreimage.hashOutputs);
+      }
+    require(true);
+  }
+}

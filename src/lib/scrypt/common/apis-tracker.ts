@@ -113,7 +113,12 @@ const fetchOpenMinterState = async function(
 	const info = metadata.info as OpenMinterTokenInfo
 	const scaledInfo = scaleConfig(info)
 	if (txId === metadata.revealTxid) {
-		if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
+		if (
+			// @ts-ignore
+			metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2 ||
+			// @ts-ignore
+			metadata.info.minterMd5 === MinterType.FXP_OPEN_MINTER
+		) {
 			return {
 				isPremined: false,
 				remainingSupplyCount: (scaledInfo.max - scaledInfo.premine) / scaledInfo.limit,
@@ -144,11 +149,21 @@ const fetchOpenMinterState = async function(
 			const lockingScriptBuffer = witnesses[witnesses.length - 2]
 			const { p2tr } = script2P2TR(lockingScriptBuffer)
 			if (p2tr === minterP2TR) {
+				// @ts-ignore
 				if (metadata.info.minterMd5 == MinterType.OPEN_MINTER_V2) {
 					const preState: OpenMinterV2State = {
 						tokenScript: witnesses[REMAININGSUPPLY_WITNESS_INDEX - 2].toString('hex'),
 						isPremined: true,
 						remainingSupplyCount: byteString2Int(witnesses[6 + vout].toString('hex'))
+					}
+
+					return preState
+					// @ts-ignore
+				} else if (metadata.info.minterMd5 == MinterType.FXP_OPEN_MINTER) {
+					const preState: OpenMinterV2State = {
+						tokenScript: tokenP2TR,
+						isPremined: true,
+						remainingSupplyCount: byteString2Int(witnesses[7 + vout].toString('hex'))
 					}
 
 					return preState
@@ -195,6 +210,7 @@ export const parseTokenMinter = (
 	minter: any
 ): Promise<OpenMinterContract[]> => {
 	const contracts = [minter]
+	console.log('metadata', metadata)
 	if (isOpenMinter(metadata.info.minterMd5)) {
 		return Promise.all(
 			contracts.map(async (c: any) => {

@@ -49,6 +49,12 @@ import { Button } from '@/components/ui/button' // Add this import at the top of
 import { getFeeRate, broadcast } from '@/lib/utils'
 import { TokenData } from '@/hooks/use-token'
 import { useTokenUtxos } from '@/hooks/use-token-utxos'
+import {
+	CatTx,
+	ContractIns,
+	TaprootMastSmartContract,
+	TaprootSmartContract
+} from '@cat-protocol/cat-smartcontracts/dist/lib/catTx'
 
 const BurnGuardArtifact = require('@/lib/scrypt/contracts/artifacts/contracts/token/burnGuard.json')
 BurnGuard.loadArtifact(BurnGuardArtifact)
@@ -210,40 +216,41 @@ async function unlockGuard(
 	return true
 }
 
+export const getGuardContractInfo = function() {
+	const burnGuard = new BurnGuard()
+	const transfer = new TransferGuard()
+	const contractMap = {
+		burn: burnGuard,
+		transfer: transfer
+	}
+	const guardInfo = new TaprootMastSmartContract(contractMap)
+	return guardInfo
+}
+
 export async function createGuardContract(
 	wallet: WalletService,
-	feeutxo: UTXO,
+	feeUtxos: UTXO[],
 	feeRate: number,
 	tokens: TokenContract[],
 	tokenP2TR: string,
 	changeAddress: btc.Address
 ) {
-	const { p2tr: guardP2TR, tapScript: guardTapScript } = getGuardsP2TR()
+	const guardInfo = getGuardContractInfo()
 
-	const protocolState = ProtocolState.getEmptyState()
-	const realState = GuardProto.createEmptyState()
-	realState.tokenScript = tokenP2TR
+	const guardState = GuardProto.createEmptyState()
+	guardState.tokenScript = tokenP2TR
 
 	for (let i = 0; i < tokens.length; i++) {
-		realState.inputTokenAmountArray[i] = tokens[i].state.data.amount
+		guardState.inputTokenAmountArray[i] = tokens[i].state.data.amount
 	}
 
-	protocolState.updateDataList(0, GuardProto.toByteString(realState))
-
-	const commitTx = new btc.Transaction()
-		.from(feeutxo)
-		.addOutput(
-			new btc.Transaction.Output({
-				satoshis: 0,
-				script: toStateScript(protocolState)
-			})
-		)
-		.addOutput(
-			new btc.Transaction.Output({
-				satoshis: Postage.GUARD_POSTAGE,
-				script: guardP2TR
-			})
-		)
+	const catTx = CatTx.create()
+	catTx.tx.from(feeUtxos)
+	const atIndex = catTx.addStateContractOutput(
+		guardInfo.lockingScript,
+		GuardProto.toByteString(guardState),
+		Postage.GUARD_POSTAGE
+	)
 
 	const feeAddress = process.env.NEXT_PUBLIC_FEE_ADDRESS
 	const feeSats = process.env.NEXT_PUBLIC_FEE_SATS
@@ -254,7 +261,7 @@ export async function createGuardContract(
 		const { toP2tr } = await import('@/lib/scrypt/common/utils')
 		const feeScript = toP2tr(feeAddress)
 
-		commitTx.addOutput(
+		catTx.tx.addOutput(
 			new btc.Transaction.Output({
 				satoshis: feeSats,
 				script: feeScript
@@ -262,35 +269,153 @@ export async function createGuardContract(
 		)
 	}
 
-	commitTx.change(changeAddress).feePerByte(feeRate)
+	catTx.tx.change(changeAddress).feePerByte(feeRate)
 
-	if (commitTx.getChangeOutput() === null) {
+	if (catTx.tx.getChangeOutput() === null) {
 		console.error('Insufficient satoshis balance!')
 		return null
 	}
 
-	// Add fee output
+	await wallet.signFeeInput(catTx.tx)
 
-	await wallet.signFeeInput(commitTx)
-
-	const contact: GuardContract = {
+	const guardContract: GuardContract = {
 		utxo: {
-			txId: commitTx.id,
-			outputIndex: 1,
-			script: commitTx.outputs[1].script.toHex(),
-			satoshis: commitTx.outputs[1].satoshis
+			txId: catTx.tx.id,
+			outputIndex: atIndex,
+			script: catTx.tx.outputs[atIndex].script.toHex(),
+			satoshis: catTx.tx.outputs[atIndex].satoshis
 		},
 		state: {
-			protocolState,
-			data: realState
+			protocolState: catTx.state,
+			data: guardState
 		}
 	}
 
 	return {
-		commitTx,
-		contact,
-		guardTapScript
+		catTx: catTx,
+		contract: guardInfo.contractTaprootMap.transfer.contract,
+		contractTaproot: guardInfo.contractTaprootMap.transfer,
+		atOutputIndex: atIndex,
+		guardContract
 	}
+}
+
+export async function hydrateTokens(
+	tokens: TokenContract[],
+	metadata: TokenMetadata,
+	cachedTxs: Map<string, btc.Transaction>
+): Promise<{
+	inputTokens: ContractIns<CAT20State>[]
+	tokenTxs: Array<{
+		prevTx: btc.Transaction
+		prevTokenInputIndex: number
+		prevPrevTx: btc.Transaction
+	} | null>
+}> {
+	const tokenTxs = await fetchTokenTxs(tokens, metadata, cachedTxs)
+
+	const { contract } = getTokenContractP2TR(toP2tr(metadata.minterAddr))
+
+	const inputTokens = tokenTxs.map((tokenTx, index) => {
+		if (!tokenTx) {
+			throw new Error(`Failed to fetch transaction data for token at index ${index}`)
+		}
+
+		const { prevTx, prevPrevTx } = tokenTx
+		const token = tokens[index]
+
+		const preCatTx = new CatTx()
+		const catTx = new CatTx()
+
+		catTx.tx = prevTx
+		preCatTx.tx = prevPrevTx
+
+		const contractIns: ContractIns<CAT20State> = {
+			contract,
+			state: token.state.data,
+			catTx: catTx,
+			preCatTx: preCatTx,
+			atOutputIndex: token.utxo.outputIndex,
+			contractTaproot: new TaprootSmartContract(contract)
+		}
+
+		return contractIns
+	})
+
+	return { inputTokens, tokenTxs }
+}
+
+export async function fetchTokenTxs(
+	tokens: TokenContract[],
+	metadata: TokenMetadata,
+	cachedTxs: Map<string, btc.Transaction>
+): Promise<
+	Array<{
+		prevTx: btc.Transaction
+		prevTokenInputIndex: number
+		prevPrevTx: btc.Transaction
+	} | null>
+> {
+	return Promise.all(
+		tokens.map(async ({ utxo: tokenUtxo }) => {
+			let prevTx: btc.Transaction | null = null
+			if (cachedTxs.has(tokenUtxo.txId)) {
+				prevTx = cachedTxs.get(tokenUtxo.txId)!
+			} else {
+				const prevTxHex = await getRawTransaction(tokenUtxo.txId)
+				if (prevTxHex instanceof Error) {
+					console.error(`get raw transaction ${tokenUtxo.txId} failed!`, prevTxHex)
+					return null
+				}
+				prevTx = new btc.Transaction(prevTxHex)
+				cachedTxs.set(tokenUtxo.txId, prevTx)
+			}
+
+			let prevTokenInputIndex = 0
+
+			const input = prevTx.inputs.find((input: any, inputIndex: number) => {
+				const witnesses = input.getWitnesses()
+
+				if (Array.isArray(witnesses) && witnesses.length > 2) {
+					const lockingScriptBuffer = witnesses[witnesses.length - 2]
+					const { p2tr } = script2P2TR(lockingScriptBuffer)
+
+					const address = p2tr2Address(p2tr, 'fractal-mainnet')
+					if (address === metadata.tokenAddr || address === metadata.minterAddr) {
+						prevTokenInputIndex = inputIndex
+						return true
+					}
+				}
+			})
+
+			if (!input) {
+				console.error(`There is no valid preTx of the ftUtxo!`)
+				return null
+			}
+
+			let prevPrevTx: btc.Transaction | null = null
+
+			const prevPrevTxId = prevTx.inputs[prevTokenInputIndex].prevTxId.toString('hex')
+
+			if (cachedTxs.has(prevPrevTxId)) {
+				prevPrevTx = cachedTxs.get(prevPrevTxId)!
+			} else {
+				const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
+				if (prevPrevTxHex instanceof Error) {
+					console.error(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
+					return null
+				}
+				prevPrevTx = new btc.Transaction(prevPrevTxHex)
+				cachedTxs.set(prevPrevTxId, prevPrevTx)
+			}
+
+			return {
+				prevTx,
+				prevTokenInputIndex,
+				prevPrevTx
+			}
+		})
+	)
 }
 
 export async function sendToken(
@@ -312,13 +437,13 @@ export async function sendToken(
 		console.warn('Insufficient token balance!')
 		return null
 	}
-	const minterP2TR = toP2tr(metadata.minterAddr)
 
+	const minterP2TR = toP2tr(metadata.minterAddr)
 	const { p2tr: tokenP2TR, tapScript: tokenTapScript } = getTokenContractP2TR(minterP2TR)
 
 	const commitResult = await createGuardContract(
 		wallet,
-		feeUtxo,
+		[feeUtxo],
 		feeRate,
 		tokens,
 		tokenP2TR,
@@ -329,18 +454,15 @@ export async function sendToken(
 		return null
 	}
 
-	const { commitTx, contact: guardContract, guardTapScript } = commitResult
+	const commitTx = commitResult.catTx.tx
+	const guardTapScript = commitResult.contractTaproot.tapleaf
+	const guardContract = commitResult.guardContract
 
 	const newState = ProtocolState.getEmptyState()
-
 	const receiverTokenState = CAT20Proto.create(amount, toTokenAddress(receiver))
-
 	newState.updateDataList(0, CAT20Proto.toByteString(receiverTokenState))
-
 	const tokenInputAmount = tokens.reduce((acc, t) => acc + t.state.data.amount, 0n)
-
 	const changeTokenInputAmount = tokenInputAmount - amount
-
 	let changeTokenState: null | CAT20State = null
 
 	if (changeTokenInputAmount > 0n) {
@@ -395,71 +517,7 @@ export async function sendToken(
 		})
 	)
 
-	const tokenTxs: Array<{
-		prevTx: btc.Transaction
-		prevTokenInputIndex: number
-		prevPrevTx: btc.Transaction
-	} | null> = await Promise.all(
-		tokens.map(async ({ utxo: tokenUtxo }) => {
-			let prevTx: btc.Transaction | null = null
-			if (cachedTxs.has(tokenUtxo.txId)) {
-				prevTx = cachedTxs.get(tokenUtxo.txId)
-			} else {
-				const prevTxHex = await getRawTransaction(tokenUtxo.txId)
-				if (prevTxHex instanceof Error) {
-					console.error(`get raw transaction ${tokenUtxo.txId} failed!`, prevTxHex)
-					return null
-				}
-				prevTx = new btc.Transaction(prevTxHex)
-
-				cachedTxs.set(tokenUtxo.txId, prevTx)
-			}
-
-			let prevTokenInputIndex = 0
-
-			const input = prevTx.inputs.find((input: any, inputIndex: number) => {
-				const witnesses = input.getWitnesses()
-
-				if (Array.isArray(witnesses) && witnesses.length > 2) {
-					const lockingScriptBuffer = witnesses[witnesses.length - 2]
-					const { p2tr } = script2P2TR(lockingScriptBuffer)
-
-					const address = p2tr2Address(p2tr, 'fractal-mainnet')
-					if (address === metadata.tokenAddr || address === metadata.minterAddr) {
-						prevTokenInputIndex = inputIndex
-						return true
-					}
-				}
-			})
-
-			if (!input) {
-				console.error(`There is no valid preTx of the ftUtxo!`)
-				return null
-			}
-
-			let prevPrevTx: btc.Transaction | null = null
-
-			const prevPrevTxId = prevTx.inputs[prevTokenInputIndex].prevTxId.toString('hex')
-
-			if (cachedTxs.has(prevPrevTxId)) {
-				prevPrevTx = cachedTxs.get(prevPrevTxId)
-			} else {
-				const prevPrevTxHex = await getRawTransaction(prevPrevTxId)
-				if (prevPrevTxHex instanceof Error) {
-					console.error(`get raw transaction ${prevPrevTxId} failed!`, prevPrevTxHex)
-					return null
-				}
-				prevPrevTx = new btc.Transaction(prevPrevTxHex)
-				cachedTxs.set(prevPrevTxId, prevPrevTx)
-			}
-
-			return {
-				prevTx,
-				prevTokenInputIndex,
-				prevPrevTx
-			}
-		})
-	)
+	const tokenTxs = await fetchTokenTxs(tokens, metadata, cachedTxs)
 
 	const success = tokenTxs.every(t => t !== null)
 

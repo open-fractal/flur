@@ -1,0 +1,78 @@
+import "../utils/txProof.scrypt";import "cat20Proto.scrypt";import "../utils/stateUtils.scrypt";import "openMinterV2Proto.scrypt";import "../utils/backtrace.scrypt";import "../utils/sigHashUtils.scrypt";import "../utils/txUtil.scrypt";import "../../../../../node_modules/scrypt-ts-lib-btc/artifacts/opmul.scrypt";
+
+contract FXPOpenMinter {
+  bytes genesisOutpoint;
+  int maxCount;
+  int premine;
+  int premineCount;
+  int limit;
+  bytes premineAddr;
+  static function getFXPAmountHash(XrayedTxIdPreimg1 tx) : bytes {
+    bytes txid = TxProof.getTxIdFromPreimg1(tx);
+    Sha256 hash = sha256(tx.outputScriptList[0] + tx.outputScriptList[1] + tx.outputScriptList[2] + tx.outputScriptList[3] + tx.outputScriptList[4] + tx.outputScriptList[5] + txid);
+    return hash;
+  }
+  public function mint(bytes[5] curTxoStateHashes, CAT20State tokenMint, int tokenAmount, int[2] nextMinterCounts, XrayedTxIdPreimg1 guardPreTx, CAT20State guardPreState, PreTxStatesInfo guardPreTxStatesInfo, bytes guardAmountHashSuffix, PubKey guardTakerPubkey, bytes minterSatoshis, bytes tokenSatoshis, OpenMinterV2State preState, PreTxStatesInfo preTxStatesInfo, BacktraceInfo backtraceInfo, SHPreimage shPreimage, PrevoutsCtx prevoutsCtx, bytes[6] spentScriptsCtx, ChangeInfo changeInfo) {
+    bytes preScript = spentScriptsCtx[(prevoutsCtx.inputIndexVal)];
+    Backtrace.verifyUnique(prevoutsCtx.spentTxhash, backtraceInfo, this.genesisOutpoint, preScript);
+    bytes FXPSellGuardP2TR = b'51204531afe938faf1565672605241a227e4484cb728bf74eadc231d341e5c310e81';
+    bytes FXPBuyGuardP2TR = b'5120629546ef6334959d5d9c0ab8268c3f04d23b56658c1f3ad34d94555a9f7db8b3';
+    bytes takerScript = b'5120' + guardTakerPubkey;
+    bool isBuy = spentScriptsCtx[1] == FXPBuyGuardP2TR;
+    bool isSell = spentScriptsCtx[1] == FXPSellGuardP2TR;
+    bytes guardTxid = TxProof.getTxIdFromPreimg1(guardPreTx);
+    require(isBuy || isSell);
+    require(tokenMint.ownerAddr == guardPreState.ownerAddr);
+    if(isSell) {
+        require(takerScript == guardPreTx.outputScriptList[2]);
+        require(guardTxid + b'04000000' == prevoutsCtx.prevouts[1]);
+      }
+    if(isBuy) {
+        bool is5 = guardPreTx.outputScriptList[5] == takerScript;
+        bool is4 = guardPreTx.outputScriptList[4] == takerScript;
+        require(is5 || is4);
+        if(is4) {
+          require(guardTxid + b'03000000' == prevoutsCtx.prevouts[1]);
+        }
+        if(is5) {
+          require(guardTxid + b'04000000' == prevoutsCtx.prevouts[1]);
+        }
+      }
+    StateUtils.verifyPreStateHash(guardPreTxStatesInfo, CAT20Proto.stateHash(guardPreState), guardPreTx.outputScriptList[0], 1);
+    bytes openMinterOutputs = b'';
+    bytes curStateHashes = b'';
+    int curStateCnt = 1;
+    int mintCount = 0;
+    loop (2) : i {
+        int count = nextMinterCounts[i];
+        if(count > 0) {
+          mintCount += count;
+          curStateCnt += 1;
+          openMinterOutputs += TxUtil.buildOutput(preScript, minterSatoshis);
+          curStateHashes += hash160(OpenMinterV2Proto.stateHash({preState.tokenScript, true, count}));
+        }
+      }
+    bytes tokenOutput = TxUtil.buildOutput(preState.tokenScript, tokenSatoshis);
+    bytes tokenOutputs = tokenOutput + tokenOutput;
+    curStateHashes += hash160(CAT20Proto.stateHash({tokenMint.ownerAddr, tokenMint.amount}));
+    curStateHashes += hash160(CAT20Proto.stateHash({hash160(guardTakerPubkey), tokenMint.amount}));
+    curStateCnt += 1;
+    mintCount += 1;
+    require(mintCount == preState.remainingSupplyCount);
+    bool isLottery = tokenAmount == 420;
+    require(tokenAmount <= 128 || isLottery);
+    require(OpMul.mul(tokenAmount, 100) == tokenMint.amount);
+    bytes amountHash = FXPOpenMinter.getFXPAmountHash(guardPreTx);
+    int amount = isLottery ? 69 - 1 : tokenAmount - 1;
+    bytes posAmountHash = (amount == 0 ? b'00' : pack(amount)) + guardAmountHashSuffix;
+    bytes negAmountHash = (amount == 0 ? b'80' : pack(-amount)) + guardAmountHashSuffix;
+    if(isLottery) {
+        
+      }
+    require(amountHash == posAmountHash || amountHash == negAmountHash);
+    bytes stateOutput = StateUtils.getCurrentStateOutput(curStateHashes, curStateCnt, curTxoStateHashes);
+    bytes changeOutput = TxUtil.getChangeOutput(changeInfo);
+    Sha256 hashOutputs = sha256(stateOutput + openMinterOutputs + tokenOutputs + changeOutput);
+    require(hashOutputs == shPreimage.hashOutputs);
+  }
+}

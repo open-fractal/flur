@@ -27,15 +27,6 @@ import {
 } from '@/components/ui/table'
 import { Progress } from '@/components/ui/progress'
 import { formatNumber } from '@/lib/utils'
-import {
-	Pagination,
-	PaginationContent,
-	PaginationEllipsis,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious
-} from '@/components/ui/pagination'
 import { useDebounce } from '@/hooks/use-debounce'
 import useSWR from 'swr'
 import { API_URL } from '@/lib/constants'
@@ -51,7 +42,7 @@ import { Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEffect, useMemo } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import InfiniteScroll from 'react-infinite-scroll-component'
 
 // Define TokenData interface
 export interface TokenData {
@@ -63,6 +54,8 @@ export interface TokenData {
 	decimals: number
 	revealHeight: string
 	mintUtxoCount: number
+	marketCap: string // Changed to string
+	totalVolume: string // Changed to string
 	info: {
 		max: string
 		limit: string
@@ -71,7 +64,7 @@ export interface TokenData {
 	}
 }
 
-const PAGE_SIZE = 16
+const PAGE_SIZE = 64
 
 const truncateTokenId = (tokenId: string) => {
 	return `${tokenId.slice(0, 4)}...${tokenId.slice(-4)}`
@@ -158,6 +151,44 @@ export const columns: ColumnDef<TokenData>[] = [
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
 		),
 		size: 100 // Set a fixed width for the holders column
+	},
+	{
+		accessorKey: 'marketCap',
+		header: ({ column }) => <SortButton column={column}>MARKET CAP</SortButton>,
+		cell: ({ row }) => {
+			const marketCapSats = row.original.marketCap
+			const marketCapFB = marketCapSats ? parseFloat(marketCapSats) / 1e8 : 0
+			return (
+				<div className="whitespace-nowrap">
+					{marketCapSats ? `${formatNumber(marketCapFB.toFixed(2))} FB` : '-'}
+				</div>
+			)
+		},
+		sortingFn: (rowA, rowB) => {
+			const capA = parseFloat(rowA.original.marketCap) / 1e8 || 0
+			const capB = parseFloat(rowB.original.marketCap) / 1e8 || 0
+			return capA - capB
+		},
+		size: 120
+	},
+	{
+		accessorKey: 'totalVolume',
+		header: ({ column }) => <SortButton column={column}>VOLUME</SortButton>,
+		cell: ({ row }) => {
+			const volumeSats = row.original.totalVolume
+			const volumeFB = volumeSats ? parseFloat(volumeSats) / 1e8 : 0
+			return (
+				<div className="whitespace-nowrap">
+					{volumeSats ? `${formatNumber(volumeFB.toFixed(2))} FB` : '-'}
+				</div>
+			)
+		},
+		sortingFn: (rowA, rowB) => {
+			const volA = parseFloat(rowA.original.totalVolume) / 1e8 || 0
+			const volB = parseFloat(rowB.original.totalVolume) / 1e8 || 0
+			return volA - volB
+		},
+		size: 120
 	},
 	{
 		accessorKey: 'tokenId',
@@ -352,7 +383,6 @@ export function TokenDataTable({}) {
 	const [currentPage, setCurrentPage] = React.useState(initialState.currentPage)
 	const [globalFilter, setGlobalFilter] = React.useState(initialState.globalFilter)
 	const [filterValue, setFilterValue] = React.useState(initialState.filterValue)
-	const isMobile = useMediaQuery('(max-width: 640px)')
 
 	const debouncedGlobalFilter = useDebounce(globalFilter, 300)
 	const router = useRouter()
@@ -431,6 +461,14 @@ export function TokenDataTable({}) {
 		}
 	}, [filterValue, totalFilteredPages])
 
+	// State to manage the number of items to display
+	const [itemsToShow, setItemsToShow] = React.useState(PAGE_SIZE)
+
+	// Function to load more items
+	const loadMoreItems = () => {
+		setItemsToShow(prev => prev + PAGE_SIZE)
+	}
+
 	if (!tokenResponse || !tokens) {
 		return <TableSkeleton />
 	}
@@ -439,66 +477,9 @@ export function TokenDataTable({}) {
 		return null
 	}
 
-	// Update totalPages calculation
-	const totalPages = totalFilteredPages
-
-	const renderPageNumbers = () => {
-		const pageNumbers = []
-		const maxVisiblePages = isMobile ? 2 : 5
-
-		if (totalPages <= maxVisiblePages) {
-			for (let i = 1; i <= totalPages; i++) {
-				pageNumbers.push(
-					<PaginationItem key={i}>
-						<PaginationLink onClick={() => setCurrentPage(i)} isActive={currentPage === i}>
-							{i}
-						</PaginationLink>
-					</PaginationItem>
-				)
-			}
-		} else {
-			const startPage = Math.max(1, currentPage - 2)
-			const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
-
-			if (startPage > 1) {
-				pageNumbers.push(
-					<PaginationItem key={1}>
-						<PaginationLink onClick={() => setCurrentPage(1)}>1</PaginationLink>
-					</PaginationItem>
-				)
-				if (startPage > 2) {
-					pageNumbers.push(<PaginationEllipsis key="ellipsis1" />)
-				}
-			}
-
-			for (let i = startPage; i <= endPage; i++) {
-				pageNumbers.push(
-					<PaginationItem key={i}>
-						<PaginationLink onClick={() => setCurrentPage(i)} isActive={currentPage === i}>
-							{i}
-						</PaginationLink>
-					</PaginationItem>
-				)
-			}
-
-			if (endPage < totalPages) {
-				if (endPage < totalPages - 1) {
-					pageNumbers.push(<PaginationEllipsis key="ellipsis2" />)
-				}
-				pageNumbers.push(
-					<PaginationItem key={totalPages}>
-						<PaginationLink onClick={() => setCurrentPage(totalPages)}>{totalPages}</PaginationLink>
-					</PaginationItem>
-				)
-			}
-		}
-
-		return pageNumbers
-	}
-
 	return (
 		<div className="w-full">
-			<div className="flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
+			<div className="px-4 flex flex-col md:flex-row items-center justify-between py-4 space-y-4 md:space-y-0 md:space-x-4">
 				<div className="flex items-center space-x-4 w-full">
 					<Select value={filterValue} onValueChange={setFilterValue}>
 						<SelectTrigger className="w-[180px]">
@@ -520,9 +501,16 @@ export function TokenDataTable({}) {
 					</div>
 				</div>
 			</div>
-			<div className="rounded-md border overflow-x-auto">
-				<Table className="w-[1200px] min-w-full table-fixed">
-					<TableHeader>
+			<InfiniteScroll
+				dataLength={itemsToShow}
+				next={loadMoreItems}
+				hasMore={itemsToShow < filteredTokens.length}
+				loader={<React.Fragment />}
+				className="max-h-[calc(100vh-150px)] h-[calc(100vh-150px)] overflow-y-auto flex flex-col"
+				scrollableTarget="scrollableDiv"
+			>
+				<Table className="w-full min-w-full" containerId="scrollableDiv">
+					<TableHeader className="sticky top-0 bg-black z-10">
 						{table.getHeaderGroups().map(headerGroup => (
 							<TableRow key={headerGroup.id}>
 								{headerGroup.headers.map(header => (
@@ -540,61 +528,30 @@ export function TokenDataTable({}) {
 						))}
 					</TableHeader>
 					<TableBody>
-						{table.getRowModel().rows.length > 0 ? (
-							table
-								.getRowModel()
-								.rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-								.map(row => (
-									<TableRow
-										key={row.id}
-										data-state={row.getIsSelected() && 'selected'}
-										onClick={() => router.push(`/token/${row.original.tokenId}`)}
-										className="cursor-pointer duration-200 h-12"
-									>
-										{row.getVisibleCells().map(cell => (
-											<TableCell
-												key={cell.id}
-												className="whitespace-nowrap overflow-hidden text-ellipsis"
-												style={{ width: `${cell.column.getSize()}px` }}
-											>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
-										))}
-									</TableRow>
-								))
-						) : (
-							<TableRow className="h-12">
-								<TableCell colSpan={columns.length} className="text-center">
-									No results.
-								</TableCell>
-							</TableRow>
-						)}
+						{table
+							.getRowModel()
+							.rows.slice(0, itemsToShow)
+							.map(row => (
+								<TableRow
+									key={row.id}
+									data-state={row.getIsSelected() && 'selected'}
+									onClick={() => router.push(`/token/${row.original.tokenId}`)}
+									className="cursor-pointer duration-200 h-12"
+								>
+									{row.getVisibleCells().map(cell => (
+										<TableCell
+											key={cell.id}
+											className="whitespace-nowrap overflow-hidden text-ellipsis"
+											style={{ width: `${cell.column.getSize()}px` }}
+										>
+											{flexRender(cell.column.columnDef.cell, cell.getContext())}
+										</TableCell>
+									))}
+								</TableRow>
+							))}
 					</TableBody>
 				</Table>
-			</div>
-			<div className="flex items-center justify-between space-x-2 py-4">
-				<Pagination>
-					<PaginationContent>
-						<PaginationItem>
-							<PaginationPrevious
-								onClick={() => setCurrentPage((prev: number) => Math.max(prev - 1, 1))}
-								aria-disabled={currentPage === 1}
-								tabIndex={currentPage === 1 ? -1 : undefined}
-								className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-							/>
-						</PaginationItem>
-						{renderPageNumbers()}
-						<PaginationItem>
-							<PaginationNext
-								onClick={() => setCurrentPage((prev: number) => Math.min(prev + 1, totalPages))}
-								aria-disabled={currentPage === totalPages}
-								tabIndex={currentPage === totalPages ? -1 : undefined}
-								className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-							/>
-						</PaginationItem>
-					</PaginationContent>
-				</Pagination>
-			</div>
+			</InfiniteScroll>
 		</div>
 	)
 }
