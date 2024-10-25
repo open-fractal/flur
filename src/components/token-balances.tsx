@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,13 +15,7 @@ import {
 import { useWallet } from '@/lib/unisat'
 import { API_URL } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Wallet } from 'lucide-react'
-
-// Dynamically import TransferToken component
-const TransferToken = lazy(() =>
-	import('@/app/token/[id]/transfer-token').then(mod => ({ default: mod.TransferToken }))
-)
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -46,7 +40,6 @@ export function TokenBalances() {
 	const router = useRouter()
 	const { address, setIsWalletConnected, setAddress, updateBalance } = useWallet()
 	const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
-	const [selectedToken, setSelectedToken] = useState<string | null>(null)
 
 	const connectWallet = async () => {
 		if (typeof window.unisat !== 'undefined') {
@@ -149,7 +142,6 @@ export function TokenBalances() {
 							<TableRow>
 								<TableHead>Symbol</TableHead>
 								<TableHead className="text-right">Balance</TableHead>
-								<TableHead className="w-[90px]"></TableHead> {/* Adjusted width */}
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -162,39 +154,10 @@ export function TokenBalances() {
 									<TableRow
 										key={balance.tokenId}
 										className="cursor-pointer hover:bg-muted/50 duration-200"
+										onClick={() => handleRowClick(balance.tokenId)}
 									>
-										<TableCell onClick={() => handleRowClick(balance.tokenId)}>
-											{token?.symbol || 'Loading...'}
-										</TableCell>
-										<TableCell
-											className="text-right"
-											onClick={() => handleRowClick(balance.tokenId)}
-										>
-											{formattedBalance}
-										</TableCell>
-										<TableCell className="w-[90px]">
-											<Suspense
-												fallback={
-													<Button variant="outline" size="sm" className="w-full">
-														Loading...
-													</Button>
-												}
-											>
-												<Dialog
-													open={selectedToken === balance.tokenId}
-													onOpenChange={open => setSelectedToken(open ? balance.tokenId : null)}
-												>
-													<DialogTrigger asChild>
-														<Button variant="outline" size="sm" className="w-full">
-															Transfer
-														</Button>
-													</DialogTrigger>
-													<DialogContent className="p-0 w-[400px]">
-														{token && <TransferToken token={token} />}
-													</DialogContent>
-												</Dialog>
-											</Suspense>
-										</TableCell>
+										<TableCell>{token?.symbol || 'Loading...'}</TableCell>
+										<TableCell className="text-right">{formattedBalance}</TableCell>
 									</TableRow>
 								)
 							})}
