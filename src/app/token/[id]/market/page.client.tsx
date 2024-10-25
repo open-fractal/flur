@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import useToken, { TokenData } from '@/hooks/use-token'
+import { useToken, TokenData } from '@/hooks/use-token'
 
 import Trade from '../trade'
 

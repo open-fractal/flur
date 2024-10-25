@@ -42,8 +42,8 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 		{ label: 'Token ID', value: tokenData.tokenId, copyable: true },
 		{ label: 'Symbol', value: tokenData.symbol },
 		{ label: 'Supply', value: supply },
-		{ label: 'Market Cap', value: tokenData.marketCap / 1e8, unit: 'FB' },
-		{ label: 'Total Volume', value: tokenData.totalVolume / 1e8, unit: 'FB' },
+		{ label: 'Market Cap', value: parseFloat(tokenData.marketCap) / 1e8, unit: 'FB' },
+		{ label: 'Total Volume', value: parseFloat(tokenData.totalVolume) / 1e8, unit: 'FB' },
 		{ label: 'Holders', value: tokenData.holders },
 		{ label: 'Premine', value: premine }
 	]

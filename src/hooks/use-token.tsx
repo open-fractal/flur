@@ -25,6 +25,11 @@ export interface TokenData {
 	currentSupply: string
 	supply: number
 	holders: number
+	totalVolume: string
+	weeklyVolume: string
+	dailyVolume: string
+	lastPrice: string
+	marketCap: string
 }
 
 interface TokenResponse {
