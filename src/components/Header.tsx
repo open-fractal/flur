@@ -181,11 +181,15 @@ export const Header: React.FC = () => {
 							</NavigationMenuItem>
 							<NavigationMenuItem>
 								<Link href="https://store.flur.gg" legacyBehavior passHref>
-									<NavigationMenuLink className={cn(
-										customNavigationMenuTriggerStyle(),
-										inactiveItemStyle,
-										"whitespace-nowrap"
-									)} target="_blank" rel="noopener noreferrer">
+									<NavigationMenuLink
+										className={cn(
+											customNavigationMenuTriggerStyle(),
+											inactiveItemStyle,
+											'whitespace-nowrap'
+										)}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
 										Store
 									</NavigationMenuLink>
 								</Link>
@@ -227,7 +231,7 @@ export const Header: React.FC = () => {
 											trades.
 										</p>
 										<a
-											href="https://alpha.flur.gg/docs/FXP"
+											href="/docs/FXP"
 											target="_blank"
 											rel="noopener noreferrer"
 											className="text-sm text-blue-500 hover:text-blue-600 mt-4 transition-colors"
@@ -344,12 +348,12 @@ export const Header: React.FC = () => {
 									</NavigationMenuItem>
 									<NavigationMenuItem className="w-full">
 										<Link href="https://store.flur.gg" legacyBehavior passHref>
-											<NavigationMenuLink 
+											<NavigationMenuLink
 												className={cn(
 													customNavigationMenuTriggerStyle(),
-													"justify-start w-full",
+													'justify-start w-full',
 													inactiveItemStyle,
-													"whitespace-nowrap"
+													'whitespace-nowrap'
 												)}
 												onClick={() => setIsSheetOpen(false)}
 												target="_blank"
