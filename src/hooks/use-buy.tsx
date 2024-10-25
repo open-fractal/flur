@@ -111,6 +111,7 @@ export async function sendToken(
 ): Promise<{
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
+	commitTxid: string
 } | null> {
 	const minterP2TR = toP2tr(metadata.minterAddr)
 
@@ -131,6 +132,12 @@ export async function sendToken(
 	}
 
 	const { catTx, orderbook } = commitResult
+
+	const commitTxId = await broadcast(catTx.tx.uncheckedSerialize())
+
+	if (commitTxId instanceof Error) {
+		throw new Error('Failed to broadcast commit transaction')
+	}
 
 	const newFeeUtxo = {
 		txId: catTx.tx.id,
@@ -163,6 +170,7 @@ export async function sendToken(
 	await wallet.signFeeInput(revealTx)
 
 	return {
+		commitTxid,
 		commitTx: catTx.tx,
 		revealTx
 	}
@@ -291,19 +299,19 @@ export function useBuyCat20(token: TokenData) {
 				throw new Error('Failed to create PSBT')
 			}
 
-			const { commitTx, revealTx } = response
+			const { commitTxid: commitTxId, revealTx } = response
 
-			const commitTxId = await broadcast(commitTx.uncheckedSerialize())
+			// const commitTxId = await broadcast(commitTx.uncheckedSerialize())
 
-			if (commitTxId instanceof Error) {
-				toast({
-					title: 'Failed to Broadcast',
-					// @ts-ignore
-					description: commitTxId.response.data,
-					variant: 'destructive'
-				})
-				return
-			}
+			// if (commitTxId instanceof Error) {
+			// 	toast({
+			// 		title: 'Failed to Broadcast',
+			// 		// @ts-ignore
+			// 		description: commitTxId.response.data,
+			// 		variant: 'destructive'
+			// 	})
+			// 	return
+			// }
 
 			const revealTxid = await broadcast(revealTx.uncheckedSerialize())
 
