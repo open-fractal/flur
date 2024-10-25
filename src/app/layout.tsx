@@ -28,10 +28,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					<Header />
 					<main className="flex-grow h-full flex flex-col">
 						<div className="w-full h-full flex flex-grow max-w-[100vw] w-[100vw]">
-							<div className="flex flex-col border-r min-w-[300px] w-[300px] max-w-[300px]">
-								{<TokenBalances />}
+							{/* Hide sidebar on mobile (< 768px) */}
+							<div className="hidden md:flex md:flex-col border-r min-w-[300px] w-[300px] max-w-[300px]">
+								<TokenBalances />
 							</div>
-							<div className="flex flex-col flex-grow w-full min-h-[calc(100vh-96px)] h-[calc(100vh-96px)]">
+							{/* Adjust max-width for mobile */}
+							<div className="flex flex-col flex-grow w-full min-h-[calc(100vh-96px)] h-[calc(100vh-96px)] max-w-full md:max-w-[calc(100vw-300px)]">
 								{children}
 							</div>
 						</div>
@@ -39,7 +41,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					<Footer />
 					<footer className="flex justify-center items-center py-4"></footer>
 				</div>
-				{/* Move Toaster and Analytics inside the body */}
 				<Toaster />
 				<Analytics />
 			</body>

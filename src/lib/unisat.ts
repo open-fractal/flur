@@ -74,7 +74,8 @@ const fetchWalletData = async () => {
 
 export const useWallet = () => {
 	const { data, mutate } = useSWR('wallet', fetchWalletData, {
-		revalidateOnFocus: false
+		revalidateOnFocus: false,
+		shouldRetryOnError: false // Add this to prevent infinite retries on error
 	})
 
 	const setAddress = (newAddress: string) => {
@@ -96,6 +97,62 @@ export const useWallet = () => {
 		if (data?.isWalletConnected) {
 			const balance = await window.unisat.getBalance()
 			mutate({ ...data, balance }, false)
+		}
+	}
+
+	const disconnectWallet = () => {
+		// Reset all wallet data to initial state
+		mutate(
+			{
+				address: '',
+				publicKey: '',
+				xOnlyPublicKey: '',
+				isWalletConnected: false,
+				balance: { confirmed: 0, unconfirmed: 0, total: 0 }
+			},
+			false
+		)
+	}
+
+	const connectWallet = async () => {
+		try {
+			const accounts = await window.unisat.requestAccounts()
+			if (accounts.length > 0) {
+				const publicKey = await window.unisat.getPublicKey()
+				const balance = await window.unisat.getBalance()
+
+				// Import btc for xOnlyPublicKey calculation
+				const { btc } = await import('@/lib/scrypt/common')
+				const xOnlyPublicKey = btc.Script.fromAddress(accounts[0])
+					.getPublicKeyHash()
+					.toString('hex')
+
+				// Update all wallet data at once
+				await mutate(
+					{
+						address: accounts[0],
+						publicKey,
+						xOnlyPublicKey,
+						isWalletConnected: true,
+						balance
+					},
+					false
+				)
+			}
+		} catch (error) {
+			console.error('Error connecting wallet:', error)
+			// Reset state on error
+			await mutate(
+				{
+					address: '',
+					publicKey: '',
+					xOnlyPublicKey: '',
+					isWalletConnected: false,
+					balance: { confirmed: 0, unconfirmed: 0, total: 0 }
+				},
+				false
+			)
+			throw error // Rethrow to handle in component
 		}
 	}
 
@@ -139,7 +196,9 @@ export const useWallet = () => {
 		setAddress,
 		setPublicKey,
 		setIsWalletConnected,
-		updateBalance
+		updateBalance,
+		disconnectWallet,
+		connectWallet // Add this to the returned object
 	}
 }
 

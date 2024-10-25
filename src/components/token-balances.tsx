@@ -16,6 +16,7 @@ import { useWallet } from '@/lib/unisat'
 import { API_URL } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Wallet } from 'lucide-react'
 
 // Dynamically import TransferToken component
 const TransferToken = lazy(() =>
@@ -43,9 +44,24 @@ interface TokenInfo {
 
 export function TokenBalances() {
 	const router = useRouter()
-	const { address } = useWallet()
+	const { address, setIsWalletConnected, setAddress, updateBalance } = useWallet()
 	const [tokenInfo, setTokenInfo] = useState<Map<string, TokenInfo>>(new Map())
 	const [selectedToken, setSelectedToken] = useState<string | null>(null)
+
+	const connectWallet = async () => {
+		if (typeof window.unisat !== 'undefined') {
+			try {
+				const accounts = await window.unisat.requestAccounts()
+				setIsWalletConnected(true)
+				setAddress(accounts[0])
+				updateBalance()
+			} catch (error) {
+				console.error('Error connecting wallet:', error)
+			}
+		} else {
+			alert('Unisat wallet not detected. Please install the extension.')
+		}
+	}
 
 	const { data: balanceResponse, error: balanceError } = useSWR<BalanceResponse>(
 		address ? `${API_URL}/api/addresses/${address}/balances` : null,
@@ -76,7 +92,26 @@ export function TokenBalances() {
 		setTokenInfo(newTokenInfo)
 	}
 
-	if (!address) return null
+	if (!address) {
+		return (
+			<div className="w-full">
+				<div className="py-3 px-4">
+					<div className="flex justify-between items-center">
+						<h2 className="text-lg font-semibold">Token Balances</h2>
+					</div>
+				</div>
+				<div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+					<Wallet className="w-12 h-12 mb-4 text-muted-foreground" />
+					<p className="text-muted-foreground mb-4">
+						Connect your wallet to view your token balances
+					</p>
+					<Button onClick={connectWallet} variant="default">
+						Connect Wallet
+					</Button>
+				</div>
+			</div>
+		)
+	}
 	if (balanceError) return <p>Error loading token balances: {balanceError.message}</p>
 	if (!balanceResponse) return <TokenBalancesSkeleton />
 	if (!balanceResponse.data) return <p>Invalid response format from the server.</p>

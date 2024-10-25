@@ -62,7 +62,7 @@ export interface TokenData {
 	}
 }
 
-const PAGE_SIZE = 16
+const PAGE_SIZE = 64
 
 const truncateTokenId = (tokenId: string) => {
 	return `${tokenId.slice(0, 4)}...${tokenId.slice(-4)}`
@@ -461,63 +461,58 @@ export function TokenDataTable({}) {
 					</div>
 				</div>
 			</div>
-			<div
-				className="overflow-x-auto w-full [] relative"
-				style={{ overflowY: 'auto' }}
-				id="scrollableDiv"
+			<InfiniteScroll
+				dataLength={itemsToShow}
+				next={loadMoreItems}
+				hasMore={itemsToShow < filteredTokens.length}
+				loader={<React.Fragment />}
+				className="max-h-[calc(100vh-150px)] h-[calc(100vh-150px)] overflow-y-auto flex flex-col"
+				scrollableTarget="scrollableDiv"
+				scrollThreshold={0.7}
 			>
-				<InfiniteScroll
-					dataLength={itemsToShow}
-					next={loadMoreItems}
-					hasMore={itemsToShow < filteredTokens.length}
-					loader={<h4>Loading...</h4>}
-					scrollableTarget="scrollableDiv"
-					className="w-full"
-				>
-					<Table className="w-[1200px] min-w-full table-fixed">
-						<TableHeader className="sticky top-0 z-10">
-							{table.getHeaderGroups().map(headerGroup => (
-								<TableRow key={headerGroup.id}>
-									{headerGroup.headers.map(header => (
-										<TableHead
-											key={header.id}
-											className="text-left whitespace-nowrap overflow-hidden"
-											style={{ width: `${header.getSize()}px` }}
+				<Table className="w-full min-w-full relative w-full overflow-auto" id="scrollableDiv">
+					<TableHeader className="sticky top-0 bg-black z-10">
+						{table.getHeaderGroups().map(headerGroup => (
+							<TableRow key={headerGroup.id}>
+								{headerGroup.headers.map(header => (
+									<TableHead
+										key={header.id}
+										className="text-left whitespace-nowrap overflow-hidden"
+										style={{ width: `${header.getSize()}px` }}
+									>
+										{header.isPlaceholder
+											? null
+											: flexRender(header.column.columnDef.header, header.getContext())}
+									</TableHead>
+								))}
+							</TableRow>
+						))}
+					</TableHeader>
+					<TableBody>
+						{table
+							.getRowModel()
+							.rows.slice(0, itemsToShow)
+							.map(row => (
+								<TableRow
+									key={row.id}
+									data-state={row.getIsSelected() && 'selected'}
+									onClick={() => router.push(`/token/${row.original.tokenId}`)}
+									className="cursor-pointer duration-200 h-12"
+								>
+									{row.getVisibleCells().map(cell => (
+										<TableCell
+											key={cell.id}
+											className="whitespace-nowrap overflow-hidden text-ellipsis"
+											style={{ width: `${cell.column.getSize()}px` }}
 										>
-											{header.isPlaceholder
-												? null
-												: flexRender(header.column.columnDef.header, header.getContext())}
-										</TableHead>
+											{flexRender(cell.column.columnDef.cell, cell.getContext())}
+										</TableCell>
 									))}
 								</TableRow>
 							))}
-						</TableHeader>
-						<TableBody>
-							{table
-								.getRowModel()
-								.rows.slice(0, itemsToShow)
-								.map(row => (
-									<TableRow
-										key={row.id}
-										data-state={row.getIsSelected() && 'selected'}
-										onClick={() => router.push(`/token/${row.original.tokenId}`)}
-										className="cursor-pointer duration-200 h-12"
-									>
-										{row.getVisibleCells().map(cell => (
-											<TableCell
-												key={cell.id}
-												className="whitespace-nowrap overflow-hidden text-ellipsis"
-												style={{ width: `${cell.column.getSize()}px` }}
-											>
-												{flexRender(cell.column.columnDef.cell, cell.getContext())}
-											</TableCell>
-										))}
-									</TableRow>
-								))}
-						</TableBody>
-					</Table>
-				</InfiniteScroll>
-			</div>
+					</TableBody>
+				</Table>
+			</InfiniteScroll>
 		</div>
 	)
 }

@@ -47,11 +47,11 @@ export const Header: React.FC = () => {
 	const [searchInput, setSearchInput] = useState('')
 	const {
 		address,
-		setAddress,
 		isWalletConnected,
-		setIsWalletConnected,
 		balance,
-		updateBalance
+		updateBalance,
+		disconnectWallet,
+		connectWallet
 	} = useWallet()
 	const { toast } = useToast()
 	const pathname = usePathname()
@@ -63,25 +63,23 @@ export const Header: React.FC = () => {
 		setTheme('dark')
 	}, [setTheme])
 
-	const connectWallet = useCallback(async () => {
-		if (typeof window.unisat !== 'undefined') {
-			try {
-				const accounts = await window.unisat.requestAccounts()
-				setIsWalletConnected(true)
-				setAddress(accounts[0])
-				updateBalance() // Update balance after connecting
-			} catch (error) {
-				console.error('Error connecting wallet:', error)
-			}
-		} else {
-			alert('Unisat wallet not detected. Please install the extension.')
+	const handleConnectWallet = useCallback(async () => {
+		try {
+			await connectWallet()
+			await updateBalance()
+		} catch (error) {
+			console.error('Error connecting wallet:', error)
+			toast({
+				title: 'Connection Failed',
+				description: 'Failed to connect to wallet. Please try again.',
+				variant: 'destructive'
+			})
 		}
-	}, [setIsWalletConnected, setAddress, updateBalance])
+	}, [connectWallet, updateBalance, toast])
 
-	const disconnectWallet = useCallback(() => {
-		setIsWalletConnected(false)
-		setAddress('')
-	}, [setIsWalletConnected, setAddress])
+	const handleDisconnectWallet = useCallback(() => {
+		disconnectWallet() // Use the new disconnectWallet function
+	}, [disconnectWallet])
 
 	const copyAddress = () => {
 		navigator.clipboard.writeText(address).then(() => {
@@ -240,12 +238,14 @@ export const Header: React.FC = () => {
 										<Copy className="mr-2 h-4 w-4" />
 										Copy Address
 									</DropdownMenuItem>
-									<DropdownMenuItem onClick={disconnectWallet}>Disconnect Wallet</DropdownMenuItem>
+									<DropdownMenuItem onClick={handleDisconnectWallet}>
+										Disconnect Wallet
+									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</>
 					) : (
-						<Button onClick={connectWallet}>Connect Wallet</Button>
+						<Button onClick={handleConnectWallet}>Connect Wallet</Button>
 					)}
 					<div className="flex items-center gap-4">
 						<a
@@ -354,10 +354,10 @@ export const Header: React.FC = () => {
 										Copy Address: {truncateAddress(address)}
 									</Button>
 									<div className="text-center">Balance: {formatBalance(balance)} FB</div>
-									<Button onClick={disconnectWallet}>Disconnect Wallet</Button>
+									<Button onClick={handleDisconnectWallet}>Disconnect Wallet</Button>
 								</div>
 							) : (
-								<Button onClick={connectWallet}>Connect Wallet</Button>
+								<Button onClick={handleConnectWallet}>Connect Wallet</Button>
 							)}
 
 							<div className="flex justify-center gap-4">
