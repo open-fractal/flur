@@ -54,6 +54,8 @@ export interface TokenData {
 	decimals: number
 	revealHeight: string
 	mintUtxoCount: number
+	marketCap: string // Changed to string
+	totalVolume: string // Changed to string
 	info: {
 		max: string
 		limit: string
@@ -149,6 +151,44 @@ export const columns: ColumnDef<TokenData>[] = [
 			<div className="whitespace-nowrap">{formatNumber(row.getValue('holders'))}</div>
 		),
 		size: 100 // Set a fixed width for the holders column
+	},
+	{
+		accessorKey: 'marketCap',
+		header: ({ column }) => <SortButton column={column}>MARKET CAP</SortButton>,
+		cell: ({ row }) => {
+			const marketCapSats = row.original.marketCap
+			const marketCapFB = marketCapSats ? parseFloat(marketCapSats) / 1e8 : 0
+			return (
+				<div className="whitespace-nowrap">
+					{marketCapSats ? `${formatNumber(marketCapFB.toFixed(2))} FB` : '-'}
+				</div>
+			)
+		},
+		sortingFn: (rowA, rowB) => {
+			const capA = parseFloat(rowA.original.marketCap) / 1e8 || 0
+			const capB = parseFloat(rowB.original.marketCap) / 1e8 || 0
+			return capA - capB
+		},
+		size: 120
+	},
+	{
+		accessorKey: 'totalVolume',
+		header: ({ column }) => <SortButton column={column}>VOLUME</SortButton>,
+		cell: ({ row }) => {
+			const volumeSats = row.original.totalVolume
+			const volumeFB = volumeSats ? parseFloat(volumeSats) / 1e8 : 0
+			return (
+				<div className="whitespace-nowrap">
+					{volumeSats ? `${formatNumber(volumeFB.toFixed(2))} FB` : '-'}
+				</div>
+			)
+		},
+		sortingFn: (rowA, rowB) => {
+			const volA = parseFloat(rowA.original.totalVolume) / 1e8 || 0
+			const volB = parseFloat(rowB.original.totalVolume) / 1e8 || 0
+			return volA - volB
+		},
+		size: 120
 	},
 	{
 		accessorKey: 'tokenId',

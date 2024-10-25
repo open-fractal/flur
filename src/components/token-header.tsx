@@ -13,7 +13,7 @@ interface TokenHeaderProps {
 }
 
 // Helper function to render individual stat
-const renderStat = (label: string, value: string | number, copyable?: boolean) => (
+const renderStat = (label: string, value: string | number, copyable?: boolean, unit?: string) => (
 	<div className="flex flex-col items-start" key={label}>
 		<span className="font-semibold">{label}</span>
 		{copyable ? (
@@ -23,6 +23,7 @@ const renderStat = (label: string, value: string | number, copyable?: boolean) =
 		) : (
 			<span className="text-muted-foreground text-sm">
 				{typeof value === 'number' ? formatNumber(value) : value}
+				{unit && ` ${unit}`}
 			</span>
 		)}
 	</div>
@@ -34,11 +35,15 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 	if (!tokenData) return null
 
 	const premine = parseInt(tokenData.info?.premine || '0', 10)
+	const decimals = tokenData.info?.decimals || 0
+	const supply = tokenData.supply / Math.pow(10, decimals)
 
 	const stats = [
 		{ label: 'Token ID', value: tokenData.tokenId, copyable: true },
 		{ label: 'Symbol', value: tokenData.symbol },
-		{ label: 'Supply', value: tokenData.supply / Math.pow(10, tokenData.info?.decimals || 0) },
+		{ label: 'Supply', value: supply },
+		{ label: 'Market Cap', value: tokenData.marketCap / 1e8, unit: 'FB' },
+		{ label: 'Total Volume', value: tokenData.totalVolume / 1e8, unit: 'FB' },
 		{ label: 'Holders', value: tokenData.holders },
 		{ label: 'Premine', value: premine }
 	]
@@ -86,7 +91,7 @@ export const TokenHeader: React.FC<TokenHeaderProps> = ({ tokenData }) => {
 						</div>
 					</div>
 					<div className="flex gap-6 max-w-100vh overflow-x-auto">
-						{stats.map(stat => renderStat(stat.label, stat.value, stat.copyable))}
+						{stats.map(stat => renderStat(stat.label, stat.value, stat.copyable, stat.unit))}
 					</div>
 				</div>
 			</div>

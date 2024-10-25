@@ -56,10 +56,11 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 		return md5 === SELL_MD5 ? 'text-green-500' : 'text-red-500'
 	}
 
-	// Define column widths
+	// Update column widths to accommodate the new Total column
 	const columnWidths = {
-		price: '40%',
-		amount: '35%',
+		price: '25%',
+		amount: '25%',
+		total: '25%',
 		time: '25%'
 	}
 
@@ -101,6 +102,12 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 							</TableHead>
 							<TableHead
 								className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
+								style={{ width: columnWidths.total }}
+							>
+								Total(FB)
+							</TableHead>
+							<TableHead
+								className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
 								style={{ width: columnWidths.time }}
 							>
 								Time
@@ -112,41 +119,52 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 			<div className="p-0 max-h-[600px] overflow-y-auto">
 				<Table>
 					<TableBody>
-						{historyEntries.map(entry => (
-							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
-								<TableCell
-									className={`text-left text-[11px] py-0 ${getTradeColor(entry.md5)}`}
-									style={{ width: columnWidths.price }}
-								>
-									{formatNumber((parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals))}
-								</TableCell>
-								<TableCell
-									className="text-right text-[11px] text-gray-300 py-0"
-									style={{ width: columnWidths.amount }}
-								>
-									{formatNumber(
-										entry.status === 'partially_filled' && entry.fillAmount
-											? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
-											: parseInt(entry.tokenAmount) / Math.pow(10, token.decimals)
-									)}
-								</TableCell>
-								<TableCell
-									className="text-right text-[11px] text-gray-300 py-0 whitespace-nowrap"
-									style={{ width: columnWidths.time }}
-								>
-									<a
-										href={getBlockExplorerUrl(entry.spendTxid)}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="hover:underline"
+						{historyEntries.map(entry => {
+							const price = (parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals)
+							const amount =
+								entry.status === 'partially_filled' && entry.fillAmount
+									? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
+									: parseInt(entry.tokenAmount) / Math.pow(10, token.decimals)
+							const total = price * amount
+
+							return (
+								<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
+									<TableCell
+										className={`text-left text-[11px] py-0 ${getTradeColor(entry.md5)}`}
+										style={{ width: columnWidths.price }}
 									>
-										{entry.spendCreatedAt
-											? formatRelativeTime(new Date(entry.spendCreatedAt))
-											: 'Pending'}
-									</a>
-								</TableCell>
-							</TableRow>
-						))}
+										{formatNumber(price)}
+									</TableCell>
+									<TableCell
+										className="text-right text-[11px] text-gray-300 py-0"
+										style={{ width: columnWidths.amount }}
+									>
+										{formatNumber(amount)}
+									</TableCell>
+									<TableCell
+										className="text-right text-[11px] text-gray-300 py-0"
+										style={{ width: columnWidths.total }}
+									>
+										{formatNumber(total)}
+									</TableCell>
+									<TableCell
+										className="text-right text-[11px] text-gray-300 py-0 whitespace-nowrap"
+										style={{ width: columnWidths.time }}
+									>
+										<a
+											href={getBlockExplorerUrl(entry.spendTxid)}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="hover:underline"
+										>
+											{entry.spendCreatedAt
+												? formatRelativeTime(new Date(entry.spendCreatedAt))
+												: 'Pending'}
+										</a>
+									</TableCell>
+								</TableRow>
+							)
+						})}
 					</TableBody>
 				</Table>
 			</div>
