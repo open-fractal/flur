@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect, useRef } from 'react'
 import {
 	Table,
 	TableBody,
@@ -142,6 +142,13 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 
 	const currentPrice = ((bestSellPrice || bestBuyPrice || 0) * Math.pow(10, token.decimals)) / 1e8
 
+	useEffect(() => {
+		if (sellOrdersRef.current) {
+			sellOrdersRef.current.scrollTop = sellOrdersRef.current.scrollHeight
+		}
+	}, [sellOrders]) // Re-run when sell orders change
+	const sellOrdersRef = useRef<HTMLDivElement>(null)
+
 	if (isError) {
 		return <div className="h-full flex items-center justify-center">Error loading orderbook</div>
 	}
@@ -175,7 +182,9 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 						</TableRow>
 					</TableHeader>
 				</Table>
-				<div className="flex-grow overflow-auto flex flex-col justify-end">
+
+				{/* Sell orders section - fixed height with scroll */}
+				<div ref={sellOrdersRef} className="h-[200px] overflow-auto">
 					<Table>
 						<TableBody>
 							{sellOrders.map((order, index) => (
@@ -206,12 +215,16 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 						</TableBody>
 					</Table>
 				</div>
-				<TableRow className="hover:bg-transparent border-t border-b">
+
+				{/* Current price section */}
+				<div className="py-2 border-t border-b">
 					<p className="text-xl font-bold flex items-center gap-2 justify-center">
 						{formatCompactNumber(currentPrice)} FB
 					</p>
-				</TableRow>
-				<div className="flex-grow overflow-auto">
+				</div>
+
+				{/* Buy orders section - fixed height with scroll */}
+				<div className="h-[200px] overflow-auto">
 					<Table>
 						<TableBody>
 							{buyOrders.map((order, index) => (
@@ -243,6 +256,8 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 					</Table>
 				</div>
 			</div>
+
+			{/* Buy/Sell percentage indicator */}
 			<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
 				<span className="text-green-500">B {buyPercentage.toFixed(2)}%</span>
 				<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
