@@ -184,7 +184,7 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 				</Table>
 
 				{/* Sell orders section - fixed height with scroll */}
-				<div ref={sellOrdersRef} className="h-[200px] overflow-auto">
+				<div ref={sellOrdersRef} className="h-[150px] overflow-auto">
 					<Table>
 						<TableBody>
 							{sellOrders.map((order, index) => (
@@ -224,7 +224,7 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 				</div>
 
 				{/* Buy orders section - fixed height with scroll */}
-				<div className="h-[200px] overflow-auto">
+				<div className="h-[150px] overflow-auto">
 					<Table>
 						<TableBody>
 							{buyOrders.map((order, index) => (
