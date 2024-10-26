@@ -13,7 +13,6 @@ import { TokenData } from '@/hooks/use-token'
 import { useTokenOrderbookHistory } from '@/hooks/use-token-orderbook-history'
 import { EXPLORER_URL } from '@/lib/constants'
 import { SELL_MD5 } from '@/hooks/use-token-orderbook'
-import { Loader2 } from 'lucide-react'
 
 type TradeHistoryProps = {
 	token: TokenData
@@ -44,7 +43,7 @@ function formatRelativeTime(date: Date): string {
 }
 
 export function TradeHistory({ token }: TradeHistoryProps) {
-	const { historyEntries, isLoading, isError } = useTokenOrderbookHistory(token)
+	const { historyEntries, isError } = useTokenOrderbookHistory(token)
 
 	const formatNumber = (num: number) => {
 		return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })
@@ -69,105 +68,91 @@ export function TradeHistory({ token }: TradeHistoryProps) {
 		return `${EXPLORER_URL}/tx/${txid}`
 	}
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-[509px] text-white">
-				<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-			</div>
-		)
-	}
-
 	if (isError) {
 		return <div className="text-red-500">Error loading trade history</div>
 	}
 
 	return (
-		<div className="max-w-md bg-black text-white border-l w-[250px] max-h-[509px] overflow-y-auto">
-			<div>
-				<h3 className="px-4 py-2 text-sm font-semibold">Trade History</h3>
-				<Table>
-					<TableHeader>
-						<TableRow className="hover:bg-transparent border-b">
-							<TableHead
-								className="text-left text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
-								style={{ width: columnWidths.price }}
-							>
-								Price(FB)
-							</TableHead>
-							<TableHead
-								className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
-								style={{ width: columnWidths.amount }}
-							>
-								Amount({token.symbol})
-							</TableHead>
-							<TableHead
-								className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
-								style={{ width: columnWidths.total }}
-							>
-								Total(FB)
-							</TableHead>
-							<TableHead
-								className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
-								style={{ width: columnWidths.time }}
-							>
-								Time
-							</TableHead>
-						</TableRow>
-					</TableHeader>
-				</Table>
-			</div>
-			<div className="p-0 max-h-[600px] overflow-y-auto">
-				<Table>
-					<TableBody>
-						{historyEntries.map(entry => {
-							const price = (parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals)
-							const amount =
-								entry.status === 'partially_filled' && entry.fillAmount
-									? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
-									: parseInt(entry.tokenAmount) / Math.pow(10, token.decimals)
-							const total = price * amount
+		<div className="h-full max-h-full w-full flex flex-col bg-black text-white">
+			<h3 className="px-4 py-2 text-sm font-semibold">Trade History</h3>
+			<Table>
+				<TableHeader>
+					<TableRow className="hover:bg-transparent border-b">
+						<TableHead
+							className="text-left text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
+							style={{ width: columnWidths.price }}
+						>
+							Price(FB)
+						</TableHead>
+						<TableHead
+							className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
+							style={{ width: columnWidths.amount }}
+						>
+							Amount({token.symbol})
+						</TableHead>
+						<TableHead
+							className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
+							style={{ width: columnWidths.total }}
+						>
+							Total(FB)
+						</TableHead>
+						<TableHead
+							className="text-right text-[10px] text-gray-400 font-normal h-6 sticky top-0 bg-black"
+							style={{ width: columnWidths.time }}
+						>
+							Time
+						</TableHead>
+					</TableRow>
+				</TableHeader>
+				<TableBody>
+					{historyEntries.map(entry => {
+						const price = (parseFloat(entry.price) / 1e8) * Math.pow(10, token.decimals)
+						const amount =
+							entry.status === 'partially_filled' && entry.fillAmount
+								? parseInt(entry.fillAmount) / Math.pow(10, token.decimals)
+								: parseInt(entry.tokenAmount) / Math.pow(10, token.decimals)
+						const total = price * amount
 
-							return (
-								<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
-									<TableCell
-										className={`text-left text-[11px] py-0 ${getTradeColor(entry.md5)}`}
-										style={{ width: columnWidths.price }}
+						return (
+							<TableRow key={entry.txid + entry.outputIndex} className="hover:bg-gray-800">
+								<TableCell
+									className={`text-left text-[11px] py-0 ${getTradeColor(entry.md5)}`}
+									style={{ width: columnWidths.price }}
+								>
+									{formatNumber(price)}
+								</TableCell>
+								<TableCell
+									className="text-right text-[11px] text-gray-300 py-0"
+									style={{ width: columnWidths.amount }}
+								>
+									{formatNumber(amount)}
+								</TableCell>
+								<TableCell
+									className="text-right text-[11px] text-gray-300 py-0"
+									style={{ width: columnWidths.total }}
+								>
+									{formatNumber(total)}
+								</TableCell>
+								<TableCell
+									className="text-right text-[11px] text-gray-300 py-0 whitespace-nowrap"
+									style={{ width: columnWidths.time }}
+								>
+									<a
+										href={getBlockExplorerUrl(entry.spendTxid)}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="hover:underline"
 									>
-										{formatNumber(price)}
-									</TableCell>
-									<TableCell
-										className="text-right text-[11px] text-gray-300 py-0"
-										style={{ width: columnWidths.amount }}
-									>
-										{formatNumber(amount)}
-									</TableCell>
-									<TableCell
-										className="text-right text-[11px] text-gray-300 py-0"
-										style={{ width: columnWidths.total }}
-									>
-										{formatNumber(total)}
-									</TableCell>
-									<TableCell
-										className="text-right text-[11px] text-gray-300 py-0 whitespace-nowrap"
-										style={{ width: columnWidths.time }}
-									>
-										<a
-											href={getBlockExplorerUrl(entry.spendTxid)}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="hover:underline"
-										>
-											{entry.spendCreatedAt
-												? formatRelativeTime(new Date(entry.spendCreatedAt))
-												: 'Pending'}
-										</a>
-									</TableCell>
-								</TableRow>
-							)
-						})}
-					</TableBody>
-				</Table>
-			</div>
+										{entry.spendCreatedAt
+											? formatRelativeTime(new Date(entry.spendCreatedAt))
+											: 'Pending'}
+									</a>
+								</TableCell>
+							</TableRow>
+						)
+					})}
+				</TableBody>
+			</Table>
 		</div>
 	)
 }

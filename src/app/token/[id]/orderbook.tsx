@@ -159,14 +159,18 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 	}
 
 	return (
-		<div className="h-full flex flex-col bg-black text-white w-[250px]">
+		<div className="h-full w-full flex flex-col bg-black text-white">
 			<div className="px-4 py-2">
 				<div className="text-sm font-semibold flex justify-between items-center">
 					<span>Order Book</span>
-					<span className="text-xs text-gray-400">0.0001</span>
 				</div>
 			</div>
-			<div className="flex-grow flex flex-col overflow-hidden">
+
+			{/* Main content container */}
+			<div className="flex-1 flex flex-col min-h-0">
+				{' '}
+				{/* min-h-0 is crucial for nested flex containers */}
+				{/* Header */}
 				<Table>
 					<TableHeader className="sticky top-0 bg-black z-10">
 						<TableRow className="hover:bg-transparent border-b">
@@ -182,9 +186,8 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 						</TableRow>
 					</TableHeader>
 				</Table>
-
-				{/* Sell orders section - fixed height with scroll */}
-				<div ref={sellOrdersRef} className="h-[150px] overflow-auto">
+				{/* Sell orders */}
+				<div ref={sellOrdersRef} className="flex-1 overflow-auto">
 					<Table>
 						<TableBody>
 							{sellOrders.map((order, index) => (
@@ -215,16 +218,14 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 						</TableBody>
 					</Table>
 				</div>
-
 				{/* Current price section */}
-				<div className="py-2 border-t border-b">
-					<p className="text-xl font-bold flex items-center gap-2 justify-center">
+				<div className="py-1 border-t border-b">
+					<p className="text-l font-bold flex items-center gap-2 justify-center">
 						{formatCompactNumber(currentPrice)} FB
 					</p>
 				</div>
-
-				{/* Buy orders section - fixed height with scroll */}
-				<div className="h-[150px] overflow-auto">
+				{/* Buy orders */}
+				<div className="flex-1 overflow-auto">
 					<Table>
 						<TableBody>
 							{buyOrders.map((order, index) => (
@@ -255,15 +256,14 @@ export function Orderbook({ token, onOrderSelect }: OrderbookProps) {
 						</TableBody>
 					</Table>
 				</div>
-			</div>
-
-			{/* Buy/Sell percentage indicator */}
-			<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
-				<span className="text-green-500">B {buyPercentage.toFixed(2)}%</span>
-				<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
-					<div className="h-full bg-green-500" style={{ width: `${buyPercentage}%` }}></div>
+				{/* Buy/Sell percentage indicator */}
+				<div className="flex justify-between items-center px-4 py-2 text-[11px] border-t">
+					<span className="text-green-500">B {buyPercentage.toFixed(2)}%</span>
+					<div className="w-1/2 h-1 bg-gray-700 rounded-full overflow-hidden">
+						<div className="h-full bg-green-500" style={{ width: `${buyPercentage}%` }}></div>
+					</div>
+					<span className="text-red-500">{(100 - buyPercentage).toFixed(2)}% S</span>
 				</div>
-				<span className="text-red-500">{(100 - buyPercentage).toFixed(2)}% S</span>
 			</div>
 		</div>
 	)

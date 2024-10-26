@@ -22,27 +22,32 @@ interface TradeProps {
 }
 
 const Trade: React.FC<TradeProps> = ({ token }) => {
-	const { width, height, ref } = useComponentSize()
+	const { width: chartWidth, height: chartHeight, ref: chartRef } = useComponentSize()
+
 	// Add state for the selected order
 	const [selectedOrder, setSelectedOrder] = useState<SelectedOrder>(null)
 
 	return (
 		<div className="W-full h-full flex flex-grow">
 			<div className="flex-grow flex flex-col">
-				<div className="flex-grow flex items-center justify-center w-full" ref={ref}>
-					<Chart token={token} height={height} width={width} />
+				<div className="flex-grow flex items-center justify-center w-full" ref={chartRef}>
+					<Chart token={token} height={chartHeight} width={chartWidth} />
 				</div>
 				<div className="h-[295px] border-t">
 					<MyPositions token={token} />
 				</div>
 			</div>
-			<div className="flex flex-col border-l w-[500px]">
-				<div className="flex flex-grow">
-					<Orderbook
-						token={token}
-						onOrderSelect={(price, amount, isBuy) => setSelectedOrder({ price, amount, isBuy })}
-					/>
-					<TradeHistory token={token} />
+			<div className="flex flex-col border-l w-[500px] max-h-[calc(100vh-179px)]">
+				<div className="flex flex-grow overflow-hidden">
+					<div className="max-w-md text-white border-l w-[250px] overflow-hidden">
+						<Orderbook
+							token={token}
+							onOrderSelect={(price, amount, isBuy) => setSelectedOrder({ price, amount, isBuy })}
+						/>
+					</div>
+					<div className="max-w-md text-white border-l w-[250px] overflow-hidden">
+						<TradeHistory token={token} />
+					</div>
 				</div>
 				<PositionForm token={token} selectedOrder={selectedOrder} />
 			</div>
