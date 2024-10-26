@@ -102,7 +102,7 @@ export async function createBuyContract(
 
 export async function sendToken(
 	wallet: WalletService,
-	feeUtxo: UTXO,
+	feeUtxos: UTXO[],
 	feeRate: number,
 	metadata: TokenMetadata,
 	changeAddress: btc.Address,
@@ -118,7 +118,7 @@ export async function sendToken(
 
 	const commitResult = await createBuyContract(
 		wallet,
-		feeUtxo,
+		feeUtxos[0],
 		feeRate,
 		tokenP2TR,
 		changeAddress,
@@ -132,12 +132,13 @@ export async function sendToken(
 
 	const { catTx, orderbook } = commitResult
 
-	const newFeeUtxo = {
-		txId: catTx.tx.id,
-		outputIndex: catTx.tx.outputs.length - 1,
-		script: catTx.tx.outputs[catTx.tx.outputs.length - 1].script.toHex(),
-		satoshis: catTx.tx.outputs[catTx.tx.outputs.length - 1].satoshis
-	}
+	const newFeeUtxo = feeUtxos[1]
+	// const newFeeUtxo = {
+	// 	txId: catTx.tx.id,
+	// 	outputIndex: catTx.tx.outputs.length - 1,
+	// 	script: catTx.tx.outputs[catTx.tx.outputs.length - 1].script.toHex(),
+	// 	satoshis: catTx.tx.outputs[catTx.tx.outputs.length - 1].satoshis
+	// }
 
 	const revealTx = new btc.Transaction()
 		.from([orderbook.utxo, newFeeUtxo])
@@ -260,6 +261,15 @@ export function useBuyCat20(token: TokenData) {
 				return
 			}
 
+			if (bitcoinUtxos.length < 2) {
+				toast({
+					title: 'Insufficient UTXOs',
+					description: 'You need at least 2 UTXOs to create a buy order. Try splitting your utxos.',
+					variant: 'destructive'
+				})
+				return
+			}
+
 			const payload = {
 				token: token,
 				amount: scaledAmount.toString(), // Use scaled amount here
@@ -279,7 +289,7 @@ export function useBuyCat20(token: TokenData) {
 
 			const response = await sendToken(
 				wallet,
-				payload.utxos[0],
+				payload.utxos,
 				payload.feeRate,
 				parseTokenMetadata(token),
 				btc.Address.fromString(payload.receiver),

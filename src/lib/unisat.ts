@@ -23,6 +23,19 @@ export interface UnisatAPI {
 			}>
 		}
 	) => Promise<string>
+	signPsbts: (
+		psbtHexs: string[],
+		options?: Array<{
+			autoFinalized: boolean
+			toSignInputs: Array<{
+				index: number
+				address?: string
+				publicKey?: string
+				sighashTypes?: number[]
+				disableTweakSigner?: boolean
+			}>
+		}>
+	) => Promise<string[]>
 	getBitcoinUtxos: () => Promise<
 		{ txid: string; vout: number; satoshis: number; scriptPk: string }[]
 	>
