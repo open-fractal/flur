@@ -123,10 +123,14 @@ const calculateTotalCost = (
 }
 
 export function PositionForm({ token, selectedOrder }: PositionFormProps) {
-	const { fbBalance, tokenBalance, tokenSymbol } = useBalance(token)
+	const { fbBalance, tokenSymbol } = useBalance(token)
 	const { isTransferring, handleSell } = useSellCat20(token)
 	const { handleBuy } = useBuyCat20(token)
-	const { isTransferring: isTakingSell, handleTakeSell } = useTakeSellCat20(token)
+	const {
+		isTransferring: isTakingSell,
+		handleTakeSell,
+		totalAmount: tokenBalance
+	} = useTakeSellCat20(token)
 	const { handleTakeBuy } = useTakeBuyCat20(token)
 
 	const {
@@ -428,8 +432,8 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 										<FormControl>
 											<Input placeholder="0.00" {...field} />
 										</FormControl>
-										<div className="flex justify-end gap-1 text-xs">
-											<span className="text-muted-foreground">Balance: </span>
+										<div className="flex justify-end gap-1 text-[10px]">
+											<span className="text-muted-foreground">Available: </span>
 											<span className="font-medium text-white">{fbBalance} FB</span>
 										</div>
 									</FormItem>
@@ -513,8 +517,8 @@ export function PositionForm({ token, selectedOrder }: PositionFormProps) {
 										<FormControl>
 											<Input placeholder="0.00" {...field} />
 										</FormControl>
-										<div className="flex justify-end gap-1 text-xs">
-											<span className="text-muted-foreground">Balance: </span>
+										<div className="flex justify-end gap-1 text-[10px]">
+											<span className="text-muted-foreground">Available: </span>
 											<span className="font-medium text-white">
 												{tokenBalance} {tokenSymbol}
 											</span>
