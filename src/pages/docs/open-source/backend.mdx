@@ -1,0 +1,150 @@
+# Backend
+
+[https://github.com/open-fractal/cat-token-box](https://github.com/open-fractal/cat-token-box)
+
+This backend is a modified version of cat-token-box that includes additional endpoints and tracking capabilities to support the [on-chain order book](/docs/orderbook).
+
+
+## Prerequisites
+
+Before you begin, ensure you have the following services running:
+
+- A synced Fractal Bitcoin Node
+- A PostgreSQL Database
+
+## Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/open-fractal/cat-token-box.git
+cd cat-token-box
+```
+
+Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+Build the project:
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+
+## Tracker
+
+To interact with the Tracker API, navigate to the `packages/tracker` directory:
+
+```bash
+# From the root directory
+cd packages/tracker
+```
+
+```bash
+# If you need to return to root first
+cd $(git rev-parse --show-toplevel)
+cd packages/tracker
+```
+
+### Configuration
+
+Create and configure a `.env` file in the `packages/tracker` directory with the appropriate environment variables.
+
+Example `.env` configuration:
+
+```bash
+# Node Environment
+NODE_ENV=development        # Environment: 'development' or 'production'
+
+# Database Configuration
+DATABASE_TYPE=postgres      # Database type (e.g., 'postgres')
+DATABASE_HOST=              # Database host address (e.g., 'localhost' or IP address)
+DATABASE_PORT=5432          # PostgreSQL default port
+DATABASE_DB=                # Database name
+DATABASE_USERNAME=          # Database username
+DATABASE_PASSWORD=          # Database password
+
+# Bitcoin Node Configuration
+RPC_HOST=127.0.0.1         # Bitcoin node RPC host
+RPC_PORT=8332              # Bitcoin node RPC port
+RPC_USER=                  # RPC username for Bitcoin node authentication
+RPC_PASSWORD=              # RPC password for Bitcoin node authentication
+
+# API Configuration
+API_PORT=3001              # Port for the API server
+GENESIS_BLOCK_HEIGHT=6540  # CAT protocol deployment block height
+
+# Worker Configuration (Optional)
+REINDEX_BLOCK_HEIGHT=      # Starting block height for reindexing
+
+# Cache Configuration (Optional)
+CACHE_CONTROL=public, max-age=1, stale-while-revalidate=1  # Browser and CDN caching behavior
+CACHE_TTL=1000            # Cache duration in milliseconds (1 second)
+
+# Feature Flags (Optional)
+ENABLE_MATERIALIZED_VIEW_REFRESH=true  # Enable/disable automatic refresh of materialized views 
+ENABLE_MEMPOOL_DAEMON=true             # Enable/disable mempool monitoring for real-time updates
+```
+
+### Worker
+
+The worker is an indexer that synchronizes CAT Protocol assets, order book data, and positions from the CAT Protocol contracts to the database.
+
+Start the worker:
+
+```bash
+npm start:worker:prod
+# or
+yarn start:worker:prod
+```
+
+### API
+
+The API provides REST endpoints for interacting with CAT Protocol assets and the order book.
+
+Start the API:
+
+```bash
+npm start:api:prod
+# or
+yarn start:api:prod
+```
+
+## Updating
+
+To update the API and worker with new features, follow these steps from the root directory:
+
+Navigate to the root directory:
+
+```bash
+cd $(git rev-parse --show-toplevel)
+```
+
+Pull the latest changes:
+
+```bash
+git pull
+```
+
+Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+Rebuild the project:
+
+```bash
+npm run build
+# or
+yarn build
+```

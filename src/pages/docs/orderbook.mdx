@@ -1,0 +1,37 @@
+# On-Chain Orderbook
+
+## Overview
+
+Flur's orderbook architecture is built on a fully decentralized, blockchain-based system that eliminates the need for intermediaries in trading.
+By storing all orders directly on the blockchain and having miners validate every trade execution, the system ensures maximum transparency and security.
+The fully on-chain approach eliminates these concerns since all order matching and execution is handled trustlessly through smart contracts and validated by miners.
+This approach fundamentally differs from traditional PSBT-based marketplaces, which often rely on off-chain verification processes that can be susceptible to data corruption or manipulation.
+
+## Key Features
+
+- **Fully On-Chain**: All order data is stored and executed directly on the blockchain
+- **Partial Fills**: Contracts natively support partial fills on both sides of the orderbook
+- **Permissionless**: Orders can be executed by anyone without third-party approval
+- **Trustless**: No reliance on private databases or centralized infrastructure
+- **Atomic Execution**: Ensures that trades either complete fully with the exact specified tokens or fail entirely, eliminating the risk of partial or incorrect executions
+
+## Technical Implementation
+
+Unlike traditional orderbook systems that use PSBT (Partially Signed Bitcoin Transactions) with `SIGHASH_SINGLE|ANYONECANPAY` signatures stored in private databases, Flur takes a fundamentally different approach:
+
+- Leverages `OP_CAT` covenants for order creation and management
+- Utilizes the sCrypt compiler for smart contract implementation
+- Ensures all order data and execution logic remains on-chain
+
+### Smart Contracts
+
+The orderbook introduces the following smart contracts:
+
+- `FXPCat20Buy`: ([source code](https://github.com/open-fractal/cat-token-box/blob/main/packages/smartcontracts/src/contracts/token/FXPCat20Buy.ts))
+ Handles buy order creation and execution with price scaling support
+- `FXPCat20Sell`: ([source code](https://github.com/open-fractal/cat-token-box/blob/main/packages/smartcontracts/src/contracts/token/FXPCat20Sell.ts)) Manages sell order placement and fulfillment
+- `FXPSellGuard`: ([source code](https://github.com/open-fractal/cat-token-box/blob/main/packages/smartcontracts/src/contracts/token/FXPSellGuard.ts)) Provides security checks for sell orders
+- `FXPBuyGuard`: ([source code](https://github.com/open-fractal/cat-token-box/blob/main/packages/smartcontracts/src/contracts/token/FXPBuyGuard.ts)) Implements protection mechanisms for buy orders
+- `FXPOpenMinter`: ([source code](https://github.com/open-fractal/cat-token-box/blob/main/packages/smartcontracts/src/contracts/token/FXPOpenMinter.ts)) Handles token minting operations
+
+The orderbook smart contracts include an incentivized mechanism for market makers to provide liquidity by offering Flur Experience Points (FXP) to order makers after a trade is fully executed. To learn more about the FXP token, please refer to the [Flur Experience Points](./fxp.mdx) page.

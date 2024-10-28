@@ -1,0 +1,45 @@
+# Frontend
+
+[https://github.com/open-fractal/flur](https://github.com/open-fractal/flur)
+
+The frontend is a [Next.js](https://nextjs.org/) application that provides the user interface for interacting directly with CAT Protocol contracts using unisat. 
+
+
+## Getting Started
+
+You can clone the repo and run it locally to get started.
+
+```bash
+git clone https://github.com/open-fractal/flur.git
+cd flur
+```
+
+Install the dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+Run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Configuration
+
+Once the frontend is running locally, you may decide that you want to connect to a local instance of the Tracker API instead of the public one. To do this, you can set the `NEXT_PUBLIC_API_URL` environment variable to the URL of your local Tracker API instance. Follow the [backend guide](/docs/open-source/backend) first to get the Tracker API running locally.
+
+Create a `.env.local` file in the root directory with the following environment variables:
+
+```bash:.env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+In this example, ensure the Tracker API is running locally at `http://localhost:3001`. 

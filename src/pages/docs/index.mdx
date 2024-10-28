@@ -1,50 +1,15 @@
 # Flur
 
-Flur is an interface for [CAT Protocol](https://catprotocol.org/) assets on fractal bitcoin.
+Flur is an open-source interface for [CAT Protocol](https://catprotocol.org/) assets on fractal bitcoin. It features a fully [on-chain orderbook](/docs/orderbook) that enables secure, decentralized trading of CAT Protocol assets.
 
-## Getting Started
+## Key Features
 
-You can clone the repo and run it locally to get started.
+- **Open Source**: Flur is completely [open source](/docs/open-source), allowing anyone to contribute, audit, or run their own instance of the platform.
 
-```bash
-git clone https://github.com/open-fractal/flur.git
-cd flur
-```
+- **On-Chain Orderbook**: Our [decentralized orderbook](/docs/orderbook) enables trustless trading directly on the Bitcoin blockchain, ensuring maximum security and transparency for all transactions.
 
-Install the dependencies:
+- **Trade to Mint FXP**: Earn [Flur Experience Points (FXP)](/docs/fxp) by completing trades on the platform. FXP uses innovative Trade to Mint technology where tokens are only minted as rewards for successful trades.
 
-```bash
-npm install
-# or
-yarn install
-```
+- **CAT Protocol Integration**: Our intuitive interface provides seamless interaction with CAT Protocol assets. Deploy, mint, transfer, and trade various token types with ease.
 
-Run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Environment Variables and Tracker API
-
-The tracker API is a modified version of cat-token-box with additional endpoints for Flur. It provides enhanced capabilities for managing CAT Protocol assets on fractal bitcoin. For details, see [open-fractal/cat-token-box](https://github.com/open-fractal/cat-token-box).
-
-
-1. Clone the cat-token-box repository:
-   ```bash
-   git clone https://github.com/open-fractal/cat-token-box.git
-   cd cat-token-box
-   ```
-
-2. Follow the setup instructions in the cat-token-box `README.md` to get the tracker API running.
-
-3. Once the tracker API is operational, create a `.env.local` file in the root of your Flur project. Add the following environment variable:
-   ```
-   NEXT_PUBLIC_API_URL=http://localhost:3000  # Or the URL where your tracker API is running
-   ```
-
-4. Adjust the URL to match where your tracker API is hosted if it's not running on localhost.
+Start exploring Flur today to experience decentralized trading on Bitcoin with the security of on-chain settlement.
