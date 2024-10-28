@@ -470,8 +470,7 @@ export async function takeToken(
 			const { shPreimage, prevoutsCtx, spentScripts } = ctxList[sellInputIndex]
 			const sellCall = await buyContract.contract.methods.take(
 				catTx.state.stateHashList,
-				amount,
-				// BigInt(buyContractUtxo.satoshis),
+				BigInt(selectedOrder.tokenAmount),
 				amount,
 				changeTokenInputAmount,
 				hash160(xOnlyPubKey),

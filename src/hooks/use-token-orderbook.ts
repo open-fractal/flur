@@ -88,9 +88,6 @@ export function useTokenOrderbook(token: TokenData) {
 	// @ts-ignore
 	const buyOrders = orderbookData?.data?.utxos.filter(order => order.md5 === BUY_MD5) || []
 
-	console.log('sellOrders', sellOrders)
-	console.log('buyOrders', buyOrders)
-
 	// Calculate total amount and best price for sell orders
 	const { totalSellAmount, bestSellPrice } = sellOrders.reduce(
 		(acc, order) => {
