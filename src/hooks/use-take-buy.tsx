@@ -615,7 +615,7 @@ export function useTakeBuyCat20(token: TokenData) {
 			const selectedUtxos = []
 			let selectedAmount = 0n
 			for (const utxo of utxos) {
-				if (selectedUtxos.length >= 4) break
+				if (selectedUtxos.length >= 3) break
 				selectedUtxos.push(utxo)
 				selectedAmount += BigInt(utxo.state.amount)
 				if (selectedAmount >= scaledAmount) break
