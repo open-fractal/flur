@@ -180,6 +180,7 @@ export async function takeToken(
 	commitTx: btc.Transaction
 	revealTx: btc.Transaction
 } | null> {
+	console.log({ selectedOrder })
 	if (tokens.length === 0) {
 		console.warn('Insufficient token balance!')
 		return null
