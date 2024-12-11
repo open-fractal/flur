@@ -53,6 +53,7 @@
     "clsx": "^2.1.1",
     "decimal.js": "^10.4.3",
     "ecurve": "^1.0.6",
+    "flur": "file:",
     "js-sha256": "^0.11.0",
     "lightweight-charts": "^4.2.0",
     "lucide-react": "^0.441.0",
