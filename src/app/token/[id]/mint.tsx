@@ -17,6 +17,7 @@ import { useFXPClaims } from '@/hooks/use-fxp-claims'
 import { useFXPMint } from '@/hooks/use-fxp-mint'
 import { useTokenMintCount } from '@/hooks/use-token-mint-count'
 import { FxpRewardsModal } from '@/components/fxp-rewards-modal'
+import { Slider } from '@/components/ui/slider'
 
 interface MintProps {
 	token: TokenData
@@ -32,6 +33,8 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 	const [isFxpRewardsModalOpen, setIsFxpRewardsModalOpen] = useState(false)
 	const [fxpRewardsAmount, setFxpRewardsAmount] = useState(0)
 	const [fxpRewardsTxId, setFxpRewardsTxId] = useState('')
+	const [repeatMint, setRepeatMint] = useState<number>(1);
+
 
 	// @ts-ignore
 	const isFXP = MinterType.FXP_OPEN_MINTER === token.info.minterMd5
@@ -195,6 +198,17 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 								</DialogContent>
 							</Dialog>
 						</div>
+						<div className="space-y-2 mt-2">
+							<Slider
+								defaultValue={[1]}
+								min={1}
+								max={walletUtxoCount ?? undefined}
+								step={1}
+								onValueChange={(value) => setRepeatMint(value[0])}
+								value={[repeatMint]}
+							/>
+							<p>Repeat Mint: {repeatMint}</p>
+						</div>
 					</div>
 				)}
 
@@ -208,7 +222,7 @@ const Mint: React.FC<MintProps> = ({ token, utxoCount, isUtxoCountLoading }) => 
 									setFxpRewardsTxId(txid)
 									setIsFxpRewardsModalOpen(true)
 							  })
-							: handleMint(utxoCount)
+							: handleMint(utxoCount, repeatMint)
 					}
 					disabled={isFXPMinting || isMinting || !isMintable || utxoCount === 0}
 					className="w-full"

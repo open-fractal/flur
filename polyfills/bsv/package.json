@@ -43,6 +43,7 @@
     "url": "https://github.com/sCrypt-Inc/bsv"
   },
   "dependencies": {
+    "@scrypt-inc/bsv": "file:",
     "aes-js": "^3.1.2",
     "assert": "^2.1.0",
     "bn.js": "=4.11.9",
